@@ -4,6 +4,8 @@ export interface Fix {
   lat: number;
   lng: number;
   accuracy: number;
+  heading?: number | null;
+  speed?: number | null;
   timestamp: number;
   source: "geolocation" | "sample" | "phone";
 }

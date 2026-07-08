@@ -174,3 +174,25 @@
 @utility animate-soft-glow {
   animation: soft-glow 2.4s ease-in-out infinite;
 }
+
+/* Pulsing halo underneath the "you are here" GPS marker on the map. */
+.gps-halo {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+}
+.gps-halo-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 36px;
+  height: 36px;
+  margin-left: -18px;
+  margin-top: -18px;
+  border-radius: 9999px;
+  background: #3b82f6;
+  opacity: 0.35;
+  animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+}

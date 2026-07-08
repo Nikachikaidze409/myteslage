@@ -160,11 +160,13 @@ function Index() {
         {/* Map */}
         <main className="relative min-h-[400px] overflow-hidden rounded-xl border border-border bg-card lg:min-h-full">
           {/* Search overlay — stays at top so on-screen keyboards do not cover it */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-3">
-            <div className="pointer-events-auto w-full max-w-xl">
-              <DestinationSearch onSelect={setDestination} disabled={!fix} />
+          {!navigating && (
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-3">
+              <div className="pointer-events-auto w-full max-w-xl">
+                <DestinationSearch onSelect={setDestination} disabled={!fix} />
+              </div>
             </div>
-          </div>
+          )}
 
           {navigating && route && (
             <NavBanner route={route} fix={fix} onStop={stopNav} />

@@ -6,6 +6,8 @@ import { StatusPanel, type Fix } from "@/components/StatusPanel";
 import { DestinationSearch, type Destination } from "@/components/DestinationSearch";
 import { RoutePreview } from "@/components/RoutePreview";
 import { FeasibilityNote } from "@/components/FeasibilityNote";
+import { PairPhonePanel } from "@/components/PairPhonePanel";
+import { DirectionsPanel } from "@/components/DirectionsPanel";
 import { computeRoute, type RouteResult } from "@/lib/routes.functions";
 
 const MapView = lazy(() =>
@@ -92,6 +94,18 @@ function Index() {
             onActiveChange={setWatching}
           />
 
+          <PairPhonePanel
+            onPairedFix={(p) =>
+              setFix({
+                lat: p.lat,
+                lng: p.lng,
+                accuracy: p.accuracy,
+                timestamp: p.timestamp,
+                source: "phone",
+              })
+            }
+          />
+
           {error && (
             <div className="rounded-xl border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/10 p-4">
               <div className="text-sm font-semibold text-[color:var(--bad)]">
@@ -117,6 +131,8 @@ function Index() {
             loading={routeLoading}
             error={routeError}
           />
+
+          {route && <DirectionsPanel route={route} />}
 
           {!fix && !error && (
             <button

@@ -5,10 +5,17 @@ export interface LatLng {
   lng: number;
 }
 
+export interface RouteStep {
+  instruction: string;
+  distanceMeters: number;
+  polyline: string;
+}
+
 export interface RouteResult {
   distanceMeters: number;
   durationSeconds: number;
   encodedPolyline: string;
+  steps: RouteStep[];
 }
 
 export const computeRoute = createServerFn({ method: "POST" })
@@ -37,7 +44,8 @@ export const computeRoute = createServerFn({ method: "POST" })
           Authorization: `Bearer ${lovableKey}`,
           "X-Connection-Api-Key": connKey,
           "Content-Type": "application/json",
-          "X-Goog-FieldMask": "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline",
+          "X-Goog-FieldMask":
+            "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline,routes.legs.steps.distanceMeters,routes.legs.steps.navigationInstruction,routes.legs.steps.polyline.encodedPolyline",
         },
         body: JSON.stringify({
           origin: { location: { latLng: { latitude: data.origin.lat, longitude: data.origin.lng } } },
@@ -57,14 +65,36 @@ export const computeRoute = createServerFn({ method: "POST" })
     }
 
     const json = (await res.json()) as {
-      routes?: { distanceMeters?: number; duration?: string; polyline?: { encodedPolyline?: string } }[];
+      routes?: {
+        distanceMeters?: number;
+        duration?: string;
+        polyline?: { encodedPolyline?: string };
+        legs?: {
+          steps?: {
+            distanceMeters?: number;
+            navigationInstruction?: { instructions?: string };
+            polyline?: { encodedPolyline?: string };
+          }[];
+        }[];
+      }[];
     };
     const r = json.routes?.[0];
     if (!r?.polyline?.encodedPolyline) throw new Error("No route found");
     const durationSeconds = r.duration ? parseInt(r.duration.replace("s", ""), 10) : 0;
+    const steps: RouteStep[] = [];
+    for (const leg of r.legs ?? []) {
+      for (const s of leg.steps ?? []) {
+        steps.push({
+          instruction: s.navigationInstruction?.instructions ?? "Continue",
+          distanceMeters: s.distanceMeters ?? 0,
+          polyline: s.polyline?.encodedPolyline ?? "",
+        });
+      }
+    }
     return {
       distanceMeters: r.distanceMeters ?? 0,
       durationSeconds,
       encodedPolyline: r.polyline.encodedPolyline,
+      steps,
     };
   });

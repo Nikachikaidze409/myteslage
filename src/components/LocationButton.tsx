@@ -20,6 +20,17 @@ export function LocationButton({ onFix, onError, active, onActiveChange }: Props
     };
   }, []);
 
+  // Auto-start when parent flips `active` on (e.g. session restore after Tesla reverse).
+  useEffect(() => {
+    if (active && watchId.current == null) start();
+    if (!active && watchId.current != null) {
+      navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
+      setPending(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
   const stop = () => {
     if (watchId.current != null) {
       navigator.geolocation.clearWatch(watchId.current);

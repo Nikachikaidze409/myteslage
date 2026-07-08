@@ -22,6 +22,7 @@ import {
   loadCachedRoute,
   useNetworkStatus,
 } from "@/lib/favorites";
+import { saveSession, loadSession, clearSession } from "@/lib/session";
 
 const MapView = lazy(() =>
   import("@/components/MapView").then((m) => ({ default: m.MapView })),
@@ -50,6 +51,11 @@ function Index() {
   const [offlineCache, setOfflineCache] = useState(false);
   const online = useNetworkStatus();
 
+  // Session restore state
+  const restoredRef = useRef(false);
+  const pendingResumeRef = useRef(false);
+  const [resumedName, setResumedName] = useState<string | null>(null);
+
   const routeRequestRef = useRef(0);
   const lastRouteOriginRef = useRef<Fix | null>(null);
   const lastLiveRouteAtRef = useRef(0);
@@ -62,6 +68,51 @@ function Index() {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
+
+  // On mount: restore last active nav session (e.g. after Tesla exited reverse and browser reopened).
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    const s = loadSession();
+    if (!s || !s.destination) return;
+    setDestination(s.destination);
+    setAvoid(s.avoid ?? []);
+    setWaypoints(s.waypoints ?? []);
+    if (s.navigating) {
+      pendingResumeRef.current = true;
+      setResumedName(s.destination.name);
+      // Auto-turn on tracking; LocationButton picks this up.
+      setWatching(true);
+    }
+  }, []);
+
+  // Dismiss the "Resumed trip" toast after 6s.
+  useEffect(() => {
+    if (!resumedName) return;
+    const t = window.setTimeout(() => setResumedName(null), 6000);
+    return () => window.clearTimeout(t);
+  }, [resumedName]);
+
+  // Persist session whenever the active trip changes.
+  useEffect(() => {
+    saveSession({
+      destination: destination
+        ? { lat: destination.lat, lng: destination.lng, name: destination.name }
+        : null,
+      avoid,
+      waypoints,
+      navigating,
+    });
+  }, [destination, avoid, waypoints, navigating]);
+
+  // Clear session on arrival (within 50m of destination).
+  useEffect(() => {
+    if (!destination || !fix) return;
+    const d = distanceMeters(fix, destination);
+    if (d < 50) {
+      clearSession();
+    }
+  }, [fix, destination]);
 
   const requestRoute = useCallback(
     (
@@ -142,7 +193,8 @@ function Index() {
   useEffect(() => {
     setRoutes([]);
     setSelectedRouteIdx(0);
-    setWaypoints([]);
+    // Preserve waypoints when a session restore just seeded them.
+    if (!pendingResumeRef.current) setWaypoints([]);
     setNavigating(false);
     setOffRoute(false);
     lastRouteOriginRef.current = null;
@@ -156,6 +208,7 @@ function Index() {
     }
     pushRecent({ lat: destination.lat, lng: destination.lng, name: destination.name });
     requestRoute(fix, destination);
+    if (pendingResumeRef.current) pendingResumeRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destination]);
 
@@ -207,6 +260,8 @@ function Index() {
   const stopNav = () => {
     setNavigating(false);
     setWaypoints([]);
+    setDestination(null);
+    clearSession();
   };
 
   const addWaypoint = (stop: { lat: number; lng: number; name: string }) => {
@@ -333,6 +388,30 @@ function Index() {
           </div>
 
           {navigating && route && <NavBanner route={route} fix={fix} onStop={stopNav} />}
+
+          {resumedName && (
+            <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-30 flex justify-center px-4">
+              <div className="flex items-center gap-3 rounded-full border border-border bg-white/95 px-4 py-2 text-sm shadow-lg backdrop-blur">
+                <span className="text-lg" aria-hidden>↻</span>
+                <span className="font-medium text-foreground">
+                  Resumed trip to <span className="font-semibold">{resumedName}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResumedName(null);
+                    setDestination(null);
+                    setNavigating(false);
+                    setWaypoints([]);
+                    clearSession();
+                  }}
+                  className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           <ClientOnly
             fallback={

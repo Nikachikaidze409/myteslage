@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { generatePairCode, subscribePair, type PairedFix } from "@/lib/pair-channel";
 
 interface Props {
@@ -10,7 +10,13 @@ const STORAGE_KEY = "tesla-nav.pair-code";
 export function PairPhonePanel({ onPairedFix }: Props) {
   const [code, setCode] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  const [channelStatus, setChannelStatus] = useState("not paired");
   const [origin, setOrigin] = useState("");
+  const onPairedFixRef = useRef(onPairedFix);
+
+  useEffect(() => {
+    onPairedFixRef.current = onPairedFix;
+  }, [onPairedFix]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -22,22 +28,26 @@ export function PairPhonePanel({ onPairedFix }: Props) {
   useEffect(() => {
     if (!code) return;
     if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, code);
+    setChannelStatus("connecting");
     const unsub = subscribePair(code, (f) => {
       setConnected(true);
-      onPairedFix(f);
-    });
+      setChannelStatus("receiving");
+      onPairedFixRef.current(f);
+    }, setChannelStatus);
     return unsub;
-  }, [code, onPairedFix]);
+  }, [code]);
 
   const start = () => {
     setCode(generatePairCode());
     setConnected(false);
+    setChannelStatus("connecting");
   };
 
   const forget = () => {
     if (typeof window !== "undefined") window.localStorage.removeItem(STORAGE_KEY);
     setCode(null);
     setConnected(false);
+    setChannelStatus("not paired");
   };
 
   const phoneUrl = code ? `${origin}/phone/${code}` : "";
@@ -102,7 +112,7 @@ export function PairPhonePanel({ onPairedFix }: Props) {
                   className="h-2 w-2 rounded-full"
                   style={{ background: connected ? "var(--good)" : "var(--muted-foreground)" }}
                 />
-                {connected ? "Phone connected" : "Waiting for phone…"}
+                {connected ? "Phone connected" : channelStatus === "error" ? "Pairing connection error" : "Waiting for phone…"}
               </div>
             </div>
           </div>

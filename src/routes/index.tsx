@@ -9,8 +9,19 @@ import { FeasibilityNote } from "@/components/FeasibilityNote";
 import { PairPhonePanel } from "@/components/PairPhonePanel";
 import { DirectionsPanel } from "@/components/DirectionsPanel";
 import { NavBanner } from "@/components/NavBanner";
+import { NearbyChips } from "@/components/NearbyChips";
+import { FavoritesPanel } from "@/components/FavoritesPanel";
+import { AlternativesPanel } from "@/components/AlternativesPanel";
+import { BatteryPanel } from "@/components/BatteryPanel";
 import { distanceMeters } from "@/lib/geo";
-import { computeRoute, type RouteResult } from "@/lib/routes.functions";
+import { distanceToPolylineMeters } from "@/lib/off-route";
+import { computeRoute, type RouteResult, type AvoidOption } from "@/lib/routes.functions";
+import {
+  pushRecent,
+  cacheLastRoute,
+  loadCachedRoute,
+  useNetworkStatus,
+} from "@/lib/favorites";
 
 const MapView = lazy(() =>
   import("@/components/MapView").then((m) => ({ default: m.MapView })),
@@ -27,13 +38,25 @@ function Index() {
   const [now, setNow] = useState(() => Date.now());
 
   const [destination, setDestination] = useState<Destination | null>(null);
-  const [route, setRoute] = useState<RouteResult | null>(null);
+  const [routes, setRoutes] = useState<RouteResult[]>([]);
+  const [selectedRouteIdx, setSelectedRouteIdx] = useState(0);
+  const [avoid, setAvoid] = useState<AvoidOption[]>([]);
+  const [waypoints, setWaypoints] = useState<{ lat: number; lng: number; name: string }[]>([]);
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
   const [navigating, setNavigating] = useState(false);
+  const [offRoute, setOffRoute] = useState(false);
+  const [showTraffic, setShowTraffic] = useState(true);
+  const [offlineCache, setOfflineCache] = useState(false);
+  const online = useNetworkStatus();
+
   const routeRequestRef = useRef(0);
   const lastRouteOriginRef = useRef<Fix | null>(null);
   const lastLiveRouteAtRef = useRef(0);
+  const offRouteSinceRef = useRef<number | null>(null);
+  const lastRerouteAtRef = useRef(0);
+
+  const route = routes[selectedRouteIdx] ?? null;
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
@@ -41,7 +64,15 @@ function Index() {
   }, []);
 
   const requestRoute = useCallback(
-    (originFix: Fix, nextDestination: Destination, options?: { silent?: boolean }) => {
+    (
+      originFix: Fix,
+      nextDestination: Destination,
+      options?: {
+        silent?: boolean;
+        avoid?: AvoidOption[];
+        waypoints?: { lat: number; lng: number; name: string }[];
+      },
+    ) => {
       const requestId = ++routeRequestRef.current;
       if (!options?.silent) setRouteLoading(true);
       setRouteError(null);
@@ -49,33 +80,71 @@ function Index() {
         data: {
           origin: { lat: originFix.lat, lng: originFix.lng },
           destination: nextDestination,
+          alternatives: true,
+          avoid: options?.avoid ?? avoid,
+          waypoints: (options?.waypoints ?? waypoints).map((w) => ({ lat: w.lat, lng: w.lng })),
         },
       })
-      .then((r) => {
-        if (routeRequestRef.current === requestId) {
-          setRoute(r);
+        .then((resp) => {
+          if (routeRequestRef.current !== requestId) return;
+          setRoutes(resp.routes);
+          setSelectedRouteIdx(0);
           lastRouteOriginRef.current = originFix;
-          // As soon as a route is ready, snap into live-follow mode so the
-          // blue arrow tracks the car in real time instead of showing a
-          // static zoomed-out overview.
+          setOffRoute(false);
+          offRouteSinceRef.current = null;
+          setOfflineCache(false);
+          const primary = resp.routes[0];
+          if (primary) {
+            cacheLastRoute({
+              destination: {
+                lat: nextDestination.lat,
+                lng: nextDestination.lng,
+                name: nextDestination.name,
+              },
+              encodedPolyline: primary.encodedPolyline,
+              distanceMeters: primary.distanceMeters,
+              durationSeconds: primary.durationSeconds,
+              savedAt: Date.now(),
+            });
+          }
           setNavigating(true);
-        }
-      })
-      .catch((e: unknown) => {
-        if (routeRequestRef.current === requestId) {
+        })
+        .catch((e: unknown) => {
+          if (routeRequestRef.current !== requestId) return;
           setRouteError(e instanceof Error ? e.message : "Route failed");
-        }
-      })
-      .finally(() => {
-        if (routeRequestRef.current === requestId && !options?.silent) setRouteLoading(false);
-      });
+          const cached = loadCachedRoute();
+          if (
+            cached &&
+            Math.abs(cached.destination.lat - nextDestination.lat) < 1e-4 &&
+            Math.abs(cached.destination.lng - nextDestination.lng) < 1e-4
+          ) {
+            setRoutes([
+              {
+                distanceMeters: cached.distanceMeters,
+                durationSeconds: cached.durationSeconds,
+                encodedPolyline: cached.encodedPolyline,
+                steps: [],
+                label: "Cached",
+              },
+            ]);
+            setSelectedRouteIdx(0);
+            setOfflineCache(true);
+          }
+        })
+        .finally(() => {
+          if (routeRequestRef.current === requestId && !options?.silent) setRouteLoading(false);
+        });
     },
-    [],
+    [avoid, waypoints],
   );
 
+  // New destination selected
   useEffect(() => {
-    setRoute(null);
+    setRoutes([]);
+    setSelectedRouteIdx(0);
+    setWaypoints([]);
     setNavigating(false);
+    setOffRoute(false);
     lastRouteOriginRef.current = null;
     if (!destination) {
       setRouteError(null);
@@ -85,29 +154,64 @@ function Index() {
       setRouteError("Waiting for a live location fix from the Tesla browser or paired phone.");
       return;
     }
+    pushRecent({ lat: destination.lat, lng: destination.lng, name: destination.name });
     requestRoute(fix, destination);
-    // Recompute immediately when the destination changes. Live GPS ticks are handled below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destination, requestRoute]);
+  }, [destination]);
+
+  // Avoid options or waypoints changed → re-request silently
+  useEffect(() => {
+    if (!destination || !fix) return;
+    requestRoute(fix, destination, { silent: true, avoid, waypoints });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avoid, waypoints]);
 
   useEffect(() => {
     if (!destination || !fix || route || routeLoading) return;
     requestRoute(fix, destination);
   }, [destination, fix, route, routeLoading, requestRoute]);
 
+  // Live progress + off-route detection + periodic traffic-aware refresh
   useEffect(() => {
     if (!navigating || !destination || !fix || routeLoading) return;
     const lastRouteOrigin = lastRouteOriginRef.current;
     if (!lastRouteOrigin) return;
+
+    if (route?.encodedPolyline) {
+      const d = distanceToPolylineMeters({ lat: fix.lat, lng: fix.lng }, route.encodedPolyline);
+      if (d > 50) {
+        if (offRouteSinceRef.current == null) offRouteSinceRef.current = Date.now();
+        if (
+          Date.now() - (offRouteSinceRef.current ?? 0) > 6_000 &&
+          Date.now() - lastRerouteAtRef.current > 10_000
+        ) {
+          setOffRoute(true);
+          lastRerouteAtRef.current = Date.now();
+          requestRoute(fix, destination);
+          return;
+        }
+      } else {
+        offRouteSinceRef.current = null;
+        if (offRoute) setOffRoute(false);
+      }
+    }
+
     const moved = distanceMeters(fix, lastRouteOrigin);
     const elapsed = Date.now() - lastLiveRouteAtRef.current;
     if (moved >= 80 && elapsed >= 10_000) {
       lastLiveRouteAtRef.current = Date.now();
       requestRoute(fix, destination, { silent: true });
     }
-  }, [destination, fix, navigating, requestRoute, routeLoading]);
+  }, [destination, fix, navigating, requestRoute, routeLoading, route, offRoute]);
 
-  const stopNav = () => setNavigating(false);
+  const stopNav = () => {
+    setNavigating(false);
+    setWaypoints([]);
+  };
+
+  const addWaypoint = (stop: { lat: number; lng: number; name: string }) => {
+    setWaypoints((cur) => [...cur, stop]);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -121,6 +225,11 @@ function Index() {
             <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
               Browser navigation
             </h1>
+            {!online && (
+              <div className="mt-2 rounded-lg border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5 px-2 py-1 text-[11px] font-semibold text-[color:var(--bad)]">
+                Offline — using cached route
+              </div>
+            )}
           </header>
 
           <LocationButton
@@ -162,6 +271,28 @@ function Index() {
 
           {fix && <StatusPanel fix={fix} now={now} />}
 
+          <FavoritesPanel currentDestination={destination} onPick={setDestination} />
+
+          <NearbyChips origin={fix} onPick={setDestination} />
+
+          {routes.length > 1 && (
+            <AlternativesPanel
+              routes={routes}
+              selectedIndex={selectedRouteIdx}
+              onSelect={setSelectedRouteIdx}
+              avoid={avoid}
+              onAvoidChange={setAvoid}
+            />
+          )}
+
+          {route && (
+            <BatteryPanel
+              routeKm={route.distanceMeters / 1000}
+              encodedPolyline={route.encodedPolyline}
+              onAddStop={addWaypoint}
+            />
+          )}
+
           {route && <DirectionsPanel route={route} />}
 
           <div className="mt-auto flex flex-col gap-3">
@@ -170,6 +301,8 @@ function Index() {
               destinationName={destination?.name ?? null}
               loading={routeLoading}
               error={routeError}
+              offRoute={offRoute}
+              offline={offlineCache}
             />
             <FeasibilityNote />
           </div>
@@ -177,7 +310,6 @@ function Index() {
 
         {/* Map */}
         <main className="relative min-h-[400px] flex-1 overflow-hidden rounded-3xl border border-border bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full">
-          {/* Search overlay */}
           {!navigating && (
             <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-6">
               <div className="pointer-events-auto w-full max-w-2xl">
@@ -186,17 +318,43 @@ function Index() {
             </div>
           )}
 
-          {navigating && route && (
-            <NavBanner route={route} fix={fix} onStop={stopNav} />
-          )}
+          <div className="absolute right-4 top-4 z-30">
+            <button
+              type="button"
+              onClick={() => setShowTraffic((v) => !v)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
+                showTraffic
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-white/90 text-foreground hover:bg-white"
+              }`}
+            >
+              {showTraffic ? "Traffic on" : "Traffic off"}
+            </button>
+          </div>
 
-          <ClientOnly fallback={<div className="flex h-full items-center justify-center text-muted-foreground">Loading map…</div>}>
-            <Suspense fallback={<div className="flex h-full items-center justify-center text-muted-foreground">Loading map…</div>}>
+          {navigating && route && <NavBanner route={route} fix={fix} onStop={stopNav} />}
+
+          <ClientOnly
+            fallback={
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                Loading map…
+              </div>
+            }
+          >
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  Loading map…
+                </div>
+              }
+            >
               <MapView
                 fix={fix}
                 destination={destination}
                 encodedPolyline={route?.encodedPolyline ?? null}
                 navigating={navigating}
+                showTraffic={showTraffic}
+                waypoints={waypoints}
               />
             </Suspense>
           </ClientOnly>

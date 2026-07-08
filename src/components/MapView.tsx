@@ -8,15 +8,19 @@ interface Props {
   destination: { lat: number; lng: number; name?: string } | null;
   encodedPolyline: string | null;
   navigating?: boolean;
+  showTraffic?: boolean;
+  waypoints?: { lat: number; lng: number; name?: string }[];
 }
 
 const DEFAULT_CENTER = { lat: 41.7151, lng: 44.8271 };
 
-export function MapView({ fix, destination, encodedPolyline, navigating }: Props) {
+export function MapView({ fix, destination, encodedPolyline, navigating, showTraffic, waypoints }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const meMarker = useRef<any>(null);
   const destMarker = useRef<any>(null);
+  const waypointMarkersRef = useRef<any[]>([]);
+  const trafficLayerRef = useRef<any>(null);
   const accuracyCircle = useRef<any>(null);
   const routeLine = useRef<any>(null);
   const lastPolylineRef = useRef<string | null>(null);
@@ -79,8 +83,46 @@ export function MapView({ fix, destination, encodedPolyline, navigating }: Props
         haloOverlayRef.current.setMap(null);
         haloOverlayRef.current = null;
       }
+      if (trafficLayerRef.current) {
+        trafficLayerRef.current.setMap(null);
+        trafficLayerRef.current = null;
+      }
     };
   }, []);
+
+  // Traffic overlay toggle
+  useEffect(() => {
+    const g = (window as any).google;
+    const map = mapRef.current;
+    if (!g || !map) return;
+    if (showTraffic) {
+      if (!trafficLayerRef.current) {
+        trafficLayerRef.current = new g.maps.TrafficLayer();
+      }
+      trafficLayerRef.current.setMap(map);
+    } else if (trafficLayerRef.current) {
+      trafficLayerRef.current.setMap(null);
+    }
+  }, [showTraffic]);
+
+  // Waypoint markers (e.g. supercharger stops)
+  useEffect(() => {
+    const g = (window as any).google;
+    const map = mapRef.current;
+    if (!g || !map) return;
+    for (const m of waypointMarkersRef.current) m.setMap(null);
+    waypointMarkersRef.current = [];
+    for (const w of waypoints ?? []) {
+      waypointMarkersRef.current.push(
+        new g.maps.Marker({
+          map,
+          position: { lat: w.lat, lng: w.lng },
+          title: w.name ?? "Stop",
+          label: { text: "⚡", fontSize: "18px" },
+        }),
+      );
+    }
+  }, [waypoints]);
 
   useEffect(() => {
     const g = (window as any).google;

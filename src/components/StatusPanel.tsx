@@ -15,13 +15,13 @@ export function StatusPanel({ fix, now }: { fix: Fix; now: number }) {
   const precision = scorePrecision(fix.accuracy, age);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
-          Location fix
+        <h2 className="font-display text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+          Location Fix
         </h2>
         <span
-          className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider text-background"
+          className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white"
           style={{ backgroundColor: precision.color }}
         >
           {precision.label}
@@ -35,7 +35,7 @@ export function StatusPanel({ fix, now }: { fix: Fix; now: number }) {
         <Field label="Age" value={`${Math.max(0, Math.round(age / 1000))} s`} />
       </div>
 
-      <p className="mt-4 text-sm text-muted-foreground">
+      <p className="mt-4 text-xs text-muted-foreground">
         {precision.description}
         {fix.source === "sample" && " · sample data"}
         {fix.source === "phone" && " · from paired phone GPS"}
@@ -47,8 +47,8 @@ export function StatusPanel({ fix, now }: { fix: Fix; now: number }) {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-1 font-mono text-lg text-foreground">{value}</div>
+      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="font-display mt-1 text-base font-bold text-foreground">{value}</div>
     </div>
   );
 }

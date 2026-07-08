@@ -1,48 +1,46 @@
-# Tesla Browser Navigation Prototype — Plan
+## Context
 
-A website-only MVP optimized for the Tesla in-car browser that tests whether browser geolocation alone can produce a usable location fix for navigation in Georgia. No app, no pairing, no Bluetooth.
+Tesla firmware suspends the browser when the car shifts into Reverse (the reverse camera takes over the screen). No web app can force itself back to the foreground — Tesla exposes no API for gear state, background execution, or app relaunch. When you shift back to D/P you must tap the browser icon again.
 
-## Scope
-- Single-page TanStack Start app, dark theme, large touch targets, full-screen layout tuned for the ~17" Tesla display.
-- Uses Google Maps Platform connector (already recommended in this environment) for map tiles, Places search, and Routes — all Georgia-focused via country biasing (`gee`).
-- No backend data persistence needed. Google Maps browser key loads client-side; Routes/Places calls go through the Lovable connector gateway (server function) so no secrets leak.
+The only thing we control is **what happens when the browser reopens**. Today the app loads on the home screen and you have to re-enter your destination and re-tap "Start navigation". This plan makes the app resume exactly where you left off, so one tap on the browser icon puts you straight back into turn-by-turn.
 
-## User flow
-1. Landing screen shows a big "Detect My Location" button, a short feasibility note, and the experimental-accuracy warning.
-2. Tap → request `navigator.geolocation.getCurrentPosition({ enableHighAccuracy: true })`, then start `watchPosition` to keep updating.
-3. Status panel appears: lat, lng, accuracy (m), timestamp, precision score badge (Good <30 m / Usable 30–100 m / Weak >100 m / Unusable >500 m or stale >60 s).
-4. Map centers on the fix; a search bar lets the user pick a destination in Georgia (Places Autocomplete, country-restricted).
-5. On selection, fetch a route from current position → destination and draw the polyline with distance + ETA.
-6. If geolocation fails/denies/times out, show a clear fallback card with reason and a "Use sample location (Tbilisi)" demo button that seeds a fake fix so the rest of the UI is demonstrable.
+## What this plan changes
 
-## Screens / components
-- `routes/index.tsx` — full-screen shell, feasibility note, warning banner, main panel.
-- `components/LocationButton.tsx` — detect + watch controls, permission-state handling.
-- `components/StatusPanel.tsx` — coordinates, accuracy, age, precision badge.
-- `components/MapView.tsx` — Google Maps JS API (`loading=async`, `callback=initMap`, no `mapId`, plain `Marker`). Client-only via `<ClientOnly>` + `React.lazy`.
-- `components/DestinationSearch.tsx` — Places API (New) `AutocompleteSuggestion.fetchAutocompleteSuggestions` with `includedRegionCodes: ['ge']`.
-- `components/RoutePreview.tsx` — shows distance/ETA/steps summary.
-- `lib/routes.functions.ts` — `createServerFn` calling `routes/v2:computeRoutes` through the connector gateway.
-- `lib/precision.ts` — pure scoring + staleness helpers.
+Add full session persistence + auto-resume:
 
-## Precision + reliability logic
-- Score buckets as specified; also flag "stale" if `Date.now() - timestamp > 60s`.
-- Detect: `!('geolocation' in navigator)`, `PermissionsAPI` state = denied, `POSITION_UNAVAILABLE`, `TIMEOUT` — each gets its own message.
-- Secure-context check: warn if `!window.isSecureContext` (Tesla browser occasionally serves mixed content).
-- Watch cleanup on unmount; throttle re-renders to 1/s.
+1. **Persist active nav session** to `localStorage` whenever it changes:
+   - Selected destination (lat, lng, name)
+   - Active route (encoded polyline, alternatives, chosen index)
+   - Route options (avoid tolls / highways / ferries)
+   - Waypoints (e.g. supercharger stops)
+   - Navigation state (was it in "navigating" mode?)
+   - Timestamp of last save
 
-## Design
-- Dark palette (near-black background, high-contrast text, one accent — Tesla-ish red `oklch(0.62 0.22 25)` used sparingly for the primary CTA), Inter or system-ui, min 48 px tap targets, no hover-only affordances, landscape-first.
-- Not the generic AI purple-gradient look; flat surfaces, thin dividers, large numeric readouts for the status panel.
+2. **On app load**, if a saved session exists and is < 2 hours old:
+   - Restore destination, route, waypoints, options into state immediately
+   - Auto-request geolocation (same as tapping "Detect location")
+   - Once the first GPS fix arrives, auto-enter navigating mode and resume turn-by-turn — no taps required
+   - Show a small "Resumed trip to {destination}" toast with a "Cancel" button in case the user doesn't want to resume
 
-## Connector setup (during build)
-- Link the Google Maps Platform connection so `VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY` and the gateway secrets are available.
+3. **Clear the saved session** when:
+   - User taps "End navigation" / clears destination
+   - User arrives (distance to destination < 50 m)
+   - Session is older than 2 hours on load (stale)
 
-## Feasibility verdict (will also be surfaced in-UI at the bottom)
-- **Feasible in principle, unreliable in practice on Tesla.** The Tesla browser is a stripped Chromium; `navigator.geolocation` support has been inconsistent across firmware versions and often falls back to IP-based location (city-level, hundreds of meters to kilometers), which is not navigation-grade.
-- **Real:** permission prompt, high-accuracy request, `watchPosition` updates, precision scoring, map + search + route rendering, HTTPS/secure-context handling, graceful failure UI.
-- **Unreliable:** actual accuracy. Browsers cannot access the car's GPS chip, cannot read a nearby phone's GPS without that phone explicitly serving location over the network, and Wi-Fi/cell positioning coverage in Georgia is sparse compared to Google's dense wardriving datasets in Western markets. Expect frequent 500 m–5 km errors or `POSITION_UNAVAILABLE`.
-- **Would need a companion mobile app for production:** a phone-side app that (a) reads real GPS via native APIs, (b) pushes coordinates to a small backend or LAN endpoint over Wi-Fi/hotspot, and (c) the Tesla browser polls that endpoint. That is the only way to get true GPS precision into the car browser without OEM integration.
+4. **Recovery hint in UI**: small text under the browser-reopen scenario — "Trip auto-resumes when you reopen the browser" — so the user knows what to expect.
 
-## Out of scope
-- Turn-by-turn voice guidance, offline tiles, saved trips, accounts, any Bluetooth/phone-pairing UX, native wrappers.
+## What this plan does NOT do (and why)
+
+- **Auto-relaunch the browser after reverse** — impossible from a web app. Tesla firmware controls this. The only true auto-resume is Tesla's split-screen mode (Model S/X and newer 3/Y), where the browser stays alive alongside the map and returns automatically when you shift out of R. I'll mention this in the UI as the recommended setup.
+- **Background GPS while hidden** — the browser is fully suspended by Tesla; no JS runs. We can't keep tracking during reverse.
+
+## Technical details
+
+Files to touch:
+
+- **New** `src/lib/session.ts` — `saveSession()`, `loadSession()`, `clearSession()` helpers wrapping `localStorage` under key `nav-session-v1`, with a 2-hour TTL and a version field for future migrations.
+- **Edit** `src/routes/index.tsx` — call `saveSession()` inside effects that already watch destination/route/options/waypoints; on mount, call `loadSession()` and hydrate state; when the first `fix` arrives and a session was restored, auto-trigger `startNavigation()`. Clear session on end/arrival.
+- **Edit** `src/components/RoutePreview.tsx` (or a new small `ResumeToast.tsx`) — show the "Resumed trip — Cancel" toast for ~5 s after auto-restore.
+- **Edit** `src/components/FeasibilityNote.tsx` (or wherever tips live) — add the split-screen recommendation and "auto-resumes on reopen" note.
+
+No backend, no schema changes, no new dependencies. Uses existing `localStorage` pattern already in `src/lib/favorites.ts`.

@@ -40,21 +40,24 @@ export function NavBanner({ route, fix, onStop }: Props) {
     : `${Math.max(0, Math.round(distToTurn / 10) * 10)} m`;
 
   return (
-    <div className="pointer-events-auto absolute left-1/2 top-4 z-30 w-[min(680px,calc(100%-2rem))] -translate-x-1/2 rounded-2xl border border-border/60 bg-card/95 p-4 shadow-2xl backdrop-blur">
-      <div className="flex items-center gap-4">
-        <div className="min-w-[92px] text-center">
-          <div className="font-mono text-3xl font-bold text-primary">{dText}</div>
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">to next turn</div>
+    <div className="pointer-events-auto absolute left-6 top-6 z-30 w-[min(460px,calc(100%-3rem))] animate-in fade-in slide-in-from-top-4 rounded-3xl bg-primary p-5 text-primary-foreground shadow-2xl shadow-primary/30">
+      <div className="flex items-center gap-5">
+        <div className="flex flex-col items-center">
+          <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 20V4m0 0l-6 6m6-6l6 6" />
+          </svg>
+          <span className="mt-1 text-[10px] font-bold uppercase tracking-wider opacity-90">{dText}</span>
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="truncate text-lg font-semibold text-foreground">{stripHtml(step.instruction)}</div>
-          <div className="mt-1 font-mono text-xs text-muted-foreground">
-            Step {currentIdx + 1} / {route.steps.length} · {(route.distanceMeters / 1000).toFixed(1)} km total · {Math.round(route.durationSeconds / 60)} min
-          </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold uppercase tracking-wider opacity-80">Next</p>
+          <p className="font-display truncate text-2xl font-bold leading-tight">{stripHtml(step.instruction)}</p>
+          <p className="mt-1 text-[11px] opacity-80">
+            {Math.round(route.durationSeconds / 60)} min · {(route.distanceMeters / 1000).toFixed(1)} km total
+          </p>
         </div>
         <button
           onClick={onStop}
-          className="shrink-0 h-10 rounded-lg border border-border bg-secondary px-3 text-xs font-medium text-secondary-foreground hover:bg-accent"
+          className="shrink-0 self-start rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white transition hover:bg-white/25"
         >
           End
         </button>

@@ -25,6 +25,7 @@ export function LocationButton({ onFix, onError, active, onActiveChange }: Props
       navigator.geolocation.clearWatch(watchId.current);
       watchId.current = null;
     }
+    setPending(false);
     onActiveChange(false);
   };
 
@@ -37,46 +38,41 @@ export function LocationButton({ onFix, onError, active, onActiveChange }: Props
       onError("Geolocation needs a secure (HTTPS) context. This page is not secure.");
       return;
     }
+    if (watchId.current != null) {
+      navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
+    }
     setPending(true);
-    navigator.geolocation.getCurrentPosition(
+    onActiveChange(true);
+
+    watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
         setPending(false);
         onFix({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
           accuracy: pos.coords.accuracy,
+          heading: pos.coords.heading,
+          speed: pos.coords.speed,
           timestamp: pos.timestamp,
           source: "geolocation",
         });
-        watchId.current = navigator.geolocation.watchPosition(
-          (p) =>
-            onFix({
-              lat: p.coords.latitude,
-              lng: p.coords.longitude,
-              accuracy: p.coords.accuracy,
-              timestamp: p.timestamp,
-              source: "geolocation",
-            }),
-          (err) => onError(describeError(err)),
-          { enableHighAccuracy: true, maximumAge: 5_000, timeout: 20_000 },
-        );
-        onActiveChange(true);
       },
       (err) => {
-        setPending(false);
+        if (err.code !== err.TIMEOUT) setPending(false);
+        if (err.code === err.PERMISSION_DENIED) onActiveChange(false);
         onError(describeError(err));
       },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 15_000 },
+      { enableHighAccuracy: true, maximumAge: 0 },
     );
   };
 
   return (
     <button
       onClick={active ? stop : start}
-      disabled={pending}
-      className="h-16 w-full rounded-xl bg-primary px-8 text-lg font-semibold text-primary-foreground shadow-lg transition-transform active:scale-[0.98] disabled:opacity-60"
+      className="h-16 w-full rounded-xl bg-primary px-8 text-lg font-semibold text-primary-foreground shadow-lg transition-transform active:scale-[0.98]"
     >
-      {pending ? "Requesting…" : active ? "Stop tracking" : "Detect my location"}
+      {pending ? "Searching for live GPS…" : active ? "Stop tracking" : "Detect live location"}
     </button>
   );
 }
@@ -88,7 +84,7 @@ function describeError(err: GeolocationPositionError): string {
     case err.POSITION_UNAVAILABLE:
       return "Position unavailable. The browser could not determine a location — Wi-Fi/cell signals may be insufficient.";
     case err.TIMEOUT:
-      return "Timed out waiting for a location fix.";
+      return "Still searching for a live GPS fix. Keep this page open and pair your phone if the Tesla browser stops updating.";
     default:
       return err.message || "Unknown geolocation error.";
   }

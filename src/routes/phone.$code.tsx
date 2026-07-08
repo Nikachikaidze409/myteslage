@@ -14,6 +14,7 @@ function PhoneRelay() {
   const { code } = Route.useParams();
   const upperCode = code.toUpperCase();
   const [status, setStatus] = useState<"idle" | "starting" | "streaming" | "error">("idle");
+  const [channelStatus, setChannelStatus] = useState("not connected");
   const [error, setError] = useState<string | null>(null);
   const [last, setLast] = useState<PairedFix | null>(null);
   const [sent, setSent] = useState(0);
@@ -34,10 +35,19 @@ function PhoneRelay() {
   // PERMISSION_DENIED without ever prompting.
   const start = () => {
     setError(null);
+    setChannelStatus("connecting");
     if (!("geolocation" in navigator)) {
       setStatus("error");
       setError("This browser has no geolocation.");
       return;
+    }
+    if (watchRef.current != null) {
+      navigator.geolocation.clearWatch(watchRef.current);
+      watchRef.current = null;
+    }
+    if (channelRef.current) {
+      void supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
     setStatus("starting");
 
@@ -48,11 +58,17 @@ function PhoneRelay() {
     channelRef.current = channel;
     channel.subscribe((s) => {
       if (s === "SUBSCRIBED") {
+        setChannelStatus("connected");
         channelReady = true;
         if (pending) {
           void channel.send({ type: "broadcast", event: "fix", payload: pending });
           pending = null;
         }
+      } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") {
+        setChannelStatus("connection error");
+        setError("Phone GPS is running, but the live pairing channel could not connect. Reload both screens and scan the QR again.");
+      } else if (s === "CLOSED") {
+        setChannelStatus("closed");
       }
     });
 
@@ -73,8 +89,11 @@ function PhoneRelay() {
         setSent((n) => n + 1);
         setStatus("streaming");
         if (channelReady) {
-          void channel.send({ type: "broadcast", event: "fix", payload: fix }).catch((e) => {
+          void channel.send({ type: "broadcast", event: "fix", payload: fix }).then((result) => {
+            if (result !== "ok") setChannelStatus("sending failed");
+          }).catch((e) => {
             console.error(e);
+            setChannelStatus("sending failed");
           });
         } else {
           // Keep only the latest fix until the channel is ready.
@@ -161,6 +180,7 @@ function PhoneRelay() {
             <div>± {Math.round(last.accuracy)} m</div>
             {last.speed != null && <div>speed {(last.speed * 3.6).toFixed(1)} km/h</div>}
             <div className="text-muted-foreground">updates sent: {sent}</div>
+            <div className="text-muted-foreground">pairing: {channelStatus}</div>
           </div>
         )}
 

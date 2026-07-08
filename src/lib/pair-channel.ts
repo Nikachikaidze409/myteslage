@@ -21,15 +21,27 @@ export function generatePairCode(): string {
   return out;
 }
 
-export function subscribePair(code: string, onFix: (f: PairedFix) => void) {
+export function subscribePair(
+  code: string,
+  onFix: (f: PairedFix) => void,
+  onStatus?: (status: "connecting" | "subscribed" | "receiving" | "error" | "closed") => void,
+) {
+  onStatus?.("connecting");
   const channel = supabase.channel(pairChannelName(code), {
     config: { broadcast: { self: false } },
   });
   channel.on("broadcast", { event: "fix" }, (msg) => {
     const p = msg.payload as PairedFix;
-    if (p && typeof p.lat === "number" && typeof p.lng === "number") onFix(p);
+    if (p && typeof p.lat === "number" && typeof p.lng === "number") {
+      onStatus?.("receiving");
+      onFix(p);
+    }
   });
-  channel.subscribe();
+  channel.subscribe((status) => {
+    if (status === "SUBSCRIBED") onStatus?.("subscribed");
+    if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") onStatus?.("error");
+    if (status === "CLOSED") onStatus?.("closed");
+  });
   return () => {
     void supabase.removeChannel(channel);
   };

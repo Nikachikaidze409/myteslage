@@ -51,8 +51,9 @@ export function MapView({ fix, destination, encodedPolyline, navigating }: Props
         position: pos,
         title: "You",
         icon: {
-          path: g.maps.SymbolPath.CIRCLE,
-          scale: 9,
+          path: fix.heading == null ? g.maps.SymbolPath.CIRCLE : g.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+          scale: fix.heading == null ? 9 : 6,
+          rotation: fix.heading ?? 0,
           fillColor: "#3b82f6",
           fillOpacity: 1,
           strokeColor: "#ffffff",
@@ -62,6 +63,15 @@ export function MapView({ fix, destination, encodedPolyline, navigating }: Props
       });
     } else {
       meMarker.current.setPosition(pos);
+      meMarker.current.setIcon({
+        path: fix.heading == null ? g.maps.SymbolPath.CIRCLE : g.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+        scale: fix.heading == null ? 9 : 6,
+        rotation: fix.heading ?? 0,
+        fillColor: "#3b82f6",
+        fillOpacity: 1,
+        strokeColor: "#ffffff",
+        strokeWeight: 3,
+      });
     }
     if (accuracyCircle.current) accuracyCircle.current.setMap(null);
     accuracyCircle.current = new g.maps.Circle({
@@ -77,6 +87,7 @@ export function MapView({ fix, destination, encodedPolyline, navigating }: Props
     map.panTo(pos);
     if (navigating) {
       if (map.getZoom() < 16) map.setZoom(17);
+      if (fix.heading != null) map.setHeading(fix.heading);
     } else if (map.getZoom() < 12) {
       map.setZoom(13);
     }

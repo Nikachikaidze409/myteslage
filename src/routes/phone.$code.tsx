@@ -19,6 +19,7 @@ function PhoneRelay() {
   const [sent, setSent] = useState(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const watchRef = useRef<number | null>(null);
+  const PHONE_KEY = `tesla-nav.phone-autostart.${upperCode}`;
 
   useEffect(() => {
     return () => {
@@ -28,6 +29,7 @@ function PhoneRelay() {
   }, []);
 
   const start = async () => {
+    if (typeof window !== "undefined") window.localStorage.setItem(PHONE_KEY, "1");
     setError(null);
     if (!("geolocation" in navigator)) {
       setStatus("error");
@@ -74,6 +76,15 @@ function PhoneRelay() {
       { enableHighAccuracy: true, maximumAge: 1_000, timeout: 20_000 },
     );
   };
+
+  // Auto-resume streaming if this phone has paired with this code before.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem(PHONE_KEY) === "1") {
+      void start();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upperCode]);
 
   return (
     <div className="min-h-screen bg-background p-6 text-foreground">

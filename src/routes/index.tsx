@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { LocationButton } from "@/components/LocationButton";
 import { StatusPanel, type Fix } from "@/components/StatusPanel";
 import { DestinationSearch, type Destination } from "@/components/DestinationSearch";
@@ -9,6 +9,7 @@ import { FeasibilityNote } from "@/components/FeasibilityNote";
 import { PairPhonePanel } from "@/components/PairPhonePanel";
 import { DirectionsPanel } from "@/components/DirectionsPanel";
 import { NavBanner } from "@/components/NavBanner";
+import { distanceMeters } from "@/lib/geo";
 import { computeRoute, type RouteResult } from "@/lib/routes.functions";
 
 const MapView = lazy(() =>
@@ -18,14 +19,6 @@ const MapView = lazy(() =>
 export const Route = createFileRoute("/")({
   component: Index,
 });
-
-const SAMPLE_FIX: Fix = {
-  lat: 41.7151,
-  lng: 44.8271,
-  accuracy: 20,
-  timestamp: Date.now(),
-  source: "sample",
-};
 
 function Index() {
   const [fix, setFix] = useState<Fix | null>(null);
@@ -38,43 +31,77 @@ function Index() {
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
   const [navigating, setNavigating] = useState(false);
+  const routeRequestRef = useRef(0);
+  const lastRouteOriginRef = useRef<Fix | null>(null);
+  const lastLiveRouteAtRef = useRef(0);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    if (!destination) return;
-    // Use the CURRENT fix as the origin, but only recompute when the destination
-    // changes — not on every GPS tick. Live position tracking against the
-    // existing route is handled by NavBanner + MapView.
-    const originFix = fix;
-    if (!originFix) return;
-    let cancelled = false;
-    setRouteLoading(true);
-    setRouteError(null);
-    computeRoute({ data: { origin: { lat: originFix.lat, lng: originFix.lng }, destination } })
+  const requestRoute = useCallback(
+    (originFix: Fix, nextDestination: Destination, options?: { silent?: boolean }) => {
+      const requestId = ++routeRequestRef.current;
+      if (!options?.silent) setRouteLoading(true);
+      setRouteError(null);
+      computeRoute({
+        data: {
+          origin: { lat: originFix.lat, lng: originFix.lng },
+          destination: nextDestination,
+        },
+      })
       .then((r) => {
-        if (!cancelled) setRoute(r);
+        if (routeRequestRef.current === requestId) {
+          setRoute(r);
+          lastRouteOriginRef.current = originFix;
+        }
       })
       .catch((e: unknown) => {
-        if (!cancelled) setRouteError(e instanceof Error ? e.message : "Route failed");
+        if (routeRequestRef.current === requestId) {
+          setRouteError(e instanceof Error ? e.message : "Route failed");
+        }
       })
       .finally(() => {
-        if (!cancelled) setRouteLoading(false);
+        if (routeRequestRef.current === requestId && !options?.silent) setRouteLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
-    // Intentionally omit `fix` from deps — see comment above.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destination]);
+    },
+    [],
+  );
 
-  const useSample = () => {
-    setError(null);
-    setFix({ ...SAMPLE_FIX, timestamp: Date.now() });
-  };
+  useEffect(() => {
+    setRoute(null);
+    setNavigating(false);
+    lastRouteOriginRef.current = null;
+    if (!destination) {
+      setRouteError(null);
+      return;
+    }
+    if (!fix) {
+      setRouteError("Waiting for a live location fix from the Tesla browser or paired phone.");
+      return;
+    }
+    requestRoute(fix, destination);
+    // Recompute immediately when the destination changes. Live GPS ticks are handled below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destination, requestRoute]);
+
+  useEffect(() => {
+    if (!destination || !fix || route || routeLoading) return;
+    requestRoute(fix, destination);
+  }, [destination, fix, route, routeLoading, requestRoute]);
+
+  useEffect(() => {
+    if (!navigating || !destination || !fix || routeLoading) return;
+    const lastRouteOrigin = lastRouteOriginRef.current;
+    if (!lastRouteOrigin) return;
+    const moved = distanceMeters(fix, lastRouteOrigin);
+    const elapsed = Date.now() - lastLiveRouteAtRef.current;
+    if (moved >= 80 && elapsed >= 10_000) {
+      lastLiveRouteAtRef.current = Date.now();
+      requestRoute(fix, destination, { silent: true });
+    }
+  }, [destination, fix, navigating, requestRoute, routeLoading]);
 
   const stopNav = () => setNavigating(false);
 
@@ -106,32 +133,29 @@ function Index() {
           />
 
           <PairPhonePanel
-            onPairedFix={(p) =>
+            onPairedFix={(p) => {
+              setError(null);
+              setWatching(true);
               setFix({
                 lat: p.lat,
                 lng: p.lng,
                 accuracy: p.accuracy,
+                heading: p.heading,
+                speed: p.speed,
                 timestamp: p.timestamp,
                 source: "phone",
-              })
-            }
+              });
+            }}
           />
 
           {error && (
             <div className="rounded-xl border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/10 p-4">
               <div className="text-sm font-semibold text-[color:var(--bad)]">
-                Tesla browser can't get GPS
+                Live location needs attention
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {error} — this is expected on the Tesla browser. Pair your phone
-                above and its real GPS will stream here live and move with the car.
+                {error} Pair your phone above if the Tesla browser does not keep updating while driving.
               </p>
-              <button
-                onClick={useSample}
-                className="mt-3 text-xs text-muted-foreground underline hover:text-foreground"
-              >
-                Or use a sample location just to test the map
-              </button>
             </div>
           )}
 
@@ -155,15 +179,6 @@ function Index() {
 
           {route && <DirectionsPanel route={route} />}
 
-          {!fix && !error && (
-            <button
-              onClick={useSample}
-              className="h-11 rounded-lg border border-border bg-secondary text-sm text-secondary-foreground hover:bg-accent"
-            >
-              Try sample location
-            </button>
-          )}
-
           <FeasibilityNote />
         </aside>
 
@@ -173,7 +188,7 @@ function Index() {
           {!navigating && (
             <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-3">
               <div className="pointer-events-auto w-full max-w-xl">
-                <DestinationSearch onSelect={setDestination} disabled={!fix} />
+                <DestinationSearch onSelect={setDestination} />
               </div>
             </div>
           )}

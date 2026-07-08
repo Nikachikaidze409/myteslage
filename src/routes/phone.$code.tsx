@@ -28,7 +28,11 @@ function PhoneRelay() {
     };
   }, []);
 
-  const start = async () => {
+  // NOTE: this MUST stay synchronous up to the navigator.geolocation.watchPosition
+  // call. On iOS Safari, any `await` before requesting geolocation breaks the
+  // "user activation" from the tap and the browser rejects the call as
+  // PERMISSION_DENIED without ever prompting.
+  const start = () => {
     setError(null);
     if (!("geolocation" in navigator)) {
       setStatus("error");
@@ -37,20 +41,24 @@ function PhoneRelay() {
     }
     setStatus("starting");
 
+    // Set up the realtime channel in parallel — do NOT await it before geolocation.
+    let channelReady = false;
+    let pending: PairedFix | null = null;
     const channel = supabase.channel(pairChannelName(upperCode));
     channelRef.current = channel;
-    await new Promise<void>((resolve, reject) => {
-      channel.subscribe((s) => {
-        if (s === "SUBSCRIBED") resolve();
-        if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") reject(new Error("Channel failed"));
-      });
-    }).catch((e) => {
-      setError(String(e));
-      setStatus("error");
+    channel.subscribe((s) => {
+      if (s === "SUBSCRIBED") {
+        channelReady = true;
+        if (pending) {
+          void channel.send({ type: "broadcast", event: "fix", payload: pending });
+          pending = null;
+        }
+      }
     });
 
+    // Call watchPosition SYNCHRONOUSLY from the click handler so iOS honours the gesture.
     watchRef.current = navigator.geolocation.watchPosition(
-      async (pos) => {
+      (pos) => {
         // Remember consent only after the first successful fix so refresh can auto-resume.
         if (typeof window !== "undefined") window.localStorage.setItem(PHONE_KEY, "1");
         const fix: PairedFix = {
@@ -64,10 +72,13 @@ function PhoneRelay() {
         setLast(fix);
         setSent((n) => n + 1);
         setStatus("streaming");
-        try {
-          await channel.send({ type: "broadcast", event: "fix", payload: fix });
-        } catch (e) {
-          console.error(e);
+        if (channelReady) {
+          void channel.send({ type: "broadcast", event: "fix", payload: fix }).catch((e) => {
+            console.error(e);
+          });
+        } else {
+          // Keep only the latest fix until the channel is ready.
+          pending = fix;
         }
       },
       (err) => {

@@ -55,6 +55,10 @@ function Index() {
         if (routeRequestRef.current === requestId) {
           setRoute(r);
           lastRouteOriginRef.current = originFix;
+          // As soon as a route is ready, snap into live-follow mode so the
+          // blue arrow tracks the car in real time instead of showing a
+          // static zoomed-out overview.
+          setNavigating(true);
         }
       })
       .catch((e: unknown) => {

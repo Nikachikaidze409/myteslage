@@ -77,14 +77,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Tesla Browser Nav — GPS test for Georgia" },
+      {
+        name: "description",
+        content:
+          "Experimental Tesla in-car browser prototype that tests whether web geolocation can provide a usable location fix for navigation in Georgia.",
+      },
+      { name: "author", content: "Tesla Browser Nav" },
+      { property: "og:title", content: "Tesla Browser Nav — GPS test for Georgia" },
+      {
+        property: "og:description",
+        content:
+          "Browser-only feasibility test for Tesla owners in Georgia whose built-in maps do not work.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {

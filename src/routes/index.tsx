@@ -45,11 +45,16 @@ function Index() {
   }, []);
 
   useEffect(() => {
-    if (!fix || !destination) return;
+    if (!destination) return;
+    // Use the CURRENT fix as the origin, but only recompute when the destination
+    // changes — not on every GPS tick. Live position tracking against the
+    // existing route is handled by NavBanner + MapView.
+    const originFix = fix;
+    if (!originFix) return;
     let cancelled = false;
     setRouteLoading(true);
     setRouteError(null);
-    computeRoute({ data: { origin: { lat: fix.lat, lng: fix.lng }, destination } })
+    computeRoute({ data: { origin: { lat: originFix.lat, lng: originFix.lng }, destination } })
       .then((r) => {
         if (!cancelled) setRoute(r);
       })
@@ -62,7 +67,9 @@ function Index() {
     return () => {
       cancelled = true;
     };
-  }, [fix?.lat, fix?.lng, destination]);
+    // Intentionally omit `fix` from deps — see comment above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destination]);
 
   const useSample = () => {
     setError(null);
@@ -113,14 +120,17 @@ function Index() {
           {error && (
             <div className="rounded-xl border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/10 p-4">
               <div className="text-sm font-semibold text-[color:var(--bad)]">
-                Geolocation unavailable
+                Tesla browser can't get GPS
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {error} — this is expected on the Tesla browser. Pair your phone
+                above and its real GPS will stream here live and move with the car.
+              </p>
               <button
                 onClick={useSample}
-                className="mt-3 h-11 w-full rounded-lg border border-border bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-accent"
+                className="mt-3 text-xs text-muted-foreground underline hover:text-foreground"
               >
-                Use sample location (Tbilisi) for demo
+                Or use a sample location just to test the map
               </button>
             </div>
           )}

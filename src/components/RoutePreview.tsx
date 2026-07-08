@@ -13,19 +13,31 @@ export function RoutePreview({
 }) {
   if (!destinationName && !loading && !route && !error) return null;
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="text-xs uppercase tracking-widest text-muted-foreground">Route preview</div>
-      {loading && <div className="mt-2 text-foreground">Computing route…</div>}
-      {error && <div className="mt-2 text-[color:var(--bad)]">{error}</div>}
+    <div className="rounded-2xl border border-border bg-white p-5">
+      {loading && (
+        <div className="text-sm text-muted-foreground">Computing route…</div>
+      )}
+      {error && <div className="text-sm text-[color:var(--bad)]">{error}</div>}
       {route && (
-        <div className="mt-2">
-          <div className="text-lg text-foreground">→ {destinationName}</div>
-          <div className="mt-2 flex gap-6 font-mono text-2xl text-foreground">
-            <span>{(route.distanceMeters / 1000).toFixed(1)} km</span>
-            <span>{Math.round(route.durationSeconds / 60)} min</span>
+        <>
+          <div className="flex items-end justify-between">
+            <span className="font-display text-3xl font-bold text-foreground">
+              {Math.round(route.durationSeconds / 60)} min
+            </span>
+            <span className="font-display text-sm font-bold text-primary">
+              {formatEta(route.durationSeconds)}
+            </span>
           </div>
-        </div>
+          <p className="mt-1 truncate text-sm text-muted-foreground">
+            {(route.distanceMeters / 1000).toFixed(1)} km · to {destinationName}
+          </p>
+        </>
       )}
     </div>
   );
+}
+
+function formatEta(durationSeconds: number) {
+  const arrival = new Date(Date.now() + durationSeconds * 1000);
+  return arrival.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }

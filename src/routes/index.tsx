@@ -111,19 +111,16 @@ function Index() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto grid min-h-screen w-full max-w-[1600px] gap-4 p-4 lg:grid-cols-[420px_1fr]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1600px] gap-4 p-4">
         {/* Sidebar */}
-        <aside className="flex flex-col gap-4 overflow-y-auto">
-          <header>
-            <div className="text-xs uppercase tracking-[0.2em] text-primary">Tesla · Prototype</div>
-            <h1 className="mt-1 text-2xl font-semibold leading-tight">
-              Browser navigation for imported Teslas in Georgia
+        <aside className="flex w-[360px] shrink-0 flex-col gap-4 overflow-y-auto rounded-3xl border border-border bg-card/60 p-4">
+          <header className="px-2 pt-2">
+            <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
+              Tesla · Georgia
+            </div>
+            <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
+              Browser navigation
             </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Experimental workaround. This page uses the browser's geolocation API — accuracy
-              depends on the Tesla browser, Wi-Fi, cell towers, and IP. It is not a native GPS
-              replacement.
-            </p>
           </header>
 
           <LocationButton
@@ -153,45 +150,37 @@ function Index() {
           />
 
           {error && (
-            <div className="rounded-xl border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/10 p-4">
+            <div className="rounded-2xl border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/5 p-4">
               <div className="text-sm font-semibold text-[color:var(--bad)]">
                 Live location needs attention
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {error} Pair your phone above if the Tesla browser does not keep updating while driving.
+              <p className="mt-1 text-xs text-muted-foreground">
+                {error} Pair your phone above if the Tesla browser stops updating while driving.
               </p>
             </div>
           )}
 
           {fix && <StatusPanel fix={fix} now={now} />}
 
-          <RoutePreview
-            route={route}
-            destinationName={destination?.name ?? null}
-            loading={routeLoading}
-            error={routeError}
-          />
-
-          {route && !navigating && (
-            <button
-              onClick={() => setNavigating(true)}
-              className="h-14 rounded-xl bg-primary text-base font-semibold text-primary-foreground shadow-lg hover:opacity-90"
-            >
-              Start live navigation
-            </button>
-          )}
-
           {route && <DirectionsPanel route={route} />}
 
-          <FeasibilityNote />
+          <div className="mt-auto flex flex-col gap-3">
+            <RoutePreview
+              route={route}
+              destinationName={destination?.name ?? null}
+              loading={routeLoading}
+              error={routeError}
+            />
+            <FeasibilityNote />
+          </div>
         </aside>
 
         {/* Map */}
-        <main className="relative min-h-[400px] overflow-hidden rounded-xl border border-border bg-card lg:min-h-full">
-          {/* Search overlay — stays at top so on-screen keyboards do not cover it */}
+        <main className="relative min-h-[400px] flex-1 overflow-hidden rounded-3xl border border-border bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full">
+          {/* Search overlay */}
           {!navigating && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-3">
-              <div className="pointer-events-auto w-full max-w-xl">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-6">
+              <div className="pointer-events-auto w-full max-w-2xl">
                 <DestinationSearch onSelect={setDestination} />
               </div>
             </div>

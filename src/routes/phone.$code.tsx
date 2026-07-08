@@ -29,7 +29,6 @@ function PhoneRelay() {
   }, []);
 
   const start = async () => {
-    if (typeof window !== "undefined") window.localStorage.setItem(PHONE_KEY, "1");
     setError(null);
     if (!("geolocation" in navigator)) {
       setStatus("error");
@@ -52,6 +51,8 @@ function PhoneRelay() {
 
     watchRef.current = navigator.geolocation.watchPosition(
       async (pos) => {
+        // Remember consent only after the first successful fix so refresh can auto-resume.
+        if (typeof window !== "undefined") window.localStorage.setItem(PHONE_KEY, "1");
         const fix: PairedFix = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
@@ -70,19 +71,40 @@ function PhoneRelay() {
         }
       },
       (err) => {
+        // Clear the auto-resume flag so we don't loop into the same error next visit.
+        if (typeof window !== "undefined") window.localStorage.removeItem(PHONE_KEY);
         setStatus("error");
-        setError(err.message || "Geolocation error");
+        // err.code 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+        if (err.code === 1) {
+          setError(
+            "This site was blocked from using location. On iPhone: Settings → Safari → Location → Allow, then reload this page. On Android: tap the address bar's site icon → Permissions → Location → Allow.",
+          );
+        } else if (err.code === 2) {
+          setError("Phone GPS is unavailable. Make sure Location Services is on in system settings.");
+        } else {
+          setError(err.message || "Geolocation error");
+        }
       },
       { enableHighAccuracy: true, maximumAge: 1_000, timeout: 20_000 },
     );
   };
 
-  // Auto-resume streaming if this phone has paired with this code before.
+  // Auto-resume streaming ONLY if this phone already gave permission for this code
+  // AND the browser reports permission is still granted. Calling geolocation
+  // without an explicit user gesture on iOS Safari is rejected as PERMISSION_DENIED.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.localStorage.getItem(PHONE_KEY) === "1") {
-      void start();
-    }
+    if (window.localStorage.getItem(PHONE_KEY) !== "1") return;
+    const perms = (navigator as any).permissions;
+    if (!perms?.query) return;
+    perms
+      .query({ name: "geolocation" })
+      .then((res: PermissionStatus) => {
+        if (res.state === "granted") void start();
+      })
+      .catch(() => {
+        /* ignore */
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [upperCode]);
 
@@ -109,8 +131,15 @@ function PhoneRelay() {
         )}
 
         {error && (
-          <div className="rounded-xl border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/10 p-4 text-sm">
-            {error}
+          <div className="space-y-3 rounded-xl border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/10 p-4 text-sm">
+            <div className="font-semibold text-[color:var(--bad)]">Can't read GPS</div>
+            <div className="text-foreground">{error}</div>
+            <button
+              onClick={start}
+              className="h-11 w-full rounded-lg border border-border bg-secondary text-sm font-medium text-secondary-foreground hover:bg-accent"
+            >
+              Try again
+            </button>
           </div>
         )}
 

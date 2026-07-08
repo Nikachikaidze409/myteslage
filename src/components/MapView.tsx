@@ -6,17 +6,19 @@ interface Props {
   fix: Fix | null;
   destination: { lat: number; lng: number; name?: string } | null;
   encodedPolyline: string | null;
+  navigating?: boolean;
 }
 
 const DEFAULT_CENTER = { lat: 41.7151, lng: 44.8271 };
 
-export function MapView({ fix, destination, encodedPolyline }: Props) {
+export function MapView({ fix, destination, encodedPolyline, navigating }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const meMarker = useRef<any>(null);
   const destMarker = useRef<any>(null);
   const accuracyCircle = useRef<any>(null);
   const routeLine = useRef<any>(null);
+  const lastPolylineRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,7 +46,20 @@ export function MapView({ fix, destination, encodedPolyline }: Props) {
     if (!g || !map || !fix) return;
     const pos = { lat: fix.lat, lng: fix.lng };
     if (!meMarker.current) {
-      meMarker.current = new g.maps.Marker({ map, position: pos, title: "You" });
+      meMarker.current = new g.maps.Marker({
+        map,
+        position: pos,
+        title: "You",
+        icon: {
+          path: g.maps.SymbolPath.CIRCLE,
+          scale: 9,
+          fillColor: "#3b82f6",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 3,
+        },
+        zIndex: 1000,
+      });
     } else {
       meMarker.current.setPosition(pos);
     }
@@ -53,15 +68,19 @@ export function MapView({ fix, destination, encodedPolyline }: Props) {
       map,
       center: pos,
       radius: fix.accuracy,
-      strokeColor: "#ef4444",
+      strokeColor: "#3b82f6",
       strokeOpacity: 0.6,
       strokeWeight: 1,
-      fillColor: "#ef4444",
+      fillColor: "#3b82f6",
       fillOpacity: 0.12,
     });
     map.panTo(pos);
-    if (map.getZoom() < 12) map.setZoom(13);
-  }, [fix]);
+    if (navigating) {
+      if (map.getZoom() < 16) map.setZoom(17);
+    } else if (map.getZoom() < 12) {
+      map.setZoom(13);
+    }
+  }, [fix, navigating]);
 
   useEffect(() => {
     const g = (window as any).google;
@@ -93,15 +112,21 @@ export function MapView({ fix, destination, encodedPolyline }: Props) {
       routeLine.current = new g.maps.Polyline({
         map,
         path,
-        strokeColor: "#ef4444",
+        strokeColor: "#3b82f6",
         strokeOpacity: 0.9,
-        strokeWeight: 5,
+        strokeWeight: 6,
       });
-      const bounds = new g.maps.LatLngBounds();
-      path.forEach((p: any) => bounds.extend(p));
-      map.fitBounds(bounds, 60);
+      // Only fit bounds when the route polyline actually changes and we're not in live-follow mode
+      if (!navigating && lastPolylineRef.current !== encodedPolyline) {
+        const bounds = new g.maps.LatLngBounds();
+        path.forEach((p: any) => bounds.extend(p));
+        map.fitBounds(bounds, 60);
+      }
+      lastPolylineRef.current = encodedPolyline;
+    } else {
+      lastPolylineRef.current = null;
     }
-  }, [encodedPolyline]);
+  }, [encodedPolyline, navigating]);
 
   return <div ref={containerRef} className="h-full w-full rounded-xl bg-muted" />;
 }

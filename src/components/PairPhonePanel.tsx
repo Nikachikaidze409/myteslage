@@ -5,17 +5,23 @@ interface Props {
   onPairedFix: (f: PairedFix) => void;
 }
 
+const STORAGE_KEY = "tesla-nav.pair-code";
+
 export function PairPhonePanel({ onPairedFix }: Props) {
   const [code, setCode] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [origin, setOrigin] = useState("");
 
   useEffect(() => {
-    if (typeof window !== "undefined") setOrigin(window.location.origin);
+    if (typeof window === "undefined") return;
+    setOrigin(window.location.origin);
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (saved) setCode(saved);
   }, []);
 
   useEffect(() => {
     if (!code) return;
+    if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, code);
     const unsub = subscribePair(code, (f) => {
       setConnected(true);
       onPairedFix(f);
@@ -25,6 +31,12 @@ export function PairPhonePanel({ onPairedFix }: Props) {
 
   const start = () => {
     setCode(generatePairCode());
+    setConnected(false);
+  };
+
+  const forget = () => {
+    if (typeof window !== "undefined") window.localStorage.removeItem(STORAGE_KEY);
+    setCode(null);
     setConnected(false);
   };
 
@@ -41,7 +53,9 @@ export function PairPhonePanel({ onPairedFix }: Props) {
             Real GPS via phone
           </div>
           <div className="mt-1 text-sm text-foreground">
-            Stream your phone's true GPS to this screen.
+            {code
+              ? "Paired. Open the link on your phone once — the Tesla will remember this code."
+              : "Stream your phone's true GPS to this screen."}
           </div>
         </div>
         {!code && (
@@ -50,6 +64,14 @@ export function PairPhonePanel({ onPairedFix }: Props) {
             className="h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground"
           >
             Pair phone
+          </button>
+        )}
+        {code && (
+          <button
+            onClick={forget}
+            className="h-11 rounded-lg border border-border bg-secondary px-3 text-xs font-medium text-secondary-foreground hover:bg-accent"
+          >
+            Forget
           </button>
         )}
       </div>

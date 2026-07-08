@@ -26,6 +26,8 @@ export function MapView({ fix, destination, encodedPolyline, navigating }: Props
   const currentHeadingRef = useRef<number>(0);
   const snapInFlightRef = useRef(false);
   const lastSnapAtRef = useRef(0);
+  const haloOverlayRef = useRef<any>(null);
+  const haloElRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,12 +40,45 @@ export function MapView({ fix, destination, encodedPolyline, navigating }: Props
           disableDefaultUI: true,
           zoomControl: true,
           gestureHandling: "greedy",
-          styles: DARK_STYLE,
+          styles: LIGHT_STYLE,
+          backgroundColor: "#f1f5f9",
         });
+
+        // Pulsing halo overlay under the "you are here" marker.
+        const el = document.createElement("div");
+        el.className = "gps-halo";
+        el.innerHTML =
+          '<span class="gps-halo-ring"></span><span class="gps-halo-ring" style="animation-delay:1s"></span>';
+        haloElRef.current = el;
+
+        class HaloOverlay extends g.maps.OverlayView {
+          onAdd() {
+            const pane = (this as any).getPanes()?.overlayLayer as HTMLElement | undefined;
+            if (pane && el) pane.appendChild(el);
+          }
+          draw() {
+            const proj = (this as any).getProjection();
+            const pos = currentPosRef.current;
+            if (!proj || !pos || !el) return;
+            const p = proj.fromLatLngToDivPixel(new g.maps.LatLng(pos.lat, pos.lng));
+            if (!p) return;
+            el.style.left = `${p.x}px`;
+            el.style.top = `${p.y}px`;
+          }
+          onRemove() {
+            if (el?.parentNode) el.parentNode.removeChild(el);
+          }
+        }
+        haloOverlayRef.current = new HaloOverlay();
+        haloOverlayRef.current.setMap(mapRef.current);
       })
       .catch((e) => console.error(e));
     return () => {
       cancelled = true;
+      if (haloOverlayRef.current) {
+        haloOverlayRef.current.setMap(null);
+        haloOverlayRef.current = null;
+      }
     };
   }, []);
 
@@ -120,6 +155,8 @@ export function MapView({ fix, destination, encodedPolyline, navigating }: Props
           strokeWeight: 3,
         });
         accuracyCircle.current?.setCenter({ lat, lng });
+        // Nudge the halo overlay to follow the tween.
+        haloOverlayRef.current?.draw?.();
         if (navigating) {
           map.panTo({ lat, lng });
           if (headingDeg != null) map.setHeading(heading);
@@ -213,16 +250,20 @@ export function MapView({ fix, destination, encodedPolyline, navigating }: Props
     }
   }, [encodedPolyline, navigating]);
 
-  return <div ref={containerRef} className="h-full w-full rounded-xl bg-muted" />;
+  return <div ref={containerRef} className="h-full w-full rounded-2xl bg-muted" />;
 }
 
-const DARK_STYLE = [
-  { elementType: "geometry", stylers: [{ color: "#1f2124" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#1f2124" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#9aa0a6" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#2a2d31" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3a3d42" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0f1114" }] },
+const LIGHT_STYLE = [
+  { elementType: "geometry", stylers: [{ color: "#f1f5f9" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#64748b" }] },
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#cbd5e1" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#e2e8f0" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#cbd5e1" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#dbeafe" }] },
+  { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#eef2f7" }] },
   { featureType: "poi", stylers: [{ visibility: "off" }] },
   { featureType: "transit", stylers: [{ visibility: "off" }] },
 ];

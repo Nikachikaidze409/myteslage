@@ -85,21 +85,26 @@ export function DestinationSearch({ onSelect, disabled }: Props) {
 
   return (
     <div className="relative">
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search a place in Georgia…"
-        disabled={disabled}
-        className="h-14 w-full rounded-xl border border-border bg-card px-4 text-lg text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
-      />
+      <div className="flex h-16 w-full items-center rounded-2xl border border-white bg-white/90 px-6 shadow-xl shadow-slate-300/40 backdrop-blur-md transition focus-within:ring-2 focus-within:ring-primary/30">
+        <svg className="mr-4 h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Where to?"
+          disabled={disabled}
+          className="font-display w-full bg-transparent text-lg text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+        />
+      </div>
       {suggestions.length > 0 && (
-        <ul className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-border bg-popover shadow-2xl">
+        <ul className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-slate-300/40">
           {suggestions.map((s) => (
             <li key={s.placeId}>
               <button
                 type="button"
                 onClick={() => pick(s)}
-                className="block w-full px-4 py-3 text-left hover:bg-accent"
+                className="block w-full px-5 py-3 text-left transition hover:bg-muted"
               >
                 <div className="text-base text-foreground">{s.primary}</div>
                 {s.secondary && (

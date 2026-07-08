@@ -56,73 +56,77 @@ export function PairPhonePanel({ onPairedFix }: Props) {
 
   const phoneUrl = code ? `${origin}/phone/${code}` : "";
   const qrUrl = code
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&color=ffffff&bgcolor=1e2124&data=${encodeURIComponent(phoneUrl)}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&color=1e293b&bgcolor=ffffff&data=${encodeURIComponent(phoneUrl)}`
     : "";
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-xs uppercase tracking-widest text-muted-foreground">
-            Real GPS via phone
-          </div>
-          <div className="mt-1 text-sm text-foreground">
-            {code
-              ? "Paired. Open the link on your phone once — the Tesla will remember this code."
-              : "Stream your phone's true GPS to this screen."}
-          </div>
-        </div>
-        {!code && (
-          <button
-            onClick={start}
-            className="h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground"
-          >
-            Pair phone
-          </button>
-        )}
-        {code && (
-          <button
-            onClick={forget}
-            className="h-11 rounded-lg border border-border bg-secondary px-3 text-xs font-medium text-secondary-foreground hover:bg-accent"
-          >
-            Forget
-          </button>
-        )}
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="font-display mb-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+        Mobile Integration
       </div>
 
+      {!code && (
+        <div className="flex items-center gap-4 rounded-2xl bg-muted/60 p-4">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-border bg-white text-primary">
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="6" y="3" width="12" height="18" rx="2" strokeWidth="2" />
+              <circle cx="12" cy="17.5" r="1" fill="currentColor" />
+            </svg>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-muted-foreground">Pair your phone</p>
+            <p className="font-display truncate text-base font-bold text-foreground">Get real GPS</p>
+          </div>
+          <button
+            onClick={start}
+            className="font-display h-10 shrink-0 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition hover:brightness-110"
+          >
+            Pair
+          </button>
+        </div>
+      )}
+
       {code && (
-        <div className="mt-4 space-y-3">
-          <div className="flex items-center gap-4">
-            <img src={qrUrl} alt="QR code" className="h-[120px] w-[120px] rounded-lg bg-muted" />
-            <div className="flex-1 space-y-2">
-              <div className="font-mono text-2xl tracking-widest text-foreground">{code}</div>
-              <a
-                href={phoneUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="block break-all text-xs text-primary underline"
-              >
-                {phoneUrl}
-              </a>
+        <div className="space-y-4">
+          <div className="flex items-center gap-4 rounded-2xl bg-muted/60 p-4">
+            <img src={qrUrl} alt="QR code" className="h-[92px] w-[92px] shrink-0 rounded-lg bg-white" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Pair Device</p>
+                <p className="font-display text-xl font-bold tracking-widest text-foreground">{code}</p>
+              </div>
               <div
                 className={
-                  "inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs " +
+                  "inline-flex items-center gap-2 rounded-full px-2 py-1 text-[11px] font-medium " +
                   (connected
                     ? "bg-[color:var(--good)]/15 text-[color:var(--good)]"
-                    : "bg-muted text-muted-foreground")
+                    : "bg-white text-muted-foreground")
                 }
               >
                 <span
-                  className="h-2 w-2 rounded-full"
+                  className={"h-1.5 w-1.5 rounded-full " + (connected ? "" : "")}
                   style={{ background: connected ? "var(--good)" : "var(--muted-foreground)" }}
                 />
-                {connected ? "Phone connected" : channelStatus === "error" ? "Pairing connection error" : "Waiting for phone…"}
+                {connected ? "Phone connected" : channelStatus === "error" ? "Connection error" : "Waiting for phone…"}
               </div>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            On your phone, open the link above (or scan the QR) and tap “Start sharing my GPS”.
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <a
+              href={phoneUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="min-w-0 flex-1 truncate text-xs text-primary underline underline-offset-2"
+            >
+              {phoneUrl}
+            </a>
+            <button
+              onClick={forget}
+              className="h-8 shrink-0 rounded-lg border border-border bg-white px-3 text-[11px] font-medium text-muted-foreground transition hover:bg-muted"
+            >
+              Forget
+            </button>
+          </div>
         </div>
       )}
     </div>

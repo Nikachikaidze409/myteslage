@@ -29,7 +29,6 @@ function PhoneRelay() {
   }, []);
 
   const start = async () => {
-    if (typeof window !== "undefined") window.localStorage.setItem(PHONE_KEY, "1");
     setError(null);
     if (!("geolocation" in navigator)) {
       setStatus("error");
@@ -52,6 +51,8 @@ function PhoneRelay() {
 
     watchRef.current = navigator.geolocation.watchPosition(
       async (pos) => {
+        // Remember consent only after the first successful fix so refresh can auto-resume.
+        if (typeof window !== "undefined") window.localStorage.setItem(PHONE_KEY, "1");
         const fix: PairedFix = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
@@ -70,18 +71,96 @@ function PhoneRelay() {
         }
       },
       (err) => {
+        // Clear the auto-resume flag so we don't loop into the same error next visit.
+        if (typeof window !== "undefined") window.localStorage.removeItem(PHONE_KEY);
         setStatus("error");
-        setError(err.message || "Geolocation error");
+        // err.code 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+        if (err.code === 1) {
+          setError(
+            "This site was blocked from using location. On iPhone: Settings → Safari → Location → Allow, then reload this page. On Android: tap the address bar's site icon → Permissions → Location → Allow.",
+          );
+        } else if (err.code === 2) {
+          setError("Phone GPS is unavailable. Make sure Location Services is on in system settings.");
+        } else {
+          setError(err.message || "Geolocation error");
+        }
       },
       { enableHighAccuracy: true, maximumAge: 1_000, timeout: 20_000 },
     );
   };
 
-  // Auto-resume streaming if this phone has paired with this code before.
+  // Auto-resume streaming ONLY if this phone already gave permission for this code
+  // AND the browser reports permission is still granted. Calling geolocation
+  // without an explicit user gesture on iOS Safari is rejected as PERMISSION_DENIED.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.localStorage.getItem(PHONE_KEY) === "1") {
-      void start();
+    if (window.localStorage.getItem(PHONE_KEY) !== "1") return;
+    const perms = (navigator as any).permissions;
+    if (!perms?.query) return;
+    perms
+      .query({ name: "geolocation" })
+      .then((res: PermissionStatus) => {
+        if (res.state === "granted") void start();
+      })
+      .catch(() => {
+        /* ignore */
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upperCode]);
+
+  return (
+    <div className="min-h-screen bg-background p-6 text-foreground">
+      <div className="mx-auto max-w-md space-y-6">
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-primary">Phone GPS relay</div>
+          <h1 className="mt-1 text-2xl font-semibold">Pairing code {upperCode}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Keep this tab open. Your phone's real GPS will stream to the Tesla screen showing the
+            same code. Nothing is stored — coordinates go straight through a live channel.
+          </p>
+        </div>
+
+        {status !== "streaming" && (
+          <button
+            onClick={start}
+            disabled={status === "starting"}
+            className="h-16 w-full rounded-xl bg-primary text-lg font-semibold text-primary-foreground disabled:opacity-60"
+          >
+            {status === "starting" ? "Starting…" : "Start sharing my GPS"}
+          </button>
+        )}
+
+        {error && (
+          <div className="space-y-3 rounded-xl border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/10 p-4 text-sm">
+            <div className="font-semibold text-[color:var(--bad)]">Can't read GPS</div>
+            <div className="text-foreground">{error}</div>
+            <button
+              onClick={start}
+              className="h-11 w-full rounded-lg border border-border bg-secondary text-sm font-medium text-secondary-foreground hover:bg-accent"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {last && (
+          <div className="space-y-2 rounded-xl border border-border bg-card p-5 font-mono text-sm">
+            <div>lat {last.lat.toFixed(6)}</div>
+            <div>lng {last.lng.toFixed(6)}</div>
+            <div>± {Math.round(last.accuracy)} m</div>
+            {last.speed != null && <div>speed {(last.speed * 3.6).toFixed(1)} km/h</div>}
+            <div className="text-muted-foreground">updates sent: {sent}</div>
+          </div>
+        )}
+
+        <p className="text-xs text-muted-foreground">
+          On iOS, keep the screen on (Settings → Display → Auto-Lock → Never) so the browser
+          doesn't pause GPS.
+        </p>
+      </div>
+    </div>
+  );
+}
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [upperCode]);

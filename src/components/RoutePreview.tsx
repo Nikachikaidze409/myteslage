@@ -5,17 +5,23 @@ export function RoutePreview({
   destinationName,
   loading,
   error,
+  offRoute,
+  offline,
 }: {
   route: RouteResult | null;
   destinationName: string | null;
   loading: boolean;
   error: string | null;
+  offRoute?: boolean;
+  offline?: boolean;
 }) {
   if (!destinationName && !loading && !route && !error) return null;
   return (
     <div className="rounded-2xl border border-border bg-white p-5">
       {loading && (
-        <div className="text-sm text-muted-foreground">Computing route…</div>
+        <div className="text-sm text-muted-foreground">
+          {offRoute ? "Off route — rerouting…" : "Computing route…"}
+        </div>
       )}
       {error && <div className="text-sm text-[color:var(--bad)]">{error}</div>}
       {route && (
@@ -30,6 +36,7 @@ export function RoutePreview({
           </div>
           <p className="mt-1 truncate text-sm text-muted-foreground">
             {(route.distanceMeters / 1000).toFixed(1)} km · to {destinationName}
+            {offline && " · offline cache"}
           </p>
         </>
       )}

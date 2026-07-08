@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 
 export interface SavedPlace {
   id: string;
@@ -127,6 +127,3 @@ export function useNetworkStatus() {
   }, []);
   return online;
 }
-
-// no-op to satisfy lint for unused useCallback import in some setups
-export const _noop = useCallback;

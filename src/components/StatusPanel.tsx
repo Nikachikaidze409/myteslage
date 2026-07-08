@@ -5,7 +5,7 @@ export interface Fix {
   lng: number;
   accuracy: number;
   timestamp: number;
-  source: "geolocation" | "sample";
+  source: "geolocation" | "sample" | "phone";
 }
 
 export function StatusPanel({ fix, now }: { fix: Fix; now: number }) {
@@ -36,6 +36,7 @@ export function StatusPanel({ fix, now }: { fix: Fix; now: number }) {
       <p className="mt-4 text-sm text-muted-foreground">
         {precision.description}
         {fix.source === "sample" && " · sample data"}
+        {fix.source === "phone" && " · from paired phone GPS"}
       </p>
     </div>
   );

@@ -8,6 +8,7 @@ import { RoutePreview } from "@/components/RoutePreview";
 import { FeasibilityNote } from "@/components/FeasibilityNote";
 import { PairPhonePanel } from "@/components/PairPhonePanel";
 import { DirectionsPanel } from "@/components/DirectionsPanel";
+import { NavBanner } from "@/components/NavBanner";
 import { computeRoute, type RouteResult } from "@/lib/routes.functions";
 
 const MapView = lazy(() =>
@@ -36,6 +37,7 @@ function Index() {
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
+  const [navigating, setNavigating] = useState(false);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
@@ -66,6 +68,8 @@ function Index() {
     setError(null);
     setFix({ ...SAMPLE_FIX, timestamp: Date.now() });
   };
+
+  const stopNav = () => setNavigating(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -123,14 +127,21 @@ function Index() {
 
           {fix && <StatusPanel fix={fix} now={now} />}
 
-          <DestinationSearch onSelect={setDestination} disabled={!fix} />
-
           <RoutePreview
             route={route}
             destinationName={destination?.name ?? null}
             loading={routeLoading}
             error={routeError}
           />
+
+          {route && !navigating && (
+            <button
+              onClick={() => setNavigating(true)}
+              className="h-14 rounded-xl bg-primary text-base font-semibold text-primary-foreground shadow-lg hover:opacity-90"
+            >
+              Start live navigation
+            </button>
+          )}
 
           {route && <DirectionsPanel route={route} />}
 
@@ -148,12 +159,24 @@ function Index() {
 
         {/* Map */}
         <main className="relative min-h-[400px] overflow-hidden rounded-xl border border-border bg-card lg:min-h-full">
+          {/* Search overlay — stays at top so on-screen keyboards do not cover it */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-3">
+            <div className="pointer-events-auto w-full max-w-xl">
+              <DestinationSearch onSelect={setDestination} disabled={!fix} />
+            </div>
+          </div>
+
+          {navigating && route && (
+            <NavBanner route={route} fix={fix} onStop={stopNav} />
+          )}
+
           <ClientOnly fallback={<div className="flex h-full items-center justify-center text-muted-foreground">Loading map…</div>}>
             <Suspense fallback={<div className="flex h-full items-center justify-center text-muted-foreground">Loading map…</div>}>
               <MapView
                 fix={fix}
                 destination={destination}
                 encodedPolyline={route?.encodedPolyline ?? null}
+                navigating={navigating}
               />
             </Suspense>
           </ClientOnly>

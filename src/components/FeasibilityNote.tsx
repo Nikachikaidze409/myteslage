@@ -28,6 +28,13 @@ export function FeasibilityNote() {
           Tesla browser polls. That is the only way to get true GPS precision into the in-car
           browser without OEM integration.
         </p>
+        <p>
+          <strong className="text-foreground">After reverse:</strong> Tesla firmware suspends the
+          browser whenever you shift into R (the reverse camera takes the screen). No web app can
+          relaunch itself — but this app auto-resumes your active trip when you reopen the
+          browser. For truly seamless reverse, use Tesla's split-screen so the browser stays
+          alive alongside the map.
+        </p>
       </div>
     </details>
   );

@@ -389,6 +389,30 @@ function Index() {
 
           {navigating && route && <NavBanner route={route} fix={fix} onStop={stopNav} />}
 
+          {resumedName && (
+            <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-30 flex justify-center px-4">
+              <div className="flex items-center gap-3 rounded-full border border-border bg-white/95 px-4 py-2 text-sm shadow-lg backdrop-blur">
+                <span className="text-lg" aria-hidden>↻</span>
+                <span className="font-medium text-foreground">
+                  Resumed trip to <span className="font-semibold">{resumedName}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResumedName(null);
+                    setDestination(null);
+                    setNavigating(false);
+                    setWaypoints([]);
+                    clearSession();
+                  }}
+                  className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           <ClientOnly
             fallback={
               <div className="flex h-full items-center justify-center text-muted-foreground">

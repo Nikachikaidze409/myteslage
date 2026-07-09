@@ -339,8 +339,9 @@ function Index() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1600px] gap-4 p-4">
-        {/* Sidebar */}
+      <div className={`mx-auto flex min-h-screen w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-4 p-4"}`}>
+        {/* Sidebar — hidden in HUD mode (phone is the brain) */}
+        {!hudMode && (
         <aside className="flex w-[360px] shrink-0 flex-col gap-4 overflow-y-auto rounded-3xl border border-border bg-card/60 p-4">
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
@@ -380,6 +381,7 @@ function Index() {
                 source: "phone",
               });
             }}
+            onPairedNav={applyPairedNav}
           />
 
           {error && (
@@ -431,10 +433,33 @@ function Index() {
             <FeasibilityNote />
           </div>
         </aside>
+        )}
+
+        {/* Hidden PairPhonePanel in HUD mode — still needs to be mounted to receive nav broadcasts. */}
+        {hudMode && (
+          <div className="hidden">
+            <PairPhonePanel
+              onPairedFix={(p) => {
+                setError(null);
+                setWatching(true);
+                setFix({
+                  lat: p.lat,
+                  lng: p.lng,
+                  accuracy: p.accuracy,
+                  heading: p.heading,
+                  speed: p.speed,
+                  timestamp: p.timestamp,
+                  source: "phone",
+                });
+              }}
+              onPairedNav={applyPairedNav}
+            />
+          </div>
+        )}
 
         {/* Map */}
-        <main className="relative min-h-[400px] flex-1 overflow-hidden rounded-3xl border border-border bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full">
-          {!navigating && (
+        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
+          {!navigating && !hudMode && (
             <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-6">
               <div className="pointer-events-auto w-full max-w-2xl">
                 <DestinationSearch onSelect={setDestination} />
@@ -442,6 +467,7 @@ function Index() {
             </div>
           )}
 
+          {!hudMode && (
           <div className="absolute right-4 top-4 z-30">
             <button
               type="button"
@@ -455,8 +481,26 @@ function Index() {
               {showTraffic ? "Traffic on" : "Traffic off"}
             </button>
           </div>
+          )}
 
           {navigating && route && <NavBanner route={route} fix={fix} onStop={stopNav} />}
+
+          {hudMode && route && (
+            <HudBottomBar
+              route={route}
+              fix={fix}
+              onCancel={() => {
+                // Cancel locally; the phone will re-broadcast if it's still navigating.
+                setHudMode(false);
+                setNavigating(false);
+                setDestination(null);
+                setRoutes([]);
+              }}
+              onRecenter={() => setRecenterSignal((n) => n + 1)}
+              muted={muted}
+              onToggleMute={() => setMuted((m) => !m)}
+            />
+          )}
 
           {resumedName && (
             <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-30 flex justify-center px-4">

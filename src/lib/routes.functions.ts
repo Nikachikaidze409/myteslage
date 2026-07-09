@@ -17,6 +17,8 @@ export interface RouteResult {
   encodedPolyline: string;
   steps: RouteStep[];
   label?: string;
+  warnings?: string[];
+  hasTolls?: boolean;
 }
 
 export interface RoutesResponse {
@@ -33,6 +35,7 @@ export const computeRoute = createServerFn({ method: "POST" })
       waypoints?: LatLng[];
       avoid?: AvoidOption[];
       alternatives?: boolean;
+      avoidUnpaved?: boolean;
     }) => {
     if (
       !data ||
@@ -50,7 +53,8 @@ export const computeRoute = createServerFn({ method: "POST" })
     const connKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!lovableKey || !connKey) throw new Error("Google Maps connector not configured");
 
-    const modifiers: Record<string, boolean> = {};
+    // Always avoid ferries by default (Tesla owners rarely want a ferry route).
+    const modifiers: Record<string, boolean> = { avoidFerries: true };
     for (const a of data.avoid ?? []) {
       if (a === "tolls") modifiers.avoidTolls = true;
       if (a === "highways") modifiers.avoidHighways = true;
@@ -66,7 +70,7 @@ export const computeRoute = createServerFn({ method: "POST" })
           "X-Connection-Api-Key": connKey,
           "Content-Type": "application/json",
           "X-Goog-FieldMask":
-            "routes.distanceMeters,routes.duration,routes.description,routes.routeLabels,routes.polyline.encodedPolyline,routes.legs.steps.distanceMeters,routes.legs.steps.navigationInstruction,routes.legs.steps.polyline.encodedPolyline",
+            "routes.distanceMeters,routes.duration,routes.description,routes.routeLabels,routes.warnings,routes.travelAdvisory,routes.polyline.encodedPolyline,routes.legs.steps.distanceMeters,routes.legs.steps.navigationInstruction,routes.legs.steps.polyline.encodedPolyline",
         },
         body: JSON.stringify({
           origin: { location: { latLng: { latitude: data.origin.lat, longitude: data.origin.lng } } },
@@ -79,6 +83,7 @@ export const computeRoute = createServerFn({ method: "POST" })
           travelMode: "DRIVE",
           routingPreference: "TRAFFIC_AWARE_OPTIMAL",
           computeAlternativeRoutes: !!data.alternatives,
+          extraComputations: ["TOLLS"],
           ...(Object.keys(modifiers).length ? { routeModifiers: modifiers } : {}),
         }),
       },
@@ -96,6 +101,8 @@ export const computeRoute = createServerFn({ method: "POST" })
         duration?: string;
         description?: string;
         routeLabels?: string[];
+        warnings?: string[];
+        travelAdvisory?: { tollInfo?: unknown };
         polyline?: { encodedPolyline?: string };
         legs?: {
           steps?: {
@@ -133,8 +140,20 @@ export const computeRoute = createServerFn({ method: "POST" })
         encodedPolyline: r.polyline.encodedPolyline,
         steps,
         label,
+        warnings: r.warnings ?? [],
+        hasTolls: !!r.travelAdvisory?.tollInfo,
       });
     }
     if (!routes.length) throw new Error("No route found");
+    // Soft filter: if the caller wants to avoid unpaved/restricted roads and any route
+    // has NO such warning, drop the flagged ones. Otherwise keep them (better than nothing).
+    if (data.avoidUnpaved) {
+      const isBad = (r: RouteResult) =>
+        (r.warnings ?? []).some((w) => /unpaved|dirt|restricted|private|rough|ferry/i.test(w));
+      const clean = routes.filter((r) => !isBad(r));
+      if (clean.length) return { routes: clean };
+    }
+    // Reorder: put routes without warnings first (Google's "fastest" can be a dirt road).
+    routes.sort((a, b) => Number((a.warnings ?? []).length > 0) - Number((b.warnings ?? []).length > 0));
     return { routes };
   });

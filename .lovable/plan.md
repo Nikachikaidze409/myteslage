@@ -1,57 +1,55 @@
-## Goal
-Stop the app from sending drivers down dirt tracks, service roads, or "shortest-by-distance" paths that aren't real roads. Match Google Maps' behavior: prefer major/paved roads, show alternatives, and let the driver pick.
+## Plan B — Phone does the heavy lifting, Tesla shows a big driver HUD
 
-## What's wrong today
-`src/lib/routes.functions.ts` calls the Google Routes API v2 but with defaults that don't bias against unpaved / minor roads. We also auto-pick `routes[0]` and hide alternatives, so a bad pick is invisible.
+Quick reality check on "people install CarPlay on Tesla easily": those mods (like the LOAM adapter) are hardware dongles plugged into the car's internals that impersonate a rear display. That is a native/hardware path, not a browser path. Nothing running in a webpage can become CarPlay. What we CAN do is make our web setup feel closer to that experience — that's Plan B.
 
-## Changes
+### The idea
 
-### 1. Routes API — request quality
-In `src/lib/routes.functions.ts`:
-- Set `routingPreference: "TRAFFIC_AWARE_OPTIMAL"` (already partial — make it the default for DRIVE).
-- Set `travelMode: "DRIVE"` explicitly.
-- Add `routeModifiers.avoidFerries: true` and expose `avoidTolls` / `avoidHighways` / `avoidFerries` toggles (default all false except ferries).
-- Add `extraComputations: ["TOLLS"]` and request `routes.travelAdvisory` in the FieldMask so we can detect toll roads and flag them.
-- Always request `computeAlternativeRoutes: true` (up to 3).
-- Add a **road-quality filter**: after receiving routes, inspect `legs.steps.travelAdvisory` and `routeLabels`; down-rank or hide any route whose polyline is >20% on roads Google marks as unpaved / restricted / private. If all candidates are flagged, keep the best one but surface a warning banner ("This route includes unpaved roads").
-- Fall back from `TRAFFIC_AWARE_OPTIMAL` to `TRAFFIC_AWARE` on 400/quota errors so routing never dies silently.
+- **Phone page** = the "brain." Full interactive map (our Google Maps-based UI), search, route computation, GPS, rerouting.
+- **Tesla page** = a big, glanceable HUD. No fiddly search on the Tesla keyboard. Huge next-turn arrow, street name, distance to turn, ETA, distance remaining, current speed, and the map centered on the car with the route line. Tap targets on Tesla are limited to: Cancel trip, Reroute, Mute/unmute voice, Recenter.
+- Phone stays mounted or in pocket. You start the trip on the phone once; the Tesla screen mirrors the essentials from that point on.
 
-### 2. Snap the destination to a real road
-Before computing a route, snap the destination lat/lng to the nearest drivable road using the Roads API `snapToRoads` (already wired in `snap-to-road.functions.ts`). If the snap moves the point >30m, use the snapped coordinate as the actual destination and keep the original as the "arrival pin". This kills the common failure where a Places result sits on a field/back-lot and Routes picks a farm track to reach it.
+### What changes vs. today
 
-### 3. Show alternatives to the driver
-In `src/routes/index.tsx` + `src/components/MapView.tsx` + a new `src/components/RouteChoices.tsx`:
-- Render all returned routes as translucent polylines; the selected one is bold blue, the others gray.
-- Show a compact card stack: "Fastest 24 min · 18 km", "Avoids tolls 27 min", "Shorter 22 min · warning: unpaved section".
-- Tapping a card selects that route (updates polyline, ETA, steps). Tapping an alternate polyline on the map does the same.
+**Phone page (`/phone/$code`) becomes a real map + search UI**
+- Add Places autocomplete, favorites, recents on the phone (reuse existing components).
+- Phone computes the route via our existing `routes.functions.ts` and broadcasts the full nav state (destination, polyline, steps, current step index, next-turn distance, ETA, off-route reroute events) over the Supabase Realtime channel — not just raw GPS.
+- Phone owns rerouting logic (`off-route.ts` moves here) so the Tesla is a pure viewer.
 
-### 4. Driver preferences (persistent)
-New `src/components/RoutePrefs.tsx` toggle strip (top-right of map):
-- Avoid tolls
-- Avoid highways
-- Avoid unpaved
-Persist to `localStorage` via `src/lib/favorites.ts`. Re-request the route when a toggle flips.
+**Tesla page (`/`) becomes HUD-first**
+- New top banner: giant next-turn arrow + "In 400 m turn right on Rustaveli Ave" style text, styled for 17" viewing distance.
+- Map below, follow-mode locked on the car marker, route polyline drawn from the broadcast payload (no route API calls from the Tesla side).
+- Bottom bar: ETA · Distance remaining · Speed · [Cancel] [Recenter] [Mute].
+- Search bar and heavy panels (favorites, battery, alternatives) get hidden when a phone session is active — the Tesla stops being a "control everything" surface and becomes a display.
+- If phone disconnects, Tesla falls back to today's standalone mode automatically.
 
-### 5. Rerouting respects preferences
-`src/routes/index.tsx` off-route reroute path already exists — pass the same modifiers + alternatives request so a reroute can't quietly drop back onto a bad road.
+**Realtime channel payload upgrade**
+Extend `pair-channel.ts` to broadcast a structured `NavState` (position, heading, speed, destination, encoded polyline, steps, currentStepIndex, distanceToNextStep, etaSeconds, distanceRemaining, isRerouting) instead of just `{lat, lng, accuracy}`. Tesla subscribes and renders; it never recomputes routes.
 
-### 6. Report bad route (feedback loop, local only)
-Small "Report bad road" button on the nav banner. Stores `{polylineHash, timestamp}` in `localStorage` and adds a soft penalty: next time we see a route whose polyline overlaps a reported segment, we auto-prefer an alternative if one exists within +15% ETA. No backend, no PII.
+**Voice guidance stays on the Tesla** (Web Speech API) so the driver hears turns from the car speakers area even with phone muted.
 
-## Files touched
-- `src/lib/routes.functions.ts` — request params, alternatives, road-quality inspection, fallback.
-- `src/lib/snap-to-road.functions.ts` — reused for destination snapping (no change if signature fits).
-- `src/routes/index.tsx` — wire snapping, alternatives state, prefs, reroute modifiers.
-- `src/components/MapView.tsx` — render alternate polylines + click-to-select.
-- `src/components/RouteChoices.tsx` — new.
-- `src/components/RoutePrefs.tsx` — new.
-- `src/components/NavBanner.tsx` — add "Report bad road".
-- `src/lib/favorites.ts` — add `getRoutePrefs` / `setRoutePrefs` / `reportBadPolyline`.
+### What this buys the user
+- No typing on the Tesla on-screen keyboard mid-drive.
+- Route quality = whatever the phone's GPS + our routing gives (much better than Tesla browser GPS).
+- Tesla screen is optimized for glancing, not tapping.
+- Phone can be locked in a pocket for GPS-only, OR unlocked on a mount for full search — same code path, user's choice.
 
-## What this does NOT do
-- No custom offline road graph (Google's data is what we have).
-- No truck/RV-style routing profiles.
-- No community-shared bad-road database (local-only feedback).
+### What this does NOT do (being honest)
+- It is not CarPlay. Google Maps' native app is not involved; we render our own map using Google Maps Platform tiles/routes (same as today).
+- After a reverse-gear interruption, the Tesla browser still has to be reopened manually — session-restore already handles resuming the trip when it reopens.
+- If the phone screen locks and the browser tab gets suspended by iOS/Android, GPS broadcast pauses. We'll add a "Keep screen awake" wake-lock toggle on the phone page and warn the user; true background GPS needs a native app.
 
-## Feasibility note
-Google Routes API is the same engine Google Maps uses, so with the right flags (traffic-aware optimal, alternatives, avoid-ferries, destination snapping) route quality will match Google Maps in ~all cases. The remaining edge cases (private driveways, freshly closed roads) need either user feedback or waiting for Google to update — that's the same limit Google Maps itself has.
+### Files touched
+
+- `src/lib/pair-channel.ts` — extend payload schema to `NavState`.
+- `src/routes/phone.$code.tsx` — add map, search, favorites, route compute, reroute loop, broadcast NavState. This becomes the "primary" screen.
+- `src/routes/index.tsx` — when paired session is active, switch to HUD layout; hide search/panels; subscribe to NavState instead of computing.
+- `src/components/NavBanner.tsx` — enlarge for HUD role (bigger arrow, bigger type).
+- New `src/components/HudBottomBar.tsx` — ETA/distance/speed + Cancel/Recenter/Mute.
+- `src/components/MapView.tsx` — accept a "hud mode" prop that disables interactive controls except pan/zoom and recenter.
+- `src/lib/off-route.ts` — no code change, just imported from phone route now.
+- Wake Lock API added to `src/routes/phone.$code.tsx`.
+
+### Feasibility summary I'll give at the end
+- Real: everything above works in browsers today.
+- Unreliable: iOS backgrounding the phone tab when screen locks (mitigated by Wake Lock, not eliminated).
+- Would require a companion native app for production: true background GPS with screen off, and real CarPlay-style takeover of the Tesla display.

@@ -1,23 +1,28 @@
 import { useEffect, useRef, useState } from "react";
-import { generatePairCode, subscribePair, type PairedFix } from "@/lib/pair-channel";
+import { generatePairCode, subscribePair, type PairedFix, type PairedNavState } from "@/lib/pair-channel";
 
 interface Props {
   onPairedFix: (f: PairedFix) => void;
+  onPairedNav?: (n: PairedNavState) => void;
 }
 
 const STORAGE_KEY = "tesla-nav.pair-code";
 const PUBLIC_APP_ORIGIN = "https://myteslage.lovable.app";
 
-export function PairPhonePanel({ onPairedFix }: Props) {
+export function PairPhonePanel({ onPairedFix, onPairedNav }: Props) {
   const [code, setCode] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [channelStatus, setChannelStatus] = useState("not paired");
   const [origin, setOrigin] = useState("");
   const onPairedFixRef = useRef(onPairedFix);
+  const onPairedNavRef = useRef(onPairedNav);
 
   useEffect(() => {
     onPairedFixRef.current = onPairedFix;
   }, [onPairedFix]);
+  useEffect(() => {
+    onPairedNavRef.current = onPairedNav;
+  }, [onPairedNav]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -33,11 +38,16 @@ export function PairPhonePanel({ onPairedFix }: Props) {
     if (!code) return;
     if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, code);
     setChannelStatus("connecting");
-    const unsub = subscribePair(code, (f) => {
-      setConnected(true);
-      setChannelStatus("receiving");
-      onPairedFixRef.current(f);
-    }, setChannelStatus);
+    const unsub = subscribePair(
+      code,
+      (f) => {
+        setConnected(true);
+        setChannelStatus("receiving");
+        onPairedFixRef.current(f);
+      },
+      setChannelStatus,
+      (n) => onPairedNavRef.current?.(n),
+    );
     return unsub;
   }, [code]);
 

@@ -9,6 +9,7 @@ import { FeasibilityNote } from "@/components/FeasibilityNote";
 import { PairPhonePanel } from "@/components/PairPhonePanel";
 import { DirectionsPanel } from "@/components/DirectionsPanel";
 import { NavBanner } from "@/components/NavBanner";
+import { HudBottomBar } from "@/components/HudBottomBar";
 import { NearbyChips } from "@/components/NearbyChips";
 import { FavoritesPanel } from "@/components/FavoritesPanel";
 import { AlternativesPanel } from "@/components/AlternativesPanel";
@@ -55,6 +56,11 @@ function Index() {
   const [showTraffic, setShowTraffic] = useState(true);
   const [offlineCache, setOfflineCache] = useState(false);
   const online = useNetworkStatus();
+
+  // HUD mode: driven entirely by the phone. Tesla becomes a big display.
+  const [hudMode, setHudMode] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [recenterSignal, setRecenterSignal] = useState(0);
 
   // Session restore state
   const restoredRef = useRef(false);
@@ -224,6 +230,8 @@ function Index() {
 
   // New destination selected
   useEffect(() => {
+    // In HUD mode the phone owns routing — do not recompute on Tesla.
+    if (hudMode) return;
     setRoutes([]);
     setSelectedRouteIdx(0);
     // Preserve waypoints when a session restore just seeded them.
@@ -247,18 +255,21 @@ function Index() {
 
   // Avoid options or waypoints changed → re-request silently
   useEffect(() => {
+    if (hudMode) return;
     if (!destination || !fix) return;
     requestRoute(fix, destination, { silent: true, avoid, waypoints });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avoid, waypoints, prefs.avoidUnpaved]);
 
   useEffect(() => {
+    if (hudMode) return;
     if (!destination || !fix || route || routeLoading) return;
     requestRoute(fix, destination);
   }, [destination, fix, route, routeLoading, requestRoute]);
 
   // Live progress + off-route detection + periodic traffic-aware refresh
   useEffect(() => {
+    if (hudMode) return;
     if (!navigating || !destination || !fix || routeLoading) return;
     const lastRouteOrigin = lastRouteOriginRef.current;
     if (!lastRouteOrigin) return;
@@ -297,14 +308,40 @@ function Index() {
     clearSession();
   };
 
+  // Called by PairPhonePanel when the phone broadcasts a full NavState.
+  // In HUD mode we bypass Tesla-side route computation entirely.
+  const applyPairedNav = useCallback((n: import("@/lib/pair-channel").PairedNavState) => {
+    if (!n.destination || !n.encodedPolyline) {
+      // Phone cancelled the trip.
+      setHudMode(false);
+      setNavigating(false);
+      setDestination(null);
+      setRoutes([]);
+      return;
+    }
+    setHudMode(true);
+    setDestination({ lat: n.destination.lat, lng: n.destination.lng, name: n.destination.name });
+    setRoutes([{
+      distanceMeters: n.distanceMeters,
+      durationSeconds: n.durationSeconds,
+      encodedPolyline: n.encodedPolyline,
+      steps: n.steps,
+      label: "From phone",
+    }]);
+    setSelectedRouteIdx(0);
+    setNavigating(true);
+    setRouteError(null);
+  }, []);
+
   const addWaypoint = (stop: { lat: number; lng: number; name: string }) => {
     setWaypoints((cur) => [...cur, stop]);
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1600px] gap-4 p-4">
-        {/* Sidebar */}
+      <div className={`mx-auto flex min-h-screen w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-4 p-4"}`}>
+        {/* Sidebar — hidden in HUD mode (phone is the brain) */}
+        {!hudMode && (
         <aside className="flex w-[360px] shrink-0 flex-col gap-4 overflow-y-auto rounded-3xl border border-border bg-card/60 p-4">
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
@@ -344,6 +381,7 @@ function Index() {
                 source: "phone",
               });
             }}
+            onPairedNav={applyPairedNav}
           />
 
           {error && (
@@ -395,10 +433,33 @@ function Index() {
             <FeasibilityNote />
           </div>
         </aside>
+        )}
+
+        {/* Hidden PairPhonePanel in HUD mode — still needs to be mounted to receive nav broadcasts. */}
+        {hudMode && (
+          <div className="hidden">
+            <PairPhonePanel
+              onPairedFix={(p) => {
+                setError(null);
+                setWatching(true);
+                setFix({
+                  lat: p.lat,
+                  lng: p.lng,
+                  accuracy: p.accuracy,
+                  heading: p.heading,
+                  speed: p.speed,
+                  timestamp: p.timestamp,
+                  source: "phone",
+                });
+              }}
+              onPairedNav={applyPairedNav}
+            />
+          </div>
+        )}
 
         {/* Map */}
-        <main className="relative min-h-[400px] flex-1 overflow-hidden rounded-3xl border border-border bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full">
-          {!navigating && (
+        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
+          {!navigating && !hudMode && (
             <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-6">
               <div className="pointer-events-auto w-full max-w-2xl">
                 <DestinationSearch onSelect={setDestination} />
@@ -406,6 +467,7 @@ function Index() {
             </div>
           )}
 
+          {!hudMode && (
           <div className="absolute right-4 top-4 z-30">
             <button
               type="button"
@@ -419,8 +481,26 @@ function Index() {
               {showTraffic ? "Traffic on" : "Traffic off"}
             </button>
           </div>
+          )}
 
           {navigating && route && <NavBanner route={route} fix={fix} onStop={stopNav} />}
+
+          {hudMode && route && (
+            <HudBottomBar
+              route={route}
+              fix={fix}
+              onCancel={() => {
+                // Cancel locally; the phone will re-broadcast if it's still navigating.
+                setHudMode(false);
+                setNavigating(false);
+                setDestination(null);
+                setRoutes([]);
+              }}
+              onRecenter={() => setRecenterSignal((n) => n + 1)}
+              muted={muted}
+              onToggleMute={() => setMuted((m) => !m)}
+            />
+          )}
 
           {resumedName && (
             <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-30 flex justify-center px-4">
@@ -469,6 +549,7 @@ function Index() {
                 waypoints={waypoints}
                 alternates={routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i }))}
                 onSelectAlternate={setSelectedRouteIdx}
+                recenterSignal={recenterSignal}
               />
             </Suspense>
           </ClientOnly>

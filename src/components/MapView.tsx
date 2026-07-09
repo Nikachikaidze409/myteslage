@@ -137,6 +137,13 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
     }
   }, [navigating]);
 
+  // Parent-triggered recenter.
+  useEffect(() => {
+    if (recenterSignal == null) return;
+    recenterOnMe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recenterSignal]);
+
   // Traffic overlay toggle
   useEffect(() => {
     const g = (window as any).google;

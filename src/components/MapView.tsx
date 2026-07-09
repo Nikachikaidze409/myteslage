@@ -339,7 +339,7 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
         onClick={recenterOnMe}
         aria-label="Center on my location"
         title="My location"
-        className={`absolute bottom-4 left-4 z-30 flex h-11 w-11 items-center justify-center rounded-full border shadow-lg backdrop-blur transition ${
+        className={`absolute bottom-8 left-4 z-30 flex items-center gap-2 rounded-full border px-4 py-2.5 shadow-lg backdrop-blur transition ${
           followUi
             ? "border-primary bg-primary text-primary-foreground"
             : "border-border bg-white/95 text-foreground hover:bg-white"
@@ -349,6 +349,7 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
           <circle cx="12" cy="12" r="3" />
           <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
         </svg>
+        <span className="text-sm font-semibold">My location</span>
       </button>
     </div>
   );

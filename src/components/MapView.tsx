@@ -12,11 +12,13 @@ interface Props {
   waypoints?: { lat: number; lng: number; name?: string }[];
   alternates?: { encodedPolyline: string; index: number }[];
   onSelectAlternate?: (index: number) => void;
+  /** Increment to programmatically trigger recenter-on-me from a parent. */
+  recenterSignal?: number;
 }
 
 const DEFAULT_CENTER = { lat: 41.7151, lng: 44.8271 };
 
-export function MapView({ fix, destination, encodedPolyline, navigating, showTraffic, waypoints, alternates, onSelectAlternate }: Props) {
+export function MapView({ fix, destination, encodedPolyline, navigating, showTraffic, waypoints, alternates, onSelectAlternate, recenterSignal }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const meMarker = useRef<any>(null);

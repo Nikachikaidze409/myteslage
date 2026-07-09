@@ -127,3 +127,29 @@ export function useNetworkStatus() {
   }, []);
   return online;
 }
+
+// ---- Route preferences (persistent) ----
+const PREFS_KEY = "tsl.routePrefs.v1";
+export interface RoutePrefs {
+  avoidTolls: boolean;
+  avoidHighways: boolean;
+  avoidUnpaved: boolean;
+}
+const DEFAULT_PREFS: RoutePrefs = {
+  avoidTolls: false,
+  avoidHighways: false,
+  avoidUnpaved: true,
+};
+export function loadRoutePrefs(): RoutePrefs {
+  if (typeof window === "undefined") return DEFAULT_PREFS;
+  try {
+    const raw = window.localStorage.getItem(PREFS_KEY);
+    return raw ? { ...DEFAULT_PREFS, ...(JSON.parse(raw) as Partial<RoutePrefs>) } : DEFAULT_PREFS;
+  } catch {
+    return DEFAULT_PREFS;
+  }
+}
+export function saveRoutePrefs(p: RoutePrefs) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+}

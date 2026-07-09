@@ -232,15 +232,15 @@ function Index() {
 
     if (route?.encodedPolyline) {
       const d = distanceToPolylineMeters({ lat: fix.lat, lng: fix.lng }, route.encodedPolyline);
-      if (d > 50) {
+      if (d > 35) {
         if (offRouteSinceRef.current == null) offRouteSinceRef.current = Date.now();
         if (
-          Date.now() - (offRouteSinceRef.current ?? 0) > 6_000 &&
-          Date.now() - lastRerouteAtRef.current > 10_000
+          Date.now() - (offRouteSinceRef.current ?? 0) > 2_500 &&
+          Date.now() - lastRerouteAtRef.current > 5_000
         ) {
           setOffRoute(true);
           lastRerouteAtRef.current = Date.now();
-          requestRoute(fix, destination);
+          requestRoute(fix, destination, { silent: true });
           return;
         }
       } else {

@@ -32,6 +32,24 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
   const lastSnapAtRef = useRef(0);
   const haloOverlayRef = useRef<any>(null);
   const haloElRef = useRef<HTMLDivElement | null>(null);
+  // Follow-me camera mode. True = camera tracks the car; false = user is panning/zooming freely.
+  const followRef = useRef<boolean>(false);
+  const programmaticMoveRef = useRef<boolean>(false);
+  const [followUi, setFollowUi] = useState(false);
+
+  const recenterOnMe = () => {
+    const g = (window as any).google;
+    const map = mapRef.current;
+    const pos = currentPosRef.current;
+    if (!g || !map || !pos) return;
+    followRef.current = true;
+    setFollowUi(true);
+    programmaticMoveRef.current = true;
+    map.panTo(pos);
+    if (map.getZoom() < 16) map.setZoom(17);
+    // Release the guard on the next tick so subsequent user drags disable follow.
+    setTimeout(() => (programmaticMoveRef.current = false), 250);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +64,15 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
           gestureHandling: "greedy",
           styles: LIGHT_STYLE,
           backgroundColor: "#f1f5f9",
+        });
+
+        // Any user drag disables follow-me so the camera doesn't fight the finger.
+        mapRef.current.addListener("dragstart", () => {
+          if (programmaticMoveRef.current) return;
+          if (followRef.current) {
+            followRef.current = false;
+            setFollowUi(false);
+          }
         });
 
         // Pulsing halo overlay under the "you are here" marker.
@@ -89,6 +116,21 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
       }
     };
   }, []);
+
+  // Turn follow on when navigation starts; off when it stops.
+  useEffect(() => {
+    followRef.current = !!navigating;
+    setFollowUi(!!navigating);
+    if (navigating && currentPosRef.current) {
+      const map = mapRef.current;
+      if (map) {
+        programmaticMoveRef.current = true;
+        map.panTo(currentPosRef.current);
+        if (map.getZoom() < 16) map.setZoom(17);
+        setTimeout(() => (programmaticMoveRef.current = false), 250);
+      }
+    }
+  }, [navigating]);
 
   // Traffic overlay toggle
   useEffect(() => {
@@ -199,11 +241,12 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
         accuracyCircle.current?.setCenter({ lat, lng });
         // Nudge the halo overlay to follow the tween.
         haloOverlayRef.current?.draw?.();
-        if (navigating) {
+        if (followRef.current) {
+          programmaticMoveRef.current = true;
           map.panTo({ lat, lng });
           if (headingDeg != null) map.setHeading(heading);
-        } else {
-          map.panTo({ lat, lng });
+          // Release guard shortly after — dragstart during a pan tween is a real user gesture.
+          setTimeout(() => (programmaticMoveRef.current = false), 50);
         }
         if (t < 1) rafRef.current = requestAnimationFrame(step);
         else rafRef.current = null;
@@ -214,11 +257,7 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
     // Snap to nearest road (throttled) when navigating — hides GPS jitter.
     const useTarget = (target: { lat: number; lng: number }) => {
       startTargetTween(target, fix.heading ?? null);
-      if (navigating) {
-        if (map.getZoom() < 16) map.setZoom(17);
-      } else if (map.getZoom() < 12) {
-        map.setZoom(13);
-      }
+      // Never force zoom on plain fixes — user's pinch/scroll should always win.
     };
 
     const nowMs = Date.now();
@@ -292,7 +331,27 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
     }
   }, [encodedPolyline, navigating]);
 
-  return <div ref={containerRef} className="h-full w-full rounded-2xl bg-muted" />;
+  return (
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="h-full w-full rounded-2xl bg-muted" />
+      <button
+        type="button"
+        onClick={recenterOnMe}
+        aria-label="Center on my location"
+        title="My location"
+        className={`absolute bottom-4 left-4 z-30 flex h-11 w-11 items-center justify-center rounded-full border shadow-lg backdrop-blur transition ${
+          followUi
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-border bg-white/95 text-foreground hover:bg-white"
+        }`}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+        </svg>
+      </button>
+    </div>
+  );
 }
 
 const LIGHT_STYLE = [

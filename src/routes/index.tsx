@@ -549,6 +549,7 @@ function Index() {
                 waypoints={waypoints}
                 alternates={routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i }))}
                 onSelectAlternate={setSelectedRouteIdx}
+                recenterSignal={recenterSignal}
               />
             </Suspense>
           </ClientOnly>

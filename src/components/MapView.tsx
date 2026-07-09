@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { LocateFixed } from "lucide-react";
 import { loadGoogleMaps } from "@/lib/maps-loader";
 import type { Fix } from "./StatusPanel";
 import { snapToRoad } from "@/lib/snap-to-road.functions";

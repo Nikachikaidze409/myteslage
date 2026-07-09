@@ -230,6 +230,8 @@ function Index() {
 
   // New destination selected
   useEffect(() => {
+    // In HUD mode the phone owns routing — do not recompute on Tesla.
+    if (hudMode) return;
     setRoutes([]);
     setSelectedRouteIdx(0);
     // Preserve waypoints when a session restore just seeded them.
@@ -253,18 +255,21 @@ function Index() {
 
   // Avoid options or waypoints changed → re-request silently
   useEffect(() => {
+    if (hudMode) return;
     if (!destination || !fix) return;
     requestRoute(fix, destination, { silent: true, avoid, waypoints });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avoid, waypoints, prefs.avoidUnpaved]);
 
   useEffect(() => {
+    if (hudMode) return;
     if (!destination || !fix || route || routeLoading) return;
     requestRoute(fix, destination);
   }, [destination, fix, route, routeLoading, requestRoute]);
 
   // Live progress + off-route detection + periodic traffic-aware refresh
   useEffect(() => {
+    if (hudMode) return;
     if (!navigating || !destination || !fix || routeLoading) return;
     const lastRouteOrigin = lastRouteOriginRef.current;
     if (!lastRouteOrigin) return;

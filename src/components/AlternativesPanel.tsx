@@ -1,25 +1,29 @@
-import type { RouteResult, AvoidOption } from "@/lib/routes.functions";
+import type { RouteResult } from "@/lib/routes.functions";
+import type { RoutePrefs } from "@/lib/favorites";
 
 interface Props {
   routes: RouteResult[];
   selectedIndex: number;
   onSelect: (i: number) => void;
-  avoid: AvoidOption[];
-  onAvoidChange: (v: AvoidOption[]) => void;
+  prefs: RoutePrefs;
+  onPrefsChange: (p: RoutePrefs) => void;
 }
 
 export function AlternativesPanel({
   routes,
   selectedIndex,
   onSelect,
-  avoid,
-  onAvoidChange,
+  prefs,
+  onPrefsChange,
 }: Props) {
   if (routes.length === 0) return null;
 
-  const toggle = (o: AvoidOption) => {
-    onAvoidChange(avoid.includes(o) ? avoid.filter((x) => x !== o) : [...avoid, o]);
-  };
+  const toggle = (k: keyof RoutePrefs) => onPrefsChange({ ...prefs, [k]: !prefs[k] });
+  const toggles: { k: keyof RoutePrefs; label: string }[] = [
+    { k: "avoidHighways", label: "Avoid highways" },
+    { k: "avoidTolls", label: "Avoid tolls" },
+    { k: "avoidUnpaved", label: "Avoid unpaved" },
+  ];
 
   return (
     <div className="rounded-2xl border border-border bg-white p-4">
@@ -29,6 +33,7 @@ export function AlternativesPanel({
       <ul className="mb-3 flex flex-col gap-2">
         {routes.map((r, i) => {
           const selected = i === selectedIndex;
+          const hasWarning = (r.warnings ?? []).length > 0;
           return (
             <li key={i}>
               <button
@@ -41,8 +46,18 @@ export function AlternativesPanel({
                 }`}
               >
                 <div>
-                  <div className="text-sm font-semibold text-foreground">
+                  <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                     {r.label ?? (i === 0 ? "Fastest" : `Alternate ${i}`)}
+                    {r.hasTolls && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-700">
+                        Toll
+                      </span>
+                    )}
+                    {hasWarning && (
+                      <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-700" title={(r.warnings ?? []).join(" · ")}>
+                        ⚠ Rough road
+                      </span>
+                    )}
                   </div>
                   <div className="text-[11px] text-muted-foreground">
                     {(r.distanceMeters / 1000).toFixed(1)} km
@@ -61,18 +76,18 @@ export function AlternativesPanel({
         })}
       </ul>
       <div className="flex flex-wrap gap-1.5">
-        {(["highways", "tolls", "ferries"] as AvoidOption[]).map((o) => (
+        {toggles.map((t) => (
           <button
-            key={o}
+            key={t.k}
             type="button"
-            onClick={() => toggle(o)}
+            onClick={() => toggle(t.k)}
             className={`rounded-full border px-2.5 py-1 text-[11px] capitalize transition ${
-              avoid.includes(o)
+              prefs[t.k]
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
             }`}
           >
-            Avoid {o}
+            {t.label}
           </button>
         ))}
       </div>

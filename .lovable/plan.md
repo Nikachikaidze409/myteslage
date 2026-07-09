@@ -1,46 +1,57 @@
-## Context
+## Goal
+Stop the app from sending drivers down dirt tracks, service roads, or "shortest-by-distance" paths that aren't real roads. Match Google Maps' behavior: prefer major/paved roads, show alternatives, and let the driver pick.
 
-Tesla firmware suspends the browser when the car shifts into Reverse (the reverse camera takes over the screen). No web app can force itself back to the foreground — Tesla exposes no API for gear state, background execution, or app relaunch. When you shift back to D/P you must tap the browser icon again.
+## What's wrong today
+`src/lib/routes.functions.ts` calls the Google Routes API v2 but with defaults that don't bias against unpaved / minor roads. We also auto-pick `routes[0]` and hide alternatives, so a bad pick is invisible.
 
-The only thing we control is **what happens when the browser reopens**. Today the app loads on the home screen and you have to re-enter your destination and re-tap "Start navigation". This plan makes the app resume exactly where you left off, so one tap on the browser icon puts you straight back into turn-by-turn.
+## Changes
 
-## What this plan changes
+### 1. Routes API — request quality
+In `src/lib/routes.functions.ts`:
+- Set `routingPreference: "TRAFFIC_AWARE_OPTIMAL"` (already partial — make it the default for DRIVE).
+- Set `travelMode: "DRIVE"` explicitly.
+- Add `routeModifiers.avoidFerries: true` and expose `avoidTolls` / `avoidHighways` / `avoidFerries` toggles (default all false except ferries).
+- Add `extraComputations: ["TOLLS"]` and request `routes.travelAdvisory` in the FieldMask so we can detect toll roads and flag them.
+- Always request `computeAlternativeRoutes: true` (up to 3).
+- Add a **road-quality filter**: after receiving routes, inspect `legs.steps.travelAdvisory` and `routeLabels`; down-rank or hide any route whose polyline is >20% on roads Google marks as unpaved / restricted / private. If all candidates are flagged, keep the best one but surface a warning banner ("This route includes unpaved roads").
+- Fall back from `TRAFFIC_AWARE_OPTIMAL` to `TRAFFIC_AWARE` on 400/quota errors so routing never dies silently.
 
-Add full session persistence + auto-resume:
+### 2. Snap the destination to a real road
+Before computing a route, snap the destination lat/lng to the nearest drivable road using the Roads API `snapToRoads` (already wired in `snap-to-road.functions.ts`). If the snap moves the point >30m, use the snapped coordinate as the actual destination and keep the original as the "arrival pin". This kills the common failure where a Places result sits on a field/back-lot and Routes picks a farm track to reach it.
 
-1. **Persist active nav session** to `localStorage` whenever it changes:
-   - Selected destination (lat, lng, name)
-   - Active route (encoded polyline, alternatives, chosen index)
-   - Route options (avoid tolls / highways / ferries)
-   - Waypoints (e.g. supercharger stops)
-   - Navigation state (was it in "navigating" mode?)
-   - Timestamp of last save
+### 3. Show alternatives to the driver
+In `src/routes/index.tsx` + `src/components/MapView.tsx` + a new `src/components/RouteChoices.tsx`:
+- Render all returned routes as translucent polylines; the selected one is bold blue, the others gray.
+- Show a compact card stack: "Fastest 24 min · 18 km", "Avoids tolls 27 min", "Shorter 22 min · warning: unpaved section".
+- Tapping a card selects that route (updates polyline, ETA, steps). Tapping an alternate polyline on the map does the same.
 
-2. **On app load**, if a saved session exists and is < 2 hours old:
-   - Restore destination, route, waypoints, options into state immediately
-   - Auto-request geolocation (same as tapping "Detect location")
-   - Once the first GPS fix arrives, auto-enter navigating mode and resume turn-by-turn — no taps required
-   - Show a small "Resumed trip to {destination}" toast with a "Cancel" button in case the user doesn't want to resume
+### 4. Driver preferences (persistent)
+New `src/components/RoutePrefs.tsx` toggle strip (top-right of map):
+- Avoid tolls
+- Avoid highways
+- Avoid unpaved
+Persist to `localStorage` via `src/lib/favorites.ts`. Re-request the route when a toggle flips.
 
-3. **Clear the saved session** when:
-   - User taps "End navigation" / clears destination
-   - User arrives (distance to destination < 50 m)
-   - Session is older than 2 hours on load (stale)
+### 5. Rerouting respects preferences
+`src/routes/index.tsx` off-route reroute path already exists — pass the same modifiers + alternatives request so a reroute can't quietly drop back onto a bad road.
 
-4. **Recovery hint in UI**: small text under the browser-reopen scenario — "Trip auto-resumes when you reopen the browser" — so the user knows what to expect.
+### 6. Report bad route (feedback loop, local only)
+Small "Report bad road" button on the nav banner. Stores `{polylineHash, timestamp}` in `localStorage` and adds a soft penalty: next time we see a route whose polyline overlaps a reported segment, we auto-prefer an alternative if one exists within +15% ETA. No backend, no PII.
 
-## What this plan does NOT do (and why)
+## Files touched
+- `src/lib/routes.functions.ts` — request params, alternatives, road-quality inspection, fallback.
+- `src/lib/snap-to-road.functions.ts` — reused for destination snapping (no change if signature fits).
+- `src/routes/index.tsx` — wire snapping, alternatives state, prefs, reroute modifiers.
+- `src/components/MapView.tsx` — render alternate polylines + click-to-select.
+- `src/components/RouteChoices.tsx` — new.
+- `src/components/RoutePrefs.tsx` — new.
+- `src/components/NavBanner.tsx` — add "Report bad road".
+- `src/lib/favorites.ts` — add `getRoutePrefs` / `setRoutePrefs` / `reportBadPolyline`.
 
-- **Auto-relaunch the browser after reverse** — impossible from a web app. Tesla firmware controls this. The only true auto-resume is Tesla's split-screen mode (Model S/X and newer 3/Y), where the browser stays alive alongside the map and returns automatically when you shift out of R. I'll mention this in the UI as the recommended setup.
-- **Background GPS while hidden** — the browser is fully suspended by Tesla; no JS runs. We can't keep tracking during reverse.
+## What this does NOT do
+- No custom offline road graph (Google's data is what we have).
+- No truck/RV-style routing profiles.
+- No community-shared bad-road database (local-only feedback).
 
-## Technical details
-
-Files to touch:
-
-- **New** `src/lib/session.ts` — `saveSession()`, `loadSession()`, `clearSession()` helpers wrapping `localStorage` under key `nav-session-v1`, with a 2-hour TTL and a version field for future migrations.
-- **Edit** `src/routes/index.tsx` — call `saveSession()` inside effects that already watch destination/route/options/waypoints; on mount, call `loadSession()` and hydrate state; when the first `fix` arrives and a session was restored, auto-trigger `startNavigation()`. Clear session on end/arrival.
-- **Edit** `src/components/RoutePreview.tsx` (or a new small `ResumeToast.tsx`) — show the "Resumed trip — Cancel" toast for ~5 s after auto-restore.
-- **Edit** `src/components/FeasibilityNote.tsx` (or wherever tips live) — add the split-screen recommendation and "auto-resumes on reopen" note.
-
-No backend, no schema changes, no new dependencies. Uses existing `localStorage` pattern already in `src/lib/favorites.ts`.
+## Feasibility note
+Google Routes API is the same engine Google Maps uses, so with the right flags (traffic-aware optimal, alternatives, avoid-ferries, destination snapping) route quality will match Google Maps in ~all cases. The remaining edge cases (private driveways, freshly closed roads) need either user feedback or waiting for Google to update — that's the same limit Google Maps itself has.

@@ -21,7 +21,11 @@ import {
   cacheLastRoute,
   loadCachedRoute,
   useNetworkStatus,
+  loadRoutePrefs,
+  saveRoutePrefs,
+  type RoutePrefs,
 } from "@/lib/favorites";
+import { snapToRoad } from "@/lib/snap-to-road.functions";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
 
 const MapView = lazy(() =>
@@ -42,6 +46,7 @@ function Index() {
   const [routes, setRoutes] = useState<RouteResult[]>([]);
   const [selectedRouteIdx, setSelectedRouteIdx] = useState(0);
   const [avoid, setAvoid] = useState<AvoidOption[]>([]);
+  const [prefs, setPrefs] = useState<RoutePrefs>(() => loadRoutePrefs());
   const [waypoints, setWaypoints] = useState<{ lat: number; lng: number; name: string }[]>([]);
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
@@ -61,8 +66,19 @@ function Index() {
   const lastLiveRouteAtRef = useRef(0);
   const offRouteSinceRef = useRef<number | null>(null);
   const lastRerouteAtRef = useRef(0);
+  // Cache snapped destinations so we don't hit Roads API on every reroute.
+  const snappedDestRef = useRef<{ key: string; lat: number; lng: number } | null>(null);
 
   const route = routes[selectedRouteIdx] ?? null;
+
+  // Sync prefs to avoid[] and persist.
+  useEffect(() => {
+    saveRoutePrefs(prefs);
+    const next: AvoidOption[] = [];
+    if (prefs.avoidTolls) next.push("tolls");
+    if (prefs.avoidHighways) next.push("highways");
+    setAvoid(next);
+  }, [prefs]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
@@ -127,15 +143,32 @@ function Index() {
       const requestId = ++routeRequestRef.current;
       if (!options?.silent) setRouteLoading(true);
       setRouteError(null);
-      computeRoute({
-        data: {
-          origin: { lat: originFix.lat, lng: originFix.lng },
-          destination: nextDestination,
-          alternatives: true,
-          avoid: options?.avoid ?? avoid,
-          waypoints: (options?.waypoints ?? waypoints).map((w) => ({ lat: w.lat, lng: w.lng })),
-        },
-      })
+      // Snap destination to nearest drivable road so we don't route down a dirt path
+      // to reach a Place pin sitting on a field / back-lot.
+      const destKey = `${nextDestination.lat.toFixed(5)},${nextDestination.lng.toFixed(5)}`;
+      const snapPromise: Promise<{ lat: number; lng: number }> =
+        snappedDestRef.current?.key === destKey
+          ? Promise.resolve({ lat: snappedDestRef.current.lat, lng: snappedDestRef.current.lng })
+          : snapToRoad({ data: { lat: nextDestination.lat, lng: nextDestination.lng } })
+              .then((s) => {
+                snappedDestRef.current = { key: destKey, lat: s.lat, lng: s.lng };
+                return { lat: s.lat, lng: s.lng };
+              })
+              .catch(() => ({ lat: nextDestination.lat, lng: nextDestination.lng }));
+
+      snapPromise
+        .then((snappedDest) =>
+          computeRoute({
+            data: {
+              origin: { lat: originFix.lat, lng: originFix.lng },
+              destination: snappedDest,
+              alternatives: true,
+              avoid: options?.avoid ?? avoid,
+              avoidUnpaved: prefs.avoidUnpaved,
+              waypoints: (options?.waypoints ?? waypoints).map((w) => ({ lat: w.lat, lng: w.lng })),
+            },
+          }),
+        )
         .then((resp) => {
           if (routeRequestRef.current !== requestId) return;
           setRoutes(resp.routes);
@@ -186,7 +219,7 @@ function Index() {
           if (routeRequestRef.current === requestId && !options?.silent) setRouteLoading(false);
         });
     },
-    [avoid, waypoints],
+    [avoid, waypoints, prefs.avoidUnpaved],
   );
 
   // New destination selected
@@ -217,7 +250,7 @@ function Index() {
     if (!destination || !fix) return;
     requestRoute(fix, destination, { silent: true, avoid, waypoints });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [avoid, waypoints]);
+  }, [avoid, waypoints, prefs.avoidUnpaved]);
 
   useEffect(() => {
     if (!destination || !fix || route || routeLoading) return;
@@ -335,8 +368,8 @@ function Index() {
               routes={routes}
               selectedIndex={selectedRouteIdx}
               onSelect={setSelectedRouteIdx}
-              avoid={avoid}
-              onAvoidChange={setAvoid}
+              prefs={prefs}
+              onPrefsChange={setPrefs}
             />
           )}
 
@@ -434,6 +467,8 @@ function Index() {
                 navigating={navigating}
                 showTraffic={showTraffic}
                 waypoints={waypoints}
+                alternates={routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i }))}
+                onSelectAlternate={setSelectedRouteIdx}
               />
             </Suspense>
           </ClientOnly>

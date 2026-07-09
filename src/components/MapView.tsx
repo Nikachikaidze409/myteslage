@@ -10,11 +10,13 @@ interface Props {
   navigating?: boolean;
   showTraffic?: boolean;
   waypoints?: { lat: number; lng: number; name?: string }[];
+  alternates?: { encodedPolyline: string; index: number }[];
+  onSelectAlternate?: (index: number) => void;
 }
 
 const DEFAULT_CENTER = { lat: 41.7151, lng: 44.8271 };
 
-export function MapView({ fix, destination, encodedPolyline, navigating, showTraffic, waypoints }: Props) {
+export function MapView({ fix, destination, encodedPolyline, navigating, showTraffic, waypoints, alternates, onSelectAlternate }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const meMarker = useRef<any>(null);
@@ -23,6 +25,7 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
   const trafficLayerRef = useRef<any>(null);
   const accuracyCircle = useRef<any>(null);
   const routeLine = useRef<any>(null);
+  const altLinesRef = useRef<any[]>([]);
   const lastPolylineRef = useRef<string | null>(null);
   // Smooth-animation state — tween marker from previous rendered pos to newest fix.
   const rafRef = useRef<number | null>(null);
@@ -306,6 +309,32 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
     const g = (window as any).google;
     const map = mapRef.current;
     if (!g || !map) return;
+    // Clear old alternates
+    for (const l of altLinesRef.current) l.setMap(null);
+    altLinesRef.current = [];
+    if (g.maps.geometry && alternates) {
+      for (const alt of alternates) {
+        if (!alt.encodedPolyline || alt.encodedPolyline === encodedPolyline) continue;
+        const path = g.maps.geometry.encoding.decodePath(alt.encodedPolyline);
+        const line = new g.maps.Polyline({
+          map,
+          path,
+          strokeColor: "#94a3b8",
+          strokeOpacity: 0.75,
+          strokeWeight: 5,
+          zIndex: 1,
+          clickable: true,
+        });
+        line.addListener("click", () => onSelectAlternate?.(alt.index));
+        altLinesRef.current.push(line);
+      }
+    }
+  }, [alternates, encodedPolyline, onSelectAlternate]);
+
+  useEffect(() => {
+    const g = (window as any).google;
+    const map = mapRef.current;
+    if (!g || !map) return;
     if (routeLine.current) {
       routeLine.current.setMap(null);
       routeLine.current = null;
@@ -318,6 +347,7 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
         strokeColor: "#3b82f6",
         strokeOpacity: 0.9,
         strokeWeight: 6,
+        zIndex: 5,
       });
       // Only fit bounds when the route polyline actually changes and we're not in live-follow mode
       if (!navigating && lastPolylineRef.current !== encodedPolyline) {

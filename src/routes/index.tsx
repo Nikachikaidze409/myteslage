@@ -9,6 +9,7 @@ import { FeasibilityNote } from "@/components/FeasibilityNote";
 import { PairPhonePanel } from "@/components/PairPhonePanel";
 import { DirectionsPanel } from "@/components/DirectionsPanel";
 import { NavBanner } from "@/components/NavBanner";
+import { HudBottomBar } from "@/components/HudBottomBar";
 import { NearbyChips } from "@/components/NearbyChips";
 import { FavoritesPanel } from "@/components/FavoritesPanel";
 import { AlternativesPanel } from "@/components/AlternativesPanel";
@@ -55,6 +56,11 @@ function Index() {
   const [showTraffic, setShowTraffic] = useState(true);
   const [offlineCache, setOfflineCache] = useState(false);
   const online = useNetworkStatus();
+
+  // HUD mode: driven entirely by the phone. Tesla becomes a big display.
+  const [hudMode, setHudMode] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [recenterSignal, setRecenterSignal] = useState(0);
 
   // Session restore state
   const restoredRef = useRef(false);
@@ -296,6 +302,31 @@ function Index() {
     setDestination(null);
     clearSession();
   };
+
+  // Called by PairPhonePanel when the phone broadcasts a full NavState.
+  // In HUD mode we bypass Tesla-side route computation entirely.
+  const applyPairedNav = useCallback((n: import("@/lib/pair-channel").PairedNavState) => {
+    if (!n.destination || !n.encodedPolyline) {
+      // Phone cancelled the trip.
+      setHudMode(false);
+      setNavigating(false);
+      setDestination(null);
+      setRoutes([]);
+      return;
+    }
+    setHudMode(true);
+    setDestination({ lat: n.destination.lat, lng: n.destination.lng, name: n.destination.name });
+    setRoutes([{
+      distanceMeters: n.distanceMeters,
+      durationSeconds: n.durationSeconds,
+      encodedPolyline: n.encodedPolyline,
+      steps: n.steps,
+      label: "From phone",
+    }]);
+    setSelectedRouteIdx(0);
+    setNavigating(true);
+    setRouteError(null);
+  }, []);
 
   const addWaypoint = (stop: { lat: number; lng: number; name: string }) => {
     setWaypoints((cur) => [...cur, stop]);

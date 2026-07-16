@@ -7,12 +7,12 @@ const PLAN_KEY = "tsl.pending-plan";
 type Plan = "monthly" | "quarterly";
 
 const PLANS: Record<Plan, { label: string; price: string; period: string; total: string }> = {
-  monthly: { label: "Monthly", price: "25 ₾", period: "per month", total: "25 ₾ today" },
+  monthly: { label: "Monthly", price: "8 ₾", period: "per month", total: "8 ₾ today" },
   quarterly: {
-    label: "3 months (save 20%)",
-    price: "60 ₾",
+    label: "3 months (save 10%)",
+    price: "21.60 ₾",
     period: "every 3 months",
-    total: "60 ₾ today",
+    total: "21.60 ₾ today",
   },
 };
 

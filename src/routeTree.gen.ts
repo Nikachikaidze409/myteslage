@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as DriveRouteImport } from './routes/drive'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PhoneCodeRouteImport } from './routes/phone.$code'
 
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DriveRoute = DriveRouteImport.update({
   id: '/drive',
   path: '/drive',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/drive': typeof DriveRoute
+  '/pricing': typeof PricingRoute
   '/phone/$code': typeof PhoneCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/drive': typeof DriveRoute
+  '/pricing': typeof PricingRoute
   '/phone/$code': typeof PhoneCodeRoute
 }
 export interface FileRoutesById {
@@ -52,25 +60,34 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/drive': typeof DriveRoute
+  '/pricing': typeof PricingRoute
   '/phone/$code': typeof PhoneCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/drive' | '/phone/$code'
+  fullPaths: '/' | '/auth' | '/drive' | '/pricing' | '/phone/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/drive' | '/phone/$code'
-  id: '__root__' | '/' | '/auth' | '/drive' | '/phone/$code'
+  to: '/' | '/auth' | '/drive' | '/pricing' | '/phone/$code'
+  id: '__root__' | '/' | '/auth' | '/drive' | '/pricing' | '/phone/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   DriveRoute: typeof DriveRoute
+  PricingRoute: typeof PricingRoute
   PhoneCodeRoute: typeof PhoneCodeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/drive': {
       id: '/drive'
       path: '/drive'
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   DriveRoute: DriveRoute,
+  PricingRoute: PricingRoute,
   PhoneCodeRoute: PhoneCodeRoute,
 }
 export const routeTree = rootRouteImport

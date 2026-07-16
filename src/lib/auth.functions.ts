@@ -5,23 +5,12 @@ import { z } from "zod";
 const SignupSchema = z.object({
   email: z.string().email().max(200),
   password: z.string().min(6).max(200),
-  code: z.string().min(3).max(64),
 });
 
 export const signupWithCode = createServerFn({ method: "POST" })
   .inputValidator((d) => SignupSchema.parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const codeUpper = data.code.trim().toUpperCase();
-
-    const { data: codeRow, error: codeErr } = await supabaseAdmin
-      .from("access_codes")
-      .select("code, redeemed_by")
-      .eq("code", codeUpper)
-      .maybeSingle();
-    if (codeErr) throw new Error(codeErr.message);
-    if (!codeRow) throw new Error("Invalid access code.");
-    if (codeRow.redeemed_by) throw new Error("This access code has already been used.");
 
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
@@ -30,18 +19,6 @@ export const signupWithCode = createServerFn({ method: "POST" })
     });
     if (createErr || !created.user) {
       throw new Error(createErr?.message ?? "Could not create account.");
-    }
-
-    const { error: redeemErr } = await supabaseAdmin
-      .from("access_codes")
-      .update({ redeemed_by: created.user.id, redeemed_at: new Date().toISOString() })
-      .eq("code", codeUpper)
-      .is("redeemed_by", null);
-
-    if (redeemErr) {
-      // Roll back the created auth user so the code stays free.
-      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
-      throw new Error("Could not redeem access code — please try again.");
     }
 
     return { ok: true as const };

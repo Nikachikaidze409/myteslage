@@ -33,10 +33,10 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
   const rafRef = useRef<number | null>(null);
   const currentPosRef = useRef<{ lat: number; lng: number } | null>(null);
   const currentHeadingRef = useRef<number>(0);
+  const renderedHeadingRef = useRef<number>(0);
   const snapInFlightRef = useRef(false);
   const lastSnapAtRef = useRef(0);
-  const haloOverlayRef = useRef<any>(null);
-  const haloElRef = useRef<HTMLDivElement | null>(null);
+  const lastCamPanAtRef = useRef(0);
   // Follow-me camera mode. True = camera tracks the car; false = user is panning/zooming freely.
   const followRef = useRef<boolean>(false);
   const programmaticMoveRef = useRef<boolean>(false);
@@ -67,6 +67,7 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
           disableDefaultUI: true,
           zoomControl: true,
           gestureHandling: "greedy",
+          clickableIcons: false,
           styles: LIGHT_STYLE,
           backgroundColor: "#f1f5f9",
         });
@@ -79,42 +80,10 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
             setFollowUi(false);
           }
         });
-
-        // Pulsing halo overlay under the "you are here" marker.
-        const el = document.createElement("div");
-        el.className = "gps-halo";
-        el.innerHTML =
-          '<span class="gps-halo-ring"></span><span class="gps-halo-ring" style="animation-delay:1s"></span>';
-        haloElRef.current = el;
-
-        class HaloOverlay extends g.maps.OverlayView {
-          onAdd() {
-            const pane = (this as any).getPanes()?.overlayLayer as HTMLElement | undefined;
-            if (pane && el) pane.appendChild(el);
-          }
-          draw() {
-            const proj = (this as any).getProjection();
-            const pos = currentPosRef.current;
-            if (!proj || !pos || !el) return;
-            const p = proj.fromLatLngToDivPixel(new g.maps.LatLng(pos.lat, pos.lng));
-            if (!p) return;
-            el.style.left = `${p.x}px`;
-            el.style.top = `${p.y}px`;
-          }
-          onRemove() {
-            if (el?.parentNode) el.parentNode.removeChild(el);
-          }
-        }
-        haloOverlayRef.current = new HaloOverlay();
-        haloOverlayRef.current.setMap(mapRef.current);
       })
       .catch((e) => console.error(e));
     return () => {
       cancelled = true;
-      if (haloOverlayRef.current) {
-        haloOverlayRef.current.setMap(null);
-        haloOverlayRef.current = null;
-      }
       if (trafficLayerRef.current) {
         trafficLayerRef.current.setMap(null);
         trafficLayerRef.current = null;
@@ -241,24 +210,34 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
         currentPosRef.current = { lat, lng };
         currentHeadingRef.current = heading;
         meMarker.current?.setPosition({ lat, lng });
-        meMarker.current?.setIcon({
-          path: headingDeg == null ? g.maps.SymbolPath.CIRCLE : g.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-          scale: headingDeg == null ? 9 : 6,
-          rotation: heading,
-          fillColor: "#3b82f6",
-          fillOpacity: 1,
-          strokeColor: "#ffffff",
-          strokeWeight: 3,
-        });
+        // setIcon is expensive — only rotate when the change is visible (>4°) or on final frame.
+        if (headingDeg != null) {
+          const delta = Math.abs(heading - renderedHeadingRef.current);
+          if (delta > 4 || t === 1) {
+            meMarker.current?.setIcon({
+              path: g.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+              scale: 6,
+              rotation: heading,
+              fillColor: "#3b82f6",
+              fillOpacity: 1,
+              strokeColor: "#ffffff",
+              strokeWeight: 3,
+            });
+            renderedHeadingRef.current = heading;
+          }
+        }
         accuracyCircle.current?.setCenter({ lat, lng });
-        // Nudge the halo overlay to follow the tween.
-        haloOverlayRef.current?.draw?.();
         if (followRef.current) {
-          programmaticMoveRef.current = true;
-          map.panTo({ lat, lng });
-          if (headingDeg != null) map.setHeading(heading);
-          // Release guard shortly after — dragstart during a pan tween is a real user gesture.
-          setTimeout(() => (programmaticMoveRef.current = false), 50);
+          // setCenter is synchronous and MUCH cheaper than panTo (which starts
+          // its own smooth animation and fights the tween). Also throttle to
+          // ~30Hz so we don't hammer the renderer on 120Hz screens.
+          const nowT = performance.now();
+          if (nowT - lastCamPanAtRef.current > 33 || t === 1) {
+            lastCamPanAtRef.current = nowT;
+            programmaticMoveRef.current = true;
+            map.setCenter({ lat, lng });
+            setTimeout(() => (programmaticMoveRef.current = false), 30);
+          }
         }
         if (t < 1) rafRef.current = requestAnimationFrame(step);
         else rafRef.current = null;
@@ -273,7 +252,7 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
     };
 
     const nowMs = Date.now();
-    if (navigating && !snapInFlightRef.current && nowMs - lastSnapAtRef.current > 800) {
+    if (navigating && !snapInFlightRef.current && nowMs - lastSnapAtRef.current > 3000) {
       snapInFlightRef.current = true;
       lastSnapAtRef.current = nowMs;
       snapToRoad({ data: { lat: rawPos.lat, lng: rawPos.lng } })

@@ -8,13 +8,13 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "MyTesla.ge - ნავიგაცია იმპორტირებული Tesla-სთვის საქართველოში" },
+      { title: "Tesla Map Georgia - ნავიგაცია იმპორტირებული Tesla-სთვის საქართველოში" },
       {
         name: "description",
         content:
           "დაივიწყე Tesla Premium Connectivity. ცოცხალი ნავიგაცია პირდაპირ Tesla-ს ეკრანზე - მხოლოდ 8 ₾ თვეში.",
       },
-      { property: "og:title", content: "MyTesla.ge - ნავიგაცია, რომელიც Tesla-ს უნდა ჰქონდეს" },
+      { property: "og:title", content: "Tesla Map Georgia - ნავიგაცია, რომელიც Tesla-ს უნდა ჰქონდეს" },
       {
         property: "og:description",
         content:

@@ -18,7 +18,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/" });
+      if (data.session) navigate({ to: nextDest() });
     });
   }, [navigate]);
 
@@ -34,13 +34,20 @@ function AuthPage() {
       }
       const { error: signErr } = await supabase.auth.signInWithPassword({ email, password });
       if (signErr) throw new Error(signErr.message);
-      navigate({ to: "/" });
+      navigate({ to: nextDest() });
     } catch (e: any) {
       setError(e?.message ?? "Something went wrong");
     } finally {
       setBusy(false);
     }
   };
+
+  // If the user picked a plan on /pricing, send them to /checkout after auth.
+  function nextDest(): "/checkout" | "/drive" {
+    if (typeof window === "undefined") return "/drive";
+    const p = window.localStorage.getItem("tsl.pending-plan");
+    return p === "monthly" || p === "quarterly" ? "/checkout" : "/drive";
+  }
 
   return (
     <div className="grid min-h-screen place-items-center bg-background p-4 text-foreground">

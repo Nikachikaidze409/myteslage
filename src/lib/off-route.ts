@@ -1,6 +1,6 @@
 import { decodePolyline } from "@/lib/geo";
 
-// Distance from point p to segment ab, in meters (equirectangular approx — accurate enough at road scale)
+// Distance from point p to segment ab, in meters (equirectangular approx - accurate enough at road scale)
 function pointToSegmentMeters(
   p: { lat: number; lng: number },
   a: { lat: number; lng: number },

@@ -93,7 +93,7 @@ function describeError(err: GeolocationPositionError): string {
     case err.PERMISSION_DENIED:
       return "Permission denied. Enable location access in the Tesla browser settings.";
     case err.POSITION_UNAVAILABLE:
-      return "Position unavailable. The browser could not determine a location — Wi-Fi/cell signals may be insufficient.";
+      return "Position unavailable. The browser could not determine a location - Wi-Fi/cell signals may be insufficient.";
     case err.TIMEOUT:
       return "Still searching for a live GPS fix. Keep this page open and pair your phone if the Tesla browser stops updating.";
     default:

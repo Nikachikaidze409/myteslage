@@ -239,7 +239,7 @@ function Index() {
 
   // New destination selected
   useEffect(() => {
-    // In HUD mode the phone owns routing — do not recompute on Tesla.
+    // In HUD mode the phone owns routing - do not recompute on Tesla.
     if (hudMode) return;
     setRoutes([]);
     setSelectedRouteIdx(0);
@@ -349,7 +349,7 @@ function Index() {
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
-        {/* Sidebar — hidden in HUD mode (phone is the brain) */}
+        {/* Sidebar - hidden in HUD mode (phone is the brain) */}
         {!hudMode && (
         <aside className="flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto rounded-3xl border border-border bg-card/60 p-3">
           <header className="px-2 pt-2">
@@ -370,7 +370,7 @@ function Index() {
             </div>
             {!online && (
               <div className="mt-2 rounded-lg border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5 px-2 py-1 text-[11px] font-semibold text-[color:var(--bad)]">
-                Offline — using cached route
+                Offline - using cached route
               </div>
             )}
           </header>
@@ -453,7 +453,7 @@ function Index() {
         </aside>
         )}
 
-        {/* Hidden PairPhonePanel in HUD mode — still needs to be mounted to receive nav broadcasts. */}
+        {/* Hidden PairPhonePanel in HUD mode - still needs to be mounted to receive nav broadcasts. */}
         {hudMode && (
           <div className="hidden">
             <PairPhonePanel

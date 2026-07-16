@@ -29,7 +29,7 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
   const routeLine = useRef<any>(null);
   const altLinesRef = useRef<any[]>([]);
   const lastPolylineRef = useRef<string | null>(null);
-  // Smooth-animation state — tween marker from previous rendered pos to newest fix.
+  // Smooth-animation state - tween marker from previous rendered pos to newest fix.
   const rafRef = useRef<number | null>(null);
   const currentPosRef = useRef<{ lat: number; lng: number } | null>(null);
   const currentHeadingRef = useRef<number>(0);
@@ -173,7 +173,7 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
       currentPosRef.current = rawPos;
     }
 
-    // Accuracy circle — reuse instance instead of recreating (was flashing every tick).
+    // Accuracy circle - reuse instance instead of recreating (was flashing every tick).
     if (!accuracyCircle.current) {
       accuracyCircle.current = new g.maps.Circle({
         map,
@@ -203,14 +203,14 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       const step = (now: number) => {
         const t = Math.min(1, (now - t0) / duration);
-        const eased = t; // linear — car speed feels natural without easing
+        const eased = t; // linear - car speed feels natural without easing
         const lat = startPos.lat + (target.lat - startPos.lat) * eased;
         const lng = startPos.lng + (target.lng - startPos.lng) * eased;
         const heading = startHeading + dh * eased;
         currentPosRef.current = { lat, lng };
         currentHeadingRef.current = heading;
         meMarker.current?.setPosition({ lat, lng });
-        // setIcon is expensive — only rotate when the change is visible (>4°) or on final frame.
+        // setIcon is expensive - only rotate when the change is visible (>4°) or on final frame.
         if (headingDeg != null) {
           const delta = Math.abs(heading - renderedHeadingRef.current);
           if (delta > 4 || t === 1) {
@@ -245,10 +245,10 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
       rafRef.current = requestAnimationFrame(step);
     };
 
-    // Snap to nearest road (throttled) when navigating — hides GPS jitter.
+    // Snap to nearest road (throttled) when navigating - hides GPS jitter.
     const useTarget = (target: { lat: number; lng: number }) => {
       startTargetTween(target, fix.heading ?? null);
-      // Never force zoom on plain fixes — user's pinch/scroll should always win.
+      // Never force zoom on plain fixes - user's pinch/scroll should always win.
     };
 
     const nowMs = Date.now();

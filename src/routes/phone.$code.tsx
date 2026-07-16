@@ -8,7 +8,7 @@ import { snapToRoad } from "@/lib/snap-to-road.functions";
 
 export const Route = createFileRoute("/phone/$code")({
   head: () => ({
-    meta: [{ title: "Tesla nav — phone brain" }],
+    meta: [{ title: "Tesla nav - phone brain" }],
   }),
   component: PhoneRelay,
 });
@@ -98,7 +98,7 @@ function PhoneRelay() {
     channelReadyRef.current = false;
     setStatus("starting");
 
-    // Kick off the realtime channel in parallel — do NOT await it before geolocation.
+    // Kick off the realtime channel in parallel - do NOT await it before geolocation.
     let pending: PairedFix | null = null;
     const channel = supabase.channel(pairChannelName(upperCode));
     channelRef.current = channel;
@@ -351,7 +351,7 @@ function PhoneRelay() {
         )}
 
         <p className="text-[11px] text-muted-foreground">
-          Keep this page open. If iOS locks the screen the GPS pauses — enable "Keep screen awake"
+          Keep this page open. If iOS locks the screen the GPS pauses - enable "Keep screen awake"
           in your browser or set Auto-Lock to Never.
         </p>
       </div>

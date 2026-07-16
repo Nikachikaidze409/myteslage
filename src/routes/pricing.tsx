@@ -9,7 +9,7 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   head: () => ({
     meta: [
-      { title: "Pricing — MyTesla.ge" },
+      { title: "Pricing - MyTesla.ge" },
       {
         name: "description",
         content:
@@ -83,7 +83,7 @@ function PricingPage() {
             title="3 months"
             price="21.60 ₾"
             period="every 3 months"
-            subtitle="10% off — best value"
+            subtitle="10% off - best value"
             perMonth="7.20 ₾/mo"
             highlighted
           />

@@ -1,4 +1,4 @@
-// Persistent nav session — restored on browser reopen (e.g. after Tesla reverse).
+// Persistent nav session - restored on browser reopen (e.g. after Tesla reverse).
 import type { AvoidOption } from "@/lib/routes.functions";
 
 const KEY = "tsl.session.v1";

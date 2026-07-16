@@ -8,7 +8,7 @@ export function FeasibilityNote() {
         <p>
           <strong className="text-foreground">Feasible in principle, unreliable in practice on Tesla.</strong>{" "}
           The Tesla browser is a stripped Chromium; <code>navigator.geolocation</code> support has
-          varied by firmware and often falls back to IP-based lookup — hundreds of meters to
+          varied by firmware and often falls back to IP-based lookup - hundreds of meters to
           kilometers of error, not navigation-grade.
         </p>
         <p>
@@ -31,7 +31,7 @@ export function FeasibilityNote() {
         <p>
           <strong className="text-foreground">After reverse:</strong> Tesla firmware suspends the
           browser whenever you shift into R (the reverse camera takes the screen). No web app can
-          relaunch itself — but this app auto-resumes your active trip when you reopen the
+          relaunch itself - but this app auto-resumes your active trip when you reopen the
           browser. For truly seamless reverse, use Tesla's split-screen so the browser stays
           alive alongside the map.
         </p>

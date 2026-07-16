@@ -8,13 +8,13 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "MyTesla.ge — ნავიგაცია იმპორტირებული Tesla-სთვის საქართველოში" },
+      { title: "MyTesla.ge - ნავიგაცია იმპორტირებული Tesla-სთვის საქართველოში" },
       {
         name: "description",
         content:
-          "დაივიწყე Tesla Premium Connectivity. ცოცხალი ნავიგაცია პირდაპირ Tesla-ს ეკრანზე — მხოლოდ 8 ₾ თვეში.",
+          "დაივიწყე Tesla Premium Connectivity. ცოცხალი ნავიგაცია პირდაპირ Tesla-ს ეკრანზე - მხოლოდ 8 ₾ თვეში.",
       },
-      { property: "og:title", content: "MyTesla.ge — ნავიგაცია, რომელიც Tesla-ს უნდა ჰქონდეს" },
+      { property: "og:title", content: "MyTesla.ge - ნავიგაცია, რომელიც Tesla-ს უნდა ჰქონდეს" },
       {
         property: "og:description",
         content:
@@ -44,7 +44,7 @@ const T = {
         Tesla-ს ჩაშენებული რუკები არასწორად მუშაობს იმპორტირებულ მანქანებზე
         საქართველოში. Premium Connectivity ღირს{" "}
         <span className="text-white">$99 წელიწადში</span> და მაინც არ ხდის მას
-        გამოსადეგს. ჩვენ ავაშენეთ ალტერნატივა — ცოცხალი რუკა პირდაპირ შენი Tesla-ს ეკრანზე.
+        გამოსადეგს. ჩვენ ავაშენეთ ალტერნატივა - ცოცხალი რუკა პირდაპირ შენი Tesla-ს ეკრანზე.
       </>
     ),
     heroCta: "დაიწყე 8 ₾/თვე-დან",
@@ -56,14 +56,14 @@ const T = {
     stat3l: "დამატებითი აღჭურვილობა",
     heroImgAlt: "Tesla Model 3-ის ეკრანი ცოცხალი ნავიგაციით თბილისში",
     badEyebrow: "პრობლემა",
-    badTitle: "Tesla Premium Connectivity — 300 ₾/წელი",
+    badTitle: "Tesla Premium Connectivity - 300 ₾/წელი",
     badBullets: [
       "იმპორტირებულ მანქანებზე საქართველოში მაინც არ მარშრუტდება სწორად",
       "ყოველთვიური გადასახადი იმ ფუნქციებზე, რომლებზეც უკვე გადაიხადე",
       "მიბმულია Tesla-ს ძველ რუკის მონაცემებზე მხარდაუჭერელ ქვეყნებში",
     ],
     goodEyebrow: "გამოსავალი",
-    goodTitle: "MyTesla.ge — 8 ₾/თვე",
+    goodTitle: "MyTesla.ge - 8 ₾/თვე",
     goodBullets: [
       "Google-ის ხარისხის რუკები, რომლებმაც იციან ქართული ქუჩები",
       "რეალურ დროში GPS შენი ტელეფონიდან → მანქანის 17″ ეკრანზე",
@@ -71,13 +71,13 @@ const T = {
     ],
     featuresTitle: "აშენებულია მანქანისთვის, მუშაობს შენი ტელეფონით.",
     featuresBody:
-      "დააჟუფლე ერთხელ QR-კოდით. შენი ტელეფონი GPS-ს პირდაპირ Tesla-ს ბრაუზერში გადასცემს — მანქანა კი ცოცხალ რუკას აჩვენებს. აპლიკაცია, კაბელი და CarPlay-ის ჰაკები აღარ გჭირდება.",
+      "დააჟუფლე ერთხელ QR-კოდით. შენი ტელეფონი GPS-ს პირდაპირ Tesla-ს ბრაუზერში გადასცემს - მანქანა კი ცოცხალ რუკას აჩვენებს. აპლიკაცია, კაბელი და CarPlay-ის ჰაკები აღარ გჭირდება.",
     features: [
       { i: "📍", t: "რეალური GPS, ცოცხალი", b: "ტელეფონის ჩიპი ბევრად უფრო ზუსტია ვიდრე ბრაუზერი. მას რეალურ დროში მანქანაზე გადავცემთ." },
-      { i: "🧭", t: "მოქცევა-მოქცევით HUD", b: "სრულ ეკრანზე ნავიგაცია დიდი ETA-თი, დისტანციითა და სიჩქარით — გამარჯვის ერთი მზერით წასაკითხად." },
+      { i: "🧭", t: "მოქცევა-მოქცევით HUD", b: "სრულ ეკრანზე ნავიგაცია დიდი ETA-თი, დისტანციითა და სიჩქარით - გამარჯვის ერთი მზერით წასაკითხად." },
       { i: "⚡", t: "ტრეფიკი და გადამისამართება", b: "ცოცხალი ტრეფიკის ფენა, ალტერნატიული მარშრუტები და ავტომატური გადამისამართება როცა კურსიდან გადაუხვევ." },
       { i: "🔋", t: "Supercharger-ის დაგეგმვა", b: "შეიყვანე ბატარეის %, ჩვენ დაგიგეგმავთ დამუხტვის გაჩერებებს გზაზე." },
-      { i: "🇬🇪", t: "ადგილობრივი ქუჩები", b: "ქართული მისამართები, თბილისის უკუ-ქუჩები, უასფალტო გზების გაფრთხილება — მორგებული ქვეყანაზე." },
+      { i: "🇬🇪", t: "ადგილობრივი ქუჩები", b: "ქართული მისამართები, თბილისის უკუ-ქუჩები, უასფალტო გზების გაფრთხილება - მორგებული ქვეყანაზე." },
       { i: "🔒", t: "მხოლოდ წევრებისთვის", b: "ერთი ანგარიში, ერთი მოწყობილობა. სხვა მანქანაზე გაზიარება ვერ მოხერხდება." },
     ],
     pairingAlt: "ტელეფონის დაწყვილება Tesla-ს ეკრანთან QR-კოდით",
@@ -122,7 +122,7 @@ const T = {
       <>
         Tesla's built-in maps don't work correctly on imported cars in Georgia. Premium
         Connectivity costs <span className="text-white">$99/year</span> and still won't fix it.
-        We built the alternative — a real, live map that runs right on your Tesla's screen.
+        We built the alternative - a real, live map that runs right on your Tesla's screen.
       </>
     ),
     heroCta: "Start from 8 ₾/mo",
@@ -134,14 +134,14 @@ const T = {
     stat3l: "Extra hardware",
     heroImgAlt: "Tesla Model 3 dashboard showing live navigation in Tbilisi",
     badEyebrow: "The problem",
-    badTitle: "Tesla Premium Connectivity — 300 ₾/year",
+    badTitle: "Tesla Premium Connectivity - 300 ₾/year",
     badBullets: [
       "Still doesn't route correctly on imported cars in Georgia",
       "Ties you into a subscription for features you already paid for",
       "Locked to Tesla's aging map data outside supported countries",
     ],
     goodEyebrow: "The solution",
-    goodTitle: "MyTesla.ge — 8 ₾/month",
+    goodTitle: "MyTesla.ge - 8 ₾/month",
     goodBullets: [
       "Google-quality maps that actually know Georgian streets",
       "Real-time GPS from your phone → your car's 17″ screen",
@@ -149,13 +149,13 @@ const T = {
     ],
     featuresTitle: "Built for the car, powered by your phone.",
     featuresBody:
-      "Pair once with a QR code. Your phone streams high-accuracy GPS to the Tesla browser; the Tesla shows the live map. That's it — no app store, no cable, no CarPlay hack.",
+      "Pair once with a QR code. Your phone streams high-accuracy GPS to the Tesla browser; the Tesla shows the live map. That's it - no app store, no cable, no CarPlay hack.",
     features: [
       { i: "📍", t: "Real GPS, live", b: "Your phone's chip is far more accurate than a browser. We stream it to the car in real time." },
-      { i: "🧭", t: "Turn-by-turn HUD", b: "Full-screen navigation with giant ETA, distance, and speed — designed to read at a glance." },
+      { i: "🧭", t: "Turn-by-turn HUD", b: "Full-screen navigation with giant ETA, distance, and speed - designed to read at a glance." },
       { i: "⚡", t: "Traffic & rerouting", b: "Live traffic layer, alternate routes, and automatic rerouting when you drift off course." },
       { i: "🔋", t: "Supercharger planning", b: "Enter your battery %, and we'll plan charging stops along the way." },
-      { i: "🇬🇪", t: "Local streets", b: "Georgian addresses, Tbilisi backroads, unpaved-road warnings — tuned for the country." },
+      { i: "🇬🇪", t: "Local streets", b: "Georgian addresses, Tbilisi backroads, unpaved-road warnings - tuned for the country." },
       { i: "🔒", t: "Membership only", b: "One account, one device. Your subscription can't be shared to another car." },
     ],
     pairingAlt: "Phone pairing with Tesla screen via QR code",

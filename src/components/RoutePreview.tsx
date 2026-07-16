@@ -20,7 +20,7 @@ export function RoutePreview({
     <div className="rounded-2xl border border-border bg-white p-5">
       {loading && (
         <div className="text-sm text-muted-foreground">
-          {offRoute ? "Off route — rerouting…" : "Computing route…"}
+          {offRoute ? "Off route - rerouting…" : "Computing route…"}
         </div>
       )}
       {error && <div className="text-sm text-[color:var(--bad)]">{error}</div>}

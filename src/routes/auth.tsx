@@ -59,7 +59,7 @@ function AuthPage() {
           {mode === "signin" ? "Sign in" : "Create your account"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Membership required. One account = one device — signing in on a new device will sign the old one out.
+          Membership required. One account = one device - signing in on a new device will sign the old one out.
         </p>
 
         <form onSubmit={submit} className="mt-5 space-y-3">

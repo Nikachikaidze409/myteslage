@@ -101,11 +101,11 @@ export function BatteryPanel({ routeKm, encodedPolyline, onAddStop }: Props) {
         <div className="mt-3 text-xs">
           {needsCharge ? (
             <div className="text-[color:var(--bad)]">
-              Route is {routeKm.toFixed(0)} km — needs a charging stop.
+              Route is {routeKm.toFixed(0)} km - needs a charging stop.
             </div>
           ) : (
             <div className="text-[color:var(--good,#16a34a)]">
-              Route is {routeKm.toFixed(0)} km — you can make it on current charge.
+              Route is {routeKm.toFixed(0)} km - you can make it on current charge.
             </div>
           )}
         </div>

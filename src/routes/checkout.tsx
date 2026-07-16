@@ -18,7 +18,7 @@ const PLANS: Record<Plan, { label: string; price: string; period: string; total:
 
 export const Route = createFileRoute("/checkout")({
   component: Checkout,
-  head: () => ({ meta: [{ title: "Checkout — MyTesla.ge" }] }),
+  head: () => ({ meta: [{ title: "Checkout - MyTesla.ge" }] }),
 });
 
 function Checkout() {
@@ -106,7 +106,7 @@ function Checkout() {
           <div className="font-semibold text-[#e9b149]">Payment activation in progress</div>
           <p className="mt-1 text-white/70">
             We're finalizing the Georgian payment gateway. In the meantime, click "Reserve my
-            plan" below — we'll activate your account manually within 24 hours and send an invoice
+            plan" below - we'll activate your account manually within 24 hours and send an invoice
             by email.
           </p>
         </div>

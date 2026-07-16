@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as DriveRouteImport } from './routes/drive'
+import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PhoneCodeRouteImport } from './routes/phone.$code'
@@ -23,6 +24,11 @@ const PricingRoute = PricingRouteImport.update({
 const DriveRoute = DriveRouteImport.update({
   id: '/drive',
   path: '/drive',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -44,6 +50,7 @@ const PhoneCodeRoute = PhoneCodeRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/pricing': typeof PricingRoute
   '/phone/$code': typeof PhoneCodeRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/pricing': typeof PricingRoute
   '/phone/$code': typeof PhoneCodeRoute
@@ -59,21 +67,36 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/pricing': typeof PricingRoute
   '/phone/$code': typeof PhoneCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/drive' | '/pricing' | '/phone/$code'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/checkout'
+    | '/drive'
+    | '/pricing'
+    | '/phone/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/drive' | '/pricing' | '/phone/$code'
-  id: '__root__' | '/' | '/auth' | '/drive' | '/pricing' | '/phone/$code'
+  to: '/' | '/auth' | '/checkout' | '/drive' | '/pricing' | '/phone/$code'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/checkout'
+    | '/drive'
+    | '/pricing'
+    | '/phone/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  CheckoutRoute: typeof CheckoutRoute
   DriveRoute: typeof DriveRoute
   PricingRoute: typeof PricingRoute
   PhoneCodeRoute: typeof PhoneCodeRoute
@@ -93,6 +116,13 @@ declare module '@tanstack/react-router' {
       path: '/drive'
       fullPath: '/drive'
       preLoaderRoute: typeof DriveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -122,6 +152,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  CheckoutRoute: CheckoutRoute,
   DriveRoute: DriveRoute,
   PricingRoute: PricingRoute,
   PhoneCodeRoute: PhoneCodeRoute,

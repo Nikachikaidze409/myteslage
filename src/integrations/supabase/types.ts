@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      access_codes: {
+        Row: {
+          code: string
+          created_at: string
+          note: string | null
+          redeemed_at: string | null
+          redeemed_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          note?: string | null
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          note?: string | null
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          active_device_id: string | null
+          active_device_label: string | null
+          active_device_updated_at: string | null
+          created_at: string
+          email: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          active_device_id?: string | null
+          active_device_label?: string | null
+          active_device_updated_at?: string | null
+          created_at?: string
+          email?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          active_device_id?: string | null
+          active_device_label?: string | null
+          active_device_updated_at?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -90,12 +90,37 @@ export function DestinationSearch({ onSelect, disabled }: Props) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
+          id="tsl-destination-input"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Where to?"
           disabled={disabled}
           className="font-display w-full bg-transparent text-lg text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
         />
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label="Insert space"
+          title="Insert space"
+          onMouseDown={(e) => {
+            // Prevent the input from losing focus / the on-screen keyboard from hiding.
+            e.preventDefault();
+            const el = document.getElementById("tsl-destination-input") as HTMLInputElement | null;
+            const start = el?.selectionStart ?? q.length;
+            const end = el?.selectionEnd ?? q.length;
+            const next = q.slice(0, start) + " " + q.slice(end);
+            setQ(next);
+            requestAnimationFrame(() => {
+              if (el) {
+                el.focus();
+                el.setSelectionRange(start + 1, start + 1);
+              }
+            });
+          }}
+          className="ml-2 h-10 shrink-0 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-foreground shadow-sm hover:bg-muted"
+        >
+          Space
+        </button>
       </div>
       {suggestions.length > 0 && (
         <ul className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-slate-300/40">

@@ -34,7 +34,7 @@ const MapView = lazy(() =>
   import("@/components/MapView").then((m) => ({ default: m.MapView })),
 );
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/drive")({
   component: IndexGated,
 });
 

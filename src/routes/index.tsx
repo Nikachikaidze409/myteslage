@@ -63,7 +63,7 @@ const T = {
       "მიბმულია Tesla-ს ძველ რუკის მონაცემებზე მხარდაუჭერელ ქვეყნებში",
     ],
     goodEyebrow: "გამოსავალი",
-    goodTitle: "MyTesla.ge - 8 ₾/თვე",
+    goodTitle: "Tesla Map Georgia - 8 ₾/თვე",
     goodBullets: [
       "Google-ის ხარისხის რუკები, რომლებმაც იციან ქართული ქუჩები",
       "რეალურ დროში GPS შენი ტელეფონიდან → მანქანის 17″ ეკრანზე",
@@ -141,7 +141,7 @@ const T = {
       "Locked to Tesla's aging map data outside supported countries",
     ],
     goodEyebrow: "The solution",
-    goodTitle: "MyTesla.ge - 8 ₾/month",
+    goodTitle: "Tesla Map Georgia - 8 ₾/month",
     goodBullets: [
       "Google-quality maps that actually know Georgian streets",
       "Real-time GPS from your phone → your car's 17″ screen",
@@ -371,7 +371,7 @@ function Nav({
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
             ⚡
           </span>
-          MyTesla<span className="text-white/40">.ge</span>
+          Tesla Map Georgia
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
           <a href="#pricing" className="hover:text-white">{t.navPricing}</a>
@@ -552,7 +552,7 @@ function PricingCard({
 function Footer({ text }: { text: string }) {
   return (
     <footer className="border-t border-white/5 py-10 text-center text-xs text-white/40">
-      © {new Date().getFullYear()} MyTesla.ge · {text}
+      © {new Date().getFullYear()} Tesla Map Georgia · {text}
     </footer>
   );
 }

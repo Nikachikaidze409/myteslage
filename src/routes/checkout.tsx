@@ -18,7 +18,7 @@ const PLANS: Record<Plan, { label: string; price: string; period: string; total:
 
 export const Route = createFileRoute("/checkout")({
   component: Checkout,
-  head: () => ({ meta: [{ title: "Checkout - MyTesla.ge" }] }),
+  head: () => ({ meta: [{ title: "Checkout - Tesla Map Georgia" }] }),
 });
 
 function Checkout() {
@@ -61,7 +61,7 @@ function Checkout() {
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
               ⚡
             </span>
-            MyTesla<span className="text-white/40">.ge</span>
+            Tesla Map Georgia
           </Link>
           <Link to="/pricing" className="text-sm text-white/60 hover:text-white">
             ← Change plan

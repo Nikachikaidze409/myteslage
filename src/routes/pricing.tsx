@@ -9,7 +9,7 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   head: () => ({
     meta: [
-      { title: "Pricing - MyTesla.ge" },
+      { title: "Pricing - Tesla Map Georgia" },
       {
         name: "description",
         content:
@@ -46,7 +46,7 @@ function PricingPage() {
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
               ⚡
             </span>
-            MyTesla<span className="text-white/40">.ge</span>
+            Tesla Map Georgia
           </Link>
           <Link to="/" className="text-sm text-white/60 hover:text-white">
             ← Back

@@ -451,7 +451,7 @@ function Card({
   tone: "good" | "bad";
   eyebrow: string;
   title: string;
-  bullets: string[];
+  bullets: readonly string[];
 }) {
   const isBad = tone === "bad";
   return (
@@ -499,7 +499,7 @@ function PricingCard({
   period: string;
   subprice?: string;
   tag: string;
-  features: string[];
+  features: readonly string[];
   cta: string;
   to: string;
   highlighted?: boolean;

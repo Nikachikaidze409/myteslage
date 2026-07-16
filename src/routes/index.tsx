@@ -28,14 +28,23 @@ import {
 } from "@/lib/favorites";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
+import { AuthGate, signOutAndReturn } from "@/components/AuthGate";
 
 const MapView = lazy(() =>
   import("@/components/MapView").then((m) => ({ default: m.MapView })),
 );
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: IndexGated,
 });
+
+function IndexGated() {
+  return (
+    <AuthGate>
+      <Index />
+    </AuthGate>
+  );
+}
 
 function Index() {
   const [fix, setFix] = useState<Fix | null>(null);
@@ -338,18 +347,27 @@ function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className={`mx-auto flex min-h-screen w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-4 p-4"}`}>
+    <div className="h-screen overflow-hidden bg-background text-foreground">
+      <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
         {/* Sidebar — hidden in HUD mode (phone is the brain) */}
         {!hudMode && (
-        <aside className="flex w-[360px] shrink-0 flex-col gap-4 overflow-y-auto rounded-3xl border border-border bg-card/60 p-4">
+        <aside className="flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto rounded-3xl border border-border bg-card/60 p-3">
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
               Tesla · Georgia
             </div>
-            <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
-              Browser navigation
-            </h1>
+            <div className="flex items-center justify-between">
+              <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
+                Browser navigation
+              </h1>
+              <button
+                type="button"
+                onClick={() => void signOutAndReturn()}
+                className="rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
+              >
+                Sign out
+              </button>
+            </div>
             {!online && (
               <div className="mt-2 rounded-lg border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5 px-2 py-1 text-[11px] font-semibold text-[color:var(--bad)]">
                 Offline — using cached route

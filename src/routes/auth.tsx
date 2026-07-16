@@ -12,7 +12,6 @@ function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -30,7 +29,7 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        await signupWithCode({ data: { email, password, code } });
+        await signupWithCode({ data: { email, password } });
         setInfo("Account created. Signing you in…");
       }
       const { error: signErr } = await supabase.auth.signInWithPassword({ email, password });
@@ -53,7 +52,7 @@ function AuthPage() {
           {mode === "signin" ? "Sign in" : "Create your account"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          One account = one device. Signing in on a new device will sign the old one out.
+          Membership required. One account = one device — signing in on a new device will sign the old one out.
         </p>
 
         <form onSubmit={submit} className="mt-5 space-y-3">
@@ -80,20 +79,6 @@ function AuthPage() {
               className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 text-base"
             />
           </label>
-          {mode === "signup" && (
-            <label className="block">
-              <span className="text-xs font-semibold text-muted-foreground">Access code</span>
-              <input
-                type="text"
-                required
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="e.g. TESLA-GE-2026"
-                className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 text-base uppercase tracking-widest"
-              />
-            </label>
-          )}
-
           {error && (
             <div className="rounded-lg border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/5 p-3 text-sm text-[color:var(--bad)]">
               {error}

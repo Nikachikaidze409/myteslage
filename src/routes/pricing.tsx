@@ -13,7 +13,7 @@ export const Route = createFileRoute("/pricing")({
       {
         name: "description",
         content:
-          "25 ₾/month or 60 ₾ every 3 months (save 20%). Live navigation for imported Teslas in Georgia.",
+          "8 ₾/month or 21.60 ₾ every 3 months (save 10%). Live navigation for imported Teslas in Georgia.",
       },
     ],
   }),
@@ -71,20 +71,20 @@ function PricingPage() {
             selected={selected === "monthly"}
             onSelect={() => setSelected("monthly")}
             title="Monthly"
-            price="25 ₾"
+            price="8 ₾"
             period="per month"
             subtitle="Billed every month"
-            perMonth="25 ₾/mo"
+            perMonth="8 ₾/mo"
           />
           <PlanCard
             plan="quarterly"
             selected={selected === "quarterly"}
             onSelect={() => setSelected("quarterly")}
             title="3 months"
-            price="60 ₾"
+            price="21.60 ₾"
             period="every 3 months"
-            subtitle="20% off — best value"
-            perMonth="20 ₾/mo"
+            subtitle="10% off — best value"
+            perMonth="7.20 ₾/mo"
             highlighted
           />
         </div>
@@ -94,7 +94,7 @@ function PricingPage() {
           <ul className="grid gap-1.5 md:grid-cols-2">
             {[
               "Live in-car navigation optimized for Tesla",
-              "Phone GPS pairing (real 3 m accuracy)",
+              "Phone GPS pairing (real 1 m accuracy)",
               "Turn-by-turn HUD & voice guidance",
               "Live traffic + auto-rerouting",
               "Georgian streets, addresses, POIs",
@@ -156,7 +156,7 @@ function PlanCard({
     >
       {highlighted && (
         <div className="absolute -top-3 left-6 rounded-full bg-[#e9b149] px-3 py-1 text-[11px] font-black uppercase tracking-widest text-black">
-          Save 20%
+          Save 10%
         </div>
       )}
       <div className="flex items-start justify-between">

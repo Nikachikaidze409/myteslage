@@ -1,8 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { gatewayFetch, type PaddleEnv, resolveExternalId } from "@/lib/paddle.server";
-
-const paddleEnv = (value: string): PaddleEnv => (value === "sandbox" ? "sandbox" : "live");
+import { gatewayFetch } from "@/lib/paddle.server";
 
 export const resolvePaddlePrice = createServerFn({ method: "GET" })
   .inputValidator((data) => z.object({ priceId: z.string().min(1), environment: z.enum(["sandbox", "live"]) }).parse(data))
@@ -14,13 +12,3 @@ export const resolvePaddlePrice = createServerFn({ method: "GET" })
     if (!paddlePriceId) throw new Error("Payment price not found");
     return paddlePriceId;
   });
-
-export const getPaddleSubscription = createServerFn({ method: "GET" })
-  .inputValidator((data) => z.object({ subscriptionId: z.string().min(1), environment: z.enum(["sandbox", "live"]) }).parse(data))
-  .handler(async ({ data }) => {
-    const response = await gatewayFetch(data.environment, `/subscriptions/${encodeURIComponent(data.subscriptionId)}`);
-    if (!response.ok) throw new Error("Unable to load subscription");
-    return response.json();
-  });
-
-export { paddleEnv, resolveExternalId };

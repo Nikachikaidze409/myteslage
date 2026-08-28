@@ -59,7 +59,8 @@ function AuthPage() {
           {mode === "signin" ? "Sign in" : "Create your account"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Membership required. One account = one device - signing in on a new device will sign the old one out.
+          Membership required. One account = one device. Signing in on a new device signs the old one out.
+
         </p>
 
         <form onSubmit={submit} className="mt-5 space-y-3">
@@ -115,7 +116,7 @@ function AuthPage() {
           }}
           className="mt-4 w-full text-sm text-muted-foreground hover:text-foreground"
         >
-          {mode === "signin" ? "Have an access code? Create account →" : "← Back to sign in"}
+          {mode === "signin" ? "New here? Create an account →" : "← Back to sign in"}
         </button>
       </div>
     </div>

@@ -12,7 +12,12 @@ type PaddleEvent = {
     customer_id?: string;
     product_id?: string;
     custom_data?: { userId?: string } | null;
-    items?: Array<{ price?: { id?: string }; product?: { id?: string } }>;
+    items?: Array<{
+      price_id?: string;
+      price?: { id?: string };
+      product_id?: string;
+      product?: { id?: string };
+    }>;
     current_billing_period?: { starts_at?: string; ends_at?: string } | null;
     scheduled_change?: { action?: string } | null;
     cancel_at_period_end?: boolean;
@@ -34,7 +39,9 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const env = envSchema.parse(new URL(request.url).searchParams.get("env") ?? "sandbox");
+        const parsedEnv = envSchema.safeParse(new URL(request.url).searchParams.get("env") ?? "sandbox");
+        if (!parsedEnv.success) return new Response("Invalid environment", { status: 400 });
+        const env = parsedEnv.data;
         const rawBody = await request.text();
         const signature = request.headers.get("paddle-signature");
         const secret = env === "live" ? process.env["PAYMENTS_LIVE_WEBHOOK_SECRET"] : process.env["PAYMENTS_SANDBOX_WEBHOOK_SECRET"];
@@ -42,7 +49,12 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           return new Response("Invalid signature", { status: 401 });
         }
 
-        const event = JSON.parse(rawBody) as PaddleEvent;
+        let event: PaddleEvent;
+        try {
+          event = JSON.parse(rawBody) as PaddleEvent;
+        } catch {
+          return new Response("Invalid payload", { status: 400 });
+        }
         const data = event.data;
         const subscriptionId = data?.id;
         if (!subscriptionId || !data) return new Response("ok");
@@ -57,8 +69,9 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
         if (!userId) return new Response("ok");
 
         const { resolveExternalId } = await import("@/lib/paddle.server");
-        const priceId = data.items?.[0]?.price?.id;
-        const productId = data.items?.[0]?.product?.id ?? data.product_id;
+        const firstItem = data.items?.[0];
+        const priceId = firstItem?.price_id ?? firstItem?.price?.id;
+        const productId = firstItem?.product_id ?? firstItem?.product?.id ?? data.product_id;
         const [externalPriceId, externalProductId] = await Promise.all([
           priceId ? resolveExternalId(env, "prices", priceId) : Promise.resolve(null),
           productId ? resolveExternalId(env, "products", productId) : Promise.resolve(null),

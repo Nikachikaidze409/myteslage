@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { getPaddleEnvironment, getPaddlePriceId, initializePaddle } from "@/lib/paddle";
 
 type Plan = "monthly" | "quarterly";
@@ -105,7 +104,6 @@ function Checkout() {
 
   return (
     <div className="min-h-screen bg-[#050708] text-white">
-      <PaymentTestModeBanner />
       <header className="border-b border-white/5">
         <div className="mx-auto flex h-16 max-w-[900px] items-center justify-between px-6">
           <Link to="/" className="font-display flex items-center gap-2 text-lg font-black">

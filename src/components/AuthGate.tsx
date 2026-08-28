@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { claimDevice } from "@/lib/auth.functions";
 import { getOrCreateDeviceId, getDeviceLabel } from "@/lib/device";
+import { getPaddleEnvironment } from "@/lib/paddle";
 
 interface Props {
   children: ReactNode;
@@ -26,6 +27,21 @@ export function AuthGate({ children }: Props) {
         return;
       }
       const userId = data.session.user.id;
+      const { data: subscription, error: subscriptionError } = await supabase
+        .from("subscriptions")
+        .select("status, current_period_end")
+        .eq("user_id", userId)
+        .eq("environment", getPaddleEnvironment())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const hasAccess = !subscriptionError && !!subscription &&
+        ["active", "trialing", "past_due"].includes(subscription.status) &&
+        (!subscription.current_period_end || new Date(subscription.current_period_end).getTime() > Date.now());
+      if (!hasAccess) {
+        navigate({ to: "/pricing" });
+        return;
+      }
       try {
         await claimDevice({ data: { deviceId, label: getDeviceLabel() } });
       } catch {
@@ -42,7 +58,6 @@ export function AuthGate({ children }: Props) {
           (payload: any) => {
             const next = payload?.new?.active_device_id as string | undefined;
             if (next && next !== deviceId) {
-              // Kicked: another device signed in with the same account.
               void supabase.auth.signOut().then(() => navigate({ to: "/auth" }));
             }
           },
@@ -67,11 +82,7 @@ export function AuthGate({ children }: Props) {
   }, [navigate]);
 
   if (status === "loading") {
-    return (
-      <div className="grid min-h-screen place-items-center bg-background text-muted-foreground">
-        Loading…
-      </div>
-    );
+    return <div className="grid min-h-screen place-items-center bg-background text-muted-foreground">Loading…</div>;
   }
   if (status === "anon") return null;
   return <>{children}</>;

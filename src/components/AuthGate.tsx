@@ -35,9 +35,9 @@ export function AuthGate({ children }: Props) {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      const hasAccess = !subscriptionError && !!subscription &&
-        ["active", "trialing", "past_due"].includes(subscription.status) &&
-        (!subscription.current_period_end || new Date(subscription.current_period_end).getTime() > Date.now());
+      const periodIsOpen = !subscription?.current_period_end || new Date(subscription.current_period_end).getTime() > Date.now();
+      const hasAccess = !subscriptionError && !!subscription && periodIsOpen &&
+        ["active", "trialing", "past_due", "canceled"].includes(subscription.status);
       if (!hasAccess) {
         navigate({ to: "/pricing" });
         return;

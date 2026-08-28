@@ -14,7 +14,7 @@ type PaddleEvent = {
     custom_data?: { userId?: string } | null;
     items?: Array<{
       price_id?: string;
-      price?: { id?: string };
+      price?: { id?: string; product_id?: string };
       product_id?: string;
       product?: { id?: string };
     }>;
@@ -68,10 +68,11 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
         const userId = data.custom_data?.userId ?? existing.data?.user_id;
         if (!userId) return new Response("ok");
 
+        if (!event.event_type?.startsWith("subscription.")) return new Response("ok");
         const { resolveExternalId } = await import("@/lib/paddle.server");
         const firstItem = data.items?.[0];
         const priceId = firstItem?.price_id ?? firstItem?.price?.id;
-        const productId = firstItem?.product_id ?? firstItem?.product?.id ?? data.product_id;
+        const productId = firstItem?.product_id ?? firstItem?.price?.product_id ?? firstItem?.product?.id ?? data.product_id;
         const [externalPriceId, externalProductId] = await Promise.all([
           priceId ? resolveExternalId(env, "prices", priceId) : Promise.resolve(null),
           productId ? resolveExternalId(env, "products", productId) : Promise.resolve(null),

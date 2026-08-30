@@ -43,10 +43,10 @@ function AuthPage() {
   };
 
   // If the user picked a plan on /pricing, send them to /checkout after auth.
-  function nextDest(): "/checkout" | "/drive" {
-    if (typeof window === "undefined") return "/drive";
+  function nextDest(): "/checkout" | "/map" {
+    if (typeof window === "undefined") return "/map";
     const p = window.localStorage.getItem("tsl.pending-plan");
-    return p === "monthly" || p === "quarterly" ? "/checkout" : "/drive";
+    return p === "monthly" || p === "quarterly" ? "/checkout" : "/map";
   }
 
   return (

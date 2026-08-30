@@ -21,7 +21,7 @@ function CheckoutSuccess() {
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-400/15 text-2xl text-emerald-300">✓</div>
         <h1 className="font-display mt-5 text-3xl font-black">Payment received</h1>
         <p className="mt-3 text-white/65">Your membership is being activated. Open the map once the payment confirmation arrives.</p>
-        <Link to="/drive" className="font-display mt-7 inline-flex h-12 items-center justify-center rounded-xl bg-[#3b82f6] px-6 font-bold text-white hover:brightness-110">
+        <Link to="/map" className="font-display mt-7 inline-flex h-12 items-center justify-center rounded-xl bg-[#3b82f6] px-6 font-bold text-white hover:brightness-110">
           Open Tesla Map
         </Link>
       </section>

@@ -68,6 +68,10 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
           zoomControl: true,
           gestureHandling: "greedy",
           clickableIcons: false,
+          keyboardShortcuts: false,
+          maxZoom: 20,
+          minZoom: 4,
+          isFractionalZoomEnabled: false,
           styles: LIGHT_STYLE,
           backgroundColor: "#f1f5f9",
         });
@@ -188,6 +192,8 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
     } else {
       accuracyCircle.current.setRadius(fix.accuracy);
     }
+    // Hide the halo once the fix is tight - it only adds visual noise at street zoom.
+    accuracyCircle.current.setVisible(fix.accuracy > 25);
 
     // Kick off (or update) an animation toward the newest target.
     const startTargetTween = (target: { lat: number; lng: number }, headingDeg: number | null) => {
@@ -280,11 +286,18 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
     const g = (window as any).google;
     const map = mapRef.current;
     if (!g || !map) return;
-    if (destMarker.current) {
-      destMarker.current.setMap(null);
-      destMarker.current = null;
+    if (!destination) {
+      if (destMarker.current) {
+        destMarker.current.setMap(null);
+        destMarker.current = null;
+      }
+      return;
     }
-    if (destination) {
+    // Reuse the marker instead of recreating it - avoids a flash on every route update.
+    if (destMarker.current) {
+      destMarker.current.setPosition(destination);
+      destMarker.current.setTitle(destination.name ?? "Destination");
+    } else {
       destMarker.current = new g.maps.Marker({
         map,
         position: destination,

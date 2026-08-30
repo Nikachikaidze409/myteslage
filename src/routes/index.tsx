@@ -397,7 +397,7 @@ function Nav({
           </div>
           {signedIn ? (
             <Link
-              to="/drive"
+              to="/map"
               className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
             >
               {t.navOpenApp}

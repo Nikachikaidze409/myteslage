@@ -192,6 +192,8 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
     } else {
       accuracyCircle.current.setRadius(fix.accuracy);
     }
+    // Hide the halo once the fix is tight - it only adds visual noise at street zoom.
+    accuracyCircle.current.setVisible(fix.accuracy > 25);
 
     // Kick off (or update) an animation toward the newest target.
     const startTargetTween = (target: { lat: number; lng: number }, headingDeg: number | null) => {

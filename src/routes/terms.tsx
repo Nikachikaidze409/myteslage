@@ -37,11 +37,13 @@ function TermsPage() {
 
         <h2>1. Agreement</h2>
         <p>
-          These terms are between you and tesla map georgia ("we", "us"). By
-          creating an account or continuing to use the Tesla Map Georgia
-          service, you agree to these terms. You confirm you are of legal age
-          and, if using the service on behalf of an organisation, that you
-          have authority to bind it.
+          These terms are between you and{" "}
+          <strong>Tesla Navi Online</strong> (trading as "tesla map georgia")
+          ("we", "us"). Tesla Navi Online is the registered legal entity that
+          operates and provides the Tesla Map Georgia service. By creating an
+          account or continuing to use the service, you agree to these terms.
+          You confirm you are of legal age and, if using the service on behalf
+          of an organisation, that you have authority to bind it.
         </p>
 
         <h2>2. The service</h2>

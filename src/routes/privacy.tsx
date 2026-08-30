@@ -37,10 +37,12 @@ function PrivacyPage() {
 
         <h2>1. Who we are</h2>
         <p>
-          tesla map georgia ("we", "us") is the data controller for the personal
-          data processed through the Tesla Map Georgia web application. You can
-          contact us at the support email shown on our website for any privacy
-          question.
+          This Privacy Notice is issued by <strong>Tesla Navi Online</strong>{" "}
+          (trading as "tesla map georgia"), the data controller for the personal
+          data processed through the Tesla Map Georgia web application. Tesla
+          Navi Online is the registered legal entity that operates the service.
+          You can contact us at the support email shown on our website for any
+          privacy question.
         </p>
 
         <h2>2. Data we collect</h2>

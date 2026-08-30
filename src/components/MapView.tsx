@@ -286,11 +286,18 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
     const g = (window as any).google;
     const map = mapRef.current;
     if (!g || !map) return;
-    if (destMarker.current) {
-      destMarker.current.setMap(null);
-      destMarker.current = null;
+    if (!destination) {
+      if (destMarker.current) {
+        destMarker.current.setMap(null);
+        destMarker.current = null;
+      }
+      return;
     }
-    if (destination) {
+    // Reuse the marker instead of recreating it - avoids a flash on every route update.
+    if (destMarker.current) {
+      destMarker.current.setPosition(destination);
+      destMarker.current.setTitle(destination.name ?? "Destination");
+    } else {
       destMarker.current = new g.maps.Marker({
         map,
         position: destination,

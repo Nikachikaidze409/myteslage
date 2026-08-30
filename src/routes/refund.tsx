@@ -31,7 +31,7 @@ function RefundPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[760px] px-6 pb-24 pt-12 text-sm leading-7 text-white/75">
+      <main className="mx-auto max-w-[760px] px-6 pb-24 pt-12 text-sm leading-7 text-white/75 [&_h2]:mb-2 [&_h2]:mt-8 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-white [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_p]:mb-3">
         <h1 className="font-display text-4xl font-black text-white">Refund Policy</h1>
         <p className="mt-2 text-white/40">Last updated: August 2026</p>
 

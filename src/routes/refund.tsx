@@ -38,8 +38,9 @@ function RefundPage() {
         <h2>30-day money-back guarantee</h2>
         <p>
           If you're not satisfied with your Tesla Map Georgia subscription,
-          you can request a full refund within <strong>30 days</strong> of
-          your order date — no questions asked.
+          operated by <strong>Tesla Navi Online</strong> (trading as "tesla
+          map georgia"), you can request a full refund within{" "}
+          <strong>30 days</strong> of your order date — no questions asked.
         </p>
 
         <h2>How to request a refund</h2>

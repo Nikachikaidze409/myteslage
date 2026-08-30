@@ -68,6 +68,10 @@ export function MapView({ fix, destination, encodedPolyline, navigating, showTra
           zoomControl: true,
           gestureHandling: "greedy",
           clickableIcons: false,
+          keyboardShortcuts: false,
+          maxZoom: 20,
+          minZoom: 4,
+          isFractionalZoomEnabled: false,
           styles: LIGHT_STYLE,
           backgroundColor: "#f1f5f9",
         });

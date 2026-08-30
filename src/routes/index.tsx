@@ -552,6 +552,17 @@ function PricingCard({
 function Footer({ text }: { text: string }) {
   return (
     <footer className="border-t border-white/5 py-10 text-center text-xs text-white/40">
+      <div className="mb-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+        <Link to="/terms" className="text-white/60 transition hover:text-white">
+          Terms & Conditions
+        </Link>
+        <Link to="/refund" className="text-white/60 transition hover:text-white">
+          Refund Policy
+        </Link>
+        <Link to="/privacy" className="text-white/60 transition hover:text-white">
+          Privacy Notice
+        </Link>
+      </div>
       © {new Date().getFullYear()} Tesla Map Georgia · {text}
     </footer>
   );

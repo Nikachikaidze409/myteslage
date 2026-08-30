@@ -119,6 +119,17 @@ function PricingPage() {
         <p className="mt-3 text-center text-xs text-white/40">
           Secure checkout. No hidden fees. Cancel anytime from your account.
         </p>
+        <p className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-white/40">
+          <Link to="/terms" className="text-white/60 transition hover:text-white">
+            Terms & Conditions
+          </Link>
+          <Link to="/refund" className="text-white/60 transition hover:text-white">
+            Refund Policy
+          </Link>
+          <Link to="/privacy" className="text-white/60 transition hover:text-white">
+            Privacy Notice
+          </Link>
+        </p>
       </main>
     </div>
   );

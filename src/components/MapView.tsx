@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { loadGoogleMaps } from "@/lib/maps-loader";
+import { loadGoogleMaps, onMapsAuthFailure } from "@/lib/maps-loader";
 import type { Fix } from "./StatusPanel";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
 import { decodePolyline } from "@/lib/geo";
@@ -149,9 +149,16 @@ export function MapView({
         };
         mapRef.current.addListener("dragstart", release);
       })
-      .catch((e) => console.error(e));
+      .catch((e) => {
+        console.error(e);
+        if (!cancelled) setMapError("The map could not load. Check your connection and try again.");
+      });
+    const offAuth = onMapsAuthFailure((message) => {
+      if (!cancelled) setMapError(message);
+    });
     return () => {
       cancelled = true;
+      offAuth();
       if (trafficLayerRef.current) {
         trafficLayerRef.current.setMap(null);
         trafficLayerRef.current = null;

@@ -100,6 +100,7 @@ function Index() {
 
   // HUD mode: driven entirely by the phone. Tesla becomes a big display.
   const [hudMode, setHudMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [muted, setMuted] = useState(false);
   const [recenterSignal, setRecenterSignal] = useState(0);
 
@@ -184,6 +185,7 @@ function Index() {
       options?: {
         silent?: boolean;
         reroute?: boolean;
+        resume?: boolean;
         avoid?: AvoidOption[];
         waypoints?: { lat: number; lng: number; name: string }[];
       },
@@ -240,7 +242,7 @@ function Index() {
               savedAt: Date.now(),
             });
           }
-          setNavigating(true);
+          if (options?.resume || options?.reroute) setNavigating(true);
         })
         .catch((e: unknown) => {
           if (routeRequestRef.current !== requestId) return;

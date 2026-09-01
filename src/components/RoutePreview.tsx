@@ -7,6 +7,7 @@ export function RoutePreview({
   error,
   offRoute,
   offline,
+  onStart,
 }: {
   route: RouteResult | null;
   destinationName: string | null;
@@ -14,6 +15,7 @@ export function RoutePreview({
   error: string | null;
   offRoute?: boolean;
   offline?: boolean;
+  onStart?: () => void;
 }) {
   if (!destinationName && !loading && !route && !error) return null;
   return (

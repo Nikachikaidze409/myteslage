@@ -187,8 +187,9 @@ export const placeDetails = createServerFn({ method: "POST" })
       website: p.websiteUri,
       openNow: p.currentOpeningHours?.openNow,
       hours: p.currentOpeningHours?.weekdayDescriptions ?? p.regularOpeningHours?.weekdayDescriptions,
-      category: p.primaryTypeDisplayName?.text ?? p.primaryType,
-      summary: p.editorialSummary?.text,
+       category: p.primaryTypeDisplayName?.text ?? p.primaryType,
+       summary: p.editorialSummary?.text,
+       photos: p.photos?.map((photo) => photo.name).filter((name): name is string => Boolean(name)),
     };
   });
 

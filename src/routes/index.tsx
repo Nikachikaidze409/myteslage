@@ -358,6 +358,26 @@ function Landing() {
         </div>
       </section>
 
+      {/* CONTACT */}
+      <section className="py-20">
+        <div className="mx-auto max-w-[1200px] px-6">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#3b82f6]/10 to-[#e9b149]/5 px-8 py-12 text-center">
+            <div className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[#e9b149]">
+              {t.contactEyebrow}
+            </div>
+            <h2 className="font-display text-3xl font-black md:text-4xl">{t.contactTitle}</h2>
+            <p className="mx-auto mt-3 max-w-md text-white/60">{t.contactBody}</p>
+            <a
+              href="tel:+995591700312"
+              className="font-display mt-6 inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-white px-7 text-base font-bold text-black transition hover:bg-white/90"
+            >
+              <span className="text-lg">📞</span>
+              {t.contactCta}: +995 591 700 312
+            </a>
+          </div>
+        </div>
+      </section>
+
       <Footer text={t.footer} />
     </div>
   );

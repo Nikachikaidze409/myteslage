@@ -310,7 +310,7 @@ export function MapView({
         title: destination.name ?? "Destination",
       });
     }
-  }, [destination]);
+  }, [destination, mapReady]);
 
   // ---- new fix -> new target --------------------------------------------
   useEffect(() => {

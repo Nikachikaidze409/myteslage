@@ -10,7 +10,17 @@ export interface Destination {
   lng: number;
   name: string;
   address?: string;
+  rating?: number;
+  ratingCount?: number;
+  phone?: string;
+  website?: string;
+  openNow?: boolean;
+  hours?: string[];
+  category?: string;
+  summary?: string;
+  placeId?: string;
 }
+
 
 interface Props {
   onSelect: (d: Destination) => void;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { loadGoogleMaps, onMapsAuthFailure } from "@/lib/maps-loader";
+import { loadGoogleMaps, onMapsAuthFailure, clearMapsAuthFailure, resetMapsLoader } from "@/lib/maps-loader";
 import type { Fix } from "./StatusPanel";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
 import { decodePolyline } from "@/lib/geo";
@@ -121,6 +121,8 @@ export function MapView({
   // ---- map bootstrap -----------------------------------------------------
   const [bootAttempt, setBootAttempt] = useState(0);
   const [retrying, setRetrying] = useState(false);
+  const authTimerRef = useRef<number | null>(null);
+  const authRetriedRef = useRef(false);
   useEffect(() => {
     let cancelled = false;
 
@@ -146,6 +148,11 @@ export function MapView({
             styles: LIGHT_STYLE,
             backgroundColor: "#f1f5f9",
           });
+          clearMapsAuthFailure();
+          if (authTimerRef.current != null) {
+            window.clearTimeout(authTimerRef.current);
+            authTimerRef.current = null;
+          }
           setMapError(null);
           setRetrying(false);
           setMapReady(true);
@@ -172,21 +179,38 @@ export function MapView({
             return;
           }
           setRetrying(false);
-          setMapError("The map could not load. Check the car's internet connection and try again.");
+          setMapError("Map is taking longer than usual to load. Check the car's internet connection and try again.");
         });
     };
 
     boot(0);
 
+    // A rejection is only real if the map still hasn't come up a moment later,
+    // and it gets one silent fresh retry before the driver ever sees a banner.
     const offAuth = onMapsAuthFailure((message) => {
-      if (!cancelled) {
+      if (cancelled) return;
+      if (authTimerRef.current != null) window.clearTimeout(authTimerRef.current);
+      setRetrying(true);
+      authTimerRef.current = window.setTimeout(() => {
+        authTimerRef.current = null;
+        if (cancelled || mapRef.current) return;
+        if (!authRetriedRef.current) {
+          authRetriedRef.current = true;
+          resetMapsLoader();
+          boot(0);
+          return;
+        }
         setRetrying(false);
         setMapError(message);
-      }
+      }, 2000);
     });
     return () => {
       cancelled = true;
       offAuth();
+      if (authTimerRef.current != null) {
+        window.clearTimeout(authTimerRef.current);
+        authTimerRef.current = null;
+      }
       if (trafficLayerRef.current) {
         trafficLayerRef.current.setMap(null);
         trafficLayerRef.current = null;
@@ -533,6 +557,8 @@ export function MapView({
               onClick={() => {
                 setMapError(null);
                 setRetrying(true);
+                authRetriedRef.current = false;
+                resetMapsLoader();
                 setBootAttempt((n) => n + 1);
               }}
               className="mt-5 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground"

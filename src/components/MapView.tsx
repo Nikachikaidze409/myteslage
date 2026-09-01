@@ -286,7 +286,7 @@ export function MapView({
       line.addListener("click", () => onSelectAlternate?.(alt.index));
       altLinesRef.current.push(line);
     }
-  }, [alternates, encodedPolyline, onSelectAlternate]);
+  }, [alternates, encodedPolyline, onSelectAlternate, mapReady]);
 
   // ---- destination marker ------------------------------------------------
   useEffect(() => {

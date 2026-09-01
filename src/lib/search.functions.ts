@@ -40,7 +40,7 @@ function keys() {
 async function fail(res: Response, what: string): Promise<never> {
   const body = await res.text();
   console.error(`${what} failed [${res.status}]: ${body}`);
-  throw new Error(`${what} failed [${res.status}]`);
+  throw new Error(`${what} failed [${res.status}]: ${body.slice(0, 240)}`);
 }
 
 /** Type-ahead suggestions for streets, addresses and places (server side). */

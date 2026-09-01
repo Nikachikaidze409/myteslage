@@ -18,6 +18,7 @@ export interface Destination {
   hours?: string[];
   category?: string;
   summary?: string;
+  photos?: string[];
   placeId?: string;
 }
 

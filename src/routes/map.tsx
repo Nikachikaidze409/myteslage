@@ -165,6 +165,7 @@ function Index() {
       nextDestination: Destination,
       options?: {
         silent?: boolean;
+        reroute?: boolean;
         avoid?: AvoidOption[];
         waypoints?: { lat: number; lng: number; name: string }[];
       },

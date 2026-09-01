@@ -55,7 +55,7 @@ function Index() {
   const setFix = useCallback((next: Fix) => {
     const prev = prevFixRef.current;
     if (!isPlausibleFix(prev, next)) return;
-    const heading = resolveHeading(prev, next);
+    const heading = resolveHeading(prev, next) ?? next.heading ?? null;
     const cleaned: Fix = { ...next, heading };
     prevFixRef.current = cleaned;
     setFixRaw(cleaned);
@@ -260,6 +260,8 @@ function Index() {
     if (hudMode) return;
     setRoutes([]);
     setSelectedRouteIdx(0);
+    setProgress(null);
+    setRerouting(false);
     // Preserve waypoints when a session restore just seeded them.
     if (!pendingResumeRef.current) setWaypoints([]);
     setNavigating(false);
@@ -334,6 +336,8 @@ function Index() {
 
   const stopNav = () => {
     setNavigating(false);
+    setProgress(null);
+    setRerouting(false);
     setWaypoints([]);
     setDestination(null);
     clearSession();

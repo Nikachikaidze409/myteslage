@@ -3,6 +3,7 @@ import type { Fix } from "./StatusPanel";
 import { decodePolyline, distanceMeters } from "@/lib/geo";
 
 
+
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, "");
 }

@@ -1,8 +1,32 @@
+import { getMapsBrowserKey } from "@/lib/maps.functions";
+
 let loaderPromise: Promise<any> | null = null;
 
 type AuthFailureListener = (message: string) => void;
 const authFailureListeners = new Set<AuthFailureListener>();
 let authFailed = false;
+
+// Cached browser key fetched from the server (project-owned key, referrer-restricted).
+let fetchedKey: string | null | undefined = undefined;
+let fetchKeyPromise: Promise<string | null> | null = null;
+
+function resolveBrowserKey(): Promise<string | null> {
+  if (fetchedKey !== undefined) return Promise.resolve(fetchedKey);
+  if (fetchKeyPromise) return fetchKeyPromise;
+  fetchKeyPromise = getMapsBrowserKey()
+    .then((res) => {
+      fetchedKey = res.key ?? null;
+      return fetchedKey;
+    })
+    .catch(() => {
+      fetchedKey = null;
+      return null;
+    })
+    .finally(() => {
+      fetchKeyPromise = null;
+    });
+  return fetchKeyPromise;
+}
 
 function authFailureMessage(): string {
   const host = typeof window !== "undefined" ? window.location.hostname : "this domain";

@@ -37,9 +37,9 @@ export function PlaceSheet({ place, fix, loading, onDirections, onClose, onSave 
               <h2 className="truncate font-display text-xl font-bold text-card-foreground">{place.name}</h2>
               {place.category && <p className="mt-0.5 text-xs font-medium capitalize text-muted-foreground">{place.category.replaceAll("_", " ")}</p>}
             </div>
-            <button type="button" onClick={onClose} aria-label="Close place details" className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground">
-              <span aria-hidden className="text-xl leading-none">×</span>
-            </button>
+             <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close place details" className="min-h-11 min-w-11 shrink-0 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
+               <span aria-hidden className="text-xl leading-none">×</span>
+             </Button>
           </div>
           {place.address && <p className="mt-2 text-sm leading-5 text-muted-foreground">{place.address}</p>}
           {distance != null && <p className="mt-2 text-sm font-semibold text-primary">{formatDistance(distance)}</p>}

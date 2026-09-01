@@ -661,6 +661,8 @@ function Index() {
               fix={fix}
               onStop={stopNav}
               liveRemainingMeters={progress?.remainingMeters}
+              alongMeters={progress?.along}
+
             />
           )}
 

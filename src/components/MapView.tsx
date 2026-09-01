@@ -35,7 +35,15 @@ interface Props {
   onProgress?: (p: LiveProgress) => void;
   /** Increment to programmatically trigger recenter-on-me from a parent. */
   recenterSignal?: number;
+  /** Previewed search result / tapped place, shown as a pin before routing. */
+  preview?: { lat: number; lng: number; name?: string } | null;
+  /** Category results shown as tappable pins. */
+  pois?: { id: string; lat: number; lng: number; name: string; address?: string }[];
+  onPickPoi?: (p: { id: string; lat: number; lng: number; name: string; address?: string }) => void;
+  /** Tap anywhere on the map (or on a Google POI). */
+  onMapClick?: (p: { lat: number; lng: number; placeId?: string }) => void;
 }
+
 
 const DEFAULT_CENTER = { lat: 41.7151, lng: 44.8271 };
 /** Smoothing time constants (seconds). Lower = snappier, higher = smoother. */

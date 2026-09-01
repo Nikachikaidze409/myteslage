@@ -75,6 +75,30 @@ function AuthPage() {
 
         </p>
 
+        {currentEmail && (
+          <div className="mt-4 rounded-xl border border-border bg-muted/40 p-3 text-sm">
+            <div className="text-muted-foreground">
+              You are signed in as <span className="font-semibold text-foreground">{currentEmail}</span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => navigate({ to: nextDest() })}
+                className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
+              >
+                Continue →
+              </button>
+              <button
+                type="button"
+                onClick={() => void switchAccount()}
+                className="rounded-lg border border-input px-3 py-2 text-xs font-semibold"
+              >
+                Not you? Sign out
+              </button>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={submit} className="mt-5 space-y-3">
           <label className="block">
             <span className="text-xs font-semibold text-muted-foreground">Email</span>

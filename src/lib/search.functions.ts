@@ -17,7 +17,18 @@ export interface PlaceDetail {
   address: string;
   lat: number;
   lng: number;
+  rating?: number;
+  ratingCount?: number;
+  phone?: string;
+  website?: string;
+  openNow?: boolean;
+  hours?: string[];
+  category?: string;
+  summary?: string;
+  /** Ready-to-use image URLs (Google-hosted, no key in the URL path we build). */
+  photos?: string[];
 }
+
 
 function keys() {
   const lovableKey = process.env["LOVABLE_API_KEY"];

@@ -165,11 +165,12 @@ export const placeDetails = createServerFn({ method: "POST" })
       userRatingCount?: number;
       nationalPhoneNumber?: string;
       websiteUri?: string;
-      currentOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[] };
-      regularOpeningHours?: { weekdayDescriptions?: string[] };
-      primaryTypeDisplayName?: { text?: string };
-      primaryType?: string;
-      editorialSummary?: { text?: string };
+       currentOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[] };
+       regularOpeningHours?: { weekdayDescriptions?: string[] };
+       primaryTypeDisplayName?: { text?: string };
+       photos?: { name?: string }[];
+       primaryType?: string;
+       editorialSummary?: { text?: string };
     };
     if (typeof p.location?.latitude !== "number" || typeof p.location?.longitude !== "number") {
       throw new Error("Place has no location");

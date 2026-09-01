@@ -8,6 +8,7 @@ interface Props {
   onRecenter: () => void;
   muted: boolean;
   onToggleMute: () => void;
+  liveRemainingMeters?: number;
 }
 
 function fmtDist(m: number) {

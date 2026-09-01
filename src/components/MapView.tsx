@@ -166,8 +166,9 @@ export function MapView({
             maxZoom: 20,
             minZoom: 4,
             isFractionalZoomEnabled: false,
-            styles: LIGHT_STYLE,
-            backgroundColor: "#f1f5f9",
+             styles: LIGHT_STYLE,
+             mapTypeId: mapTypeId ?? "roadmap",
+             backgroundColor: "#f1f5f9",
           });
           clearMapsAuthFailure();
           if (authTimerRef.current != null) {

@@ -47,7 +47,7 @@ export function DirectionsPanel({ route, fix }: { route: RouteResult; fix?: Fix 
       </div>
       <ol className="max-h-[42vh] space-y-6 overflow-y-auto pr-1">
         {route.steps.map((s, i) => {
-          const active = i === 0;
+          const active = i === activeIndex;
           const isLast = i === route.steps.length - 1;
           const kind = maneuverIcon(s.instruction);
           return (

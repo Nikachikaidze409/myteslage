@@ -769,14 +769,19 @@ function carIcon(g: any, heading: number | null) {
 const LIGHT_STYLE = [
   { elementType: "geometry", stylers: [{ color: "#f1f5f9" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#64748b" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#475569" }] },
   { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#cbd5e1" }] },
   { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
   { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#e2e8f0" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#cbd5e1" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#334155" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#fef3c7" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#fcd34d" }] },
+  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#dbeafe" }] },
   { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#eef2f7" }] },
-  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#dcfce7" }] },
+  { featureType: "poi", elementType: "labels.icon", stylers: [{ visibility: "on" }] },
+  { featureType: "poi.business", elementType: "labels.text", stylers: [{ visibility: "simplified" }] },
+
   { featureType: "transit", stylers: [{ visibility: "off" }] },
 ];

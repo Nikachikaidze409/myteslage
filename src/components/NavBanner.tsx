@@ -14,7 +14,7 @@ interface Props {
   liveRemainingMeters?: number;
 }
 
-export function NavBanner({ route, fix, onStop }: Props) {
+export function NavBanner({ route, fix, onStop, liveRemainingMeters }: Props) {
   const stepStarts = useMemo(
     () => route.steps.map((s) => (s.polyline ? decodePolyline(s.polyline)[0] : null)),
     [route],

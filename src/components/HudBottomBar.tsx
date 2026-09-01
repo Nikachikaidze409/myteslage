@@ -39,7 +39,7 @@ export function HudBottomBar({ route, fix, onCancel, onRecenter, muted, onToggle
         </div>
         <div className="flex flex-col">
           <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">Remaining</div>
-          <div className="font-display text-3xl font-bold leading-none">{fmtDist(route.distanceMeters)}</div>
+          <div className="font-display text-3xl font-bold leading-none">{fmtDist(remaining)}</div>
         </div>
         <div className="flex flex-col">
           <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">Time</div>

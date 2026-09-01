@@ -70,6 +70,12 @@ function Index() {
   const [now, setNow] = useState(() => Date.now());
 
   const [destination, setDestination] = useState<Destination | null>(null);
+  // A tapped/searched place shown as a pin with a card, before routing starts.
+  const [preview, setPreview] = useState<Destination | null>(null);
+  const [pois, setPois] = useState<NearbyPlace[]>([]);
+  const [poiCat, setPoiCat] = useState<string | null>(null);
+  const [poiLoading, setPoiLoading] = useState(false);
+
   const [routes, setRoutes] = useState<RouteResult[]>([]);
   const [selectedRouteIdx, setSelectedRouteIdx] = useState(0);
   const [avoid, setAvoid] = useState<AvoidOption[]>([]);

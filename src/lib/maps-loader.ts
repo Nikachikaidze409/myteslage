@@ -28,6 +28,11 @@ function resolveBrowserKey(): Promise<string | null> {
   return fetchKeyPromise;
 }
 
+/** The Lovable-managed connector browser key (authorized on *.lovable.app). */
+function getConnectorKey(): string | undefined {
+  return import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
+}
+
 function authFailureMessage(): string {
   const host = typeof window !== "undefined" ? window.location.hostname : "this domain";
   return `The map key does not allow ${host}. Add ${host} to the Google Maps API key's allowed websites, or open the app on the Lovable domain.`;
@@ -58,10 +63,15 @@ export function resetMapsLoader(): void {
 
 export function getMapsApiKey(): string | undefined {
   const own = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
-  const connector = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
+  const connector = getConnectorKey();
   return (own && own.trim()) || connector;
 }
 
+/**
+ * Load Google Maps, preferring the project-owned key (covers teslanavi.online).
+ * If Google rejects that key (gm_authFailure), fall back once to the
+ * Lovable-managed connector key, which is authorized on *.lovable.app.
+ */
 export function loadGoogleMaps(): Promise<any> {
   if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
   if ((window as any).google?.maps) return Promise.resolve((window as any).google);
@@ -69,11 +79,21 @@ export function loadGoogleMaps(): Promise<any> {
 
   const channel = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID as string | undefined;
 
-  // Prefer a project-owned key fetched from the server (covers teslanavi.online).
-  // The server fn prefers GOOGLE_API_KEY, falling back to the Lovable connector key.
-  loaderPromise = resolveBrowserKey().then((key) => {
-    if (!key) throw new Error("Missing Google Maps browser key");
-    return loadGoogleMapsWithKey(key, channel);
+  loaderPromise = resolveBrowserKey().then(async (primary) => {
+    const connector = getConnectorKey();
+    if (!primary && !connector) throw new Error("Missing Google Maps browser key");
+
+    const firstKey = primary ?? connector!;
+    try {
+      return await loadGoogleMapsWithKey(firstKey, channel);
+    } catch (err) {
+      // Auth failure (domain not allowed): try the other key once.
+      if ((err as Error).message !== "auth") throw err;
+      const fallbackKey = firstKey === connector ? primary : connector;
+      if (!fallbackKey || fallbackKey === firstKey) throw err;
+      resetMapsLoader();
+      return await loadGoogleMapsWithKey(fallbackKey, channel);
+    }
   });
 
   // A failed load must not be cached: let the next call try again.
@@ -85,6 +105,7 @@ export function loadGoogleMaps(): Promise<any> {
 }
 
 function loadGoogleMapsWithKey(key: string, channel: string | undefined): Promise<any> {
+  authFailed = false;
 
   // Google calls this global when the key is rejected (e.g. domain not allowed).
   (window as any).gm_authFailure = () => {
@@ -93,7 +114,7 @@ function loadGoogleMapsWithKey(key: string, channel: string | undefined): Promis
     authFailureListeners.forEach((cb) => cb(message));
   };
 
-  const attempt = new Promise<any>((resolve, reject) => {
+  return new Promise<any>((resolve, reject) => {
     let settled = false;
     const done = (fn: () => void) => {
       if (settled) return;
@@ -102,7 +123,13 @@ function loadGoogleMapsWithKey(key: string, channel: string | undefined): Promis
       fn();
     };
 
-    (window as any).__initGmaps = () => done(() => resolve((window as any).google));
+    (window as any).__initGmaps = () => {
+      // If Google rejected the key, treat as auth failure so we can fall back.
+      done(() => {
+        if (authFailed) return reject(new Error("auth"));
+        resolve((window as any).google);
+      });
+    };
 
     const s = document.createElement("script");
     const params = new URLSearchParams({
@@ -126,7 +153,4 @@ function loadGoogleMapsWithKey(key: string, channel: string | undefined): Promis
     }), 15000);
     document.head.appendChild(s);
   });
-
-  return attempt;
 }
-

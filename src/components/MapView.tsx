@@ -28,6 +28,7 @@ interface Props {
   encodedPolyline: string | null;
   navigating?: boolean;
   showTraffic?: boolean;
+  mapTypeId?: "roadmap" | "satellite" | "terrain";
   rerouting?: boolean;
   waypoints?: { lat: number; lng: number; name?: string }[];
   alternates?: { encodedPolyline: string; index: number }[];

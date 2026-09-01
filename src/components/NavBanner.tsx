@@ -54,7 +54,7 @@ export function NavBanner({ route, fix, onStop, liveRemainingMeters }: Props) {
           <p className="text-xs font-bold uppercase tracking-wider opacity-80">Next</p>
           <p className="font-display truncate text-2xl font-bold leading-tight">{stripHtml(step.instruction)}</p>
           <p className="mt-1 text-[11px] opacity-80">
-            {Math.round(route.durationSeconds / 60)} min · {(route.distanceMeters / 1000).toFixed(1)} km total
+            {Math.round(route.durationSeconds * (liveDistance / Math.max(1, route.distanceMeters)) / 60)} min · {(liveDistance / 1000).toFixed(1)} km left
           </p>
         </div>
         <button

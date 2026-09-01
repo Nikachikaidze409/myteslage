@@ -68,7 +68,9 @@ export function NavBanner({ route, fix, onStop, liveRemainingMeters, alongMeters
           <p className="text-xs font-bold uppercase tracking-wider opacity-80">Next</p>
           <p className="font-display truncate text-2xl font-bold leading-tight">{stripHtml(step.instruction)}</p>
           <p className="mt-1 text-[11px] opacity-80">
-            {Math.max(0, Math.round(liveDuration / 60))} min · {(liveDistance / 1000).toFixed(1)} km left
+            {Math.max(0, Math.round(liveDuration / 60))} min · {(liveDistance / 1000).toFixed(1)} km left · arrive{" "}
+            {eta.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+
           </p>
         </div>
         <button

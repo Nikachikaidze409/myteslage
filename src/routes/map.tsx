@@ -31,6 +31,9 @@ import { isPlausibleFix, resolveHeading } from "@/lib/fix-filter";
 import type { LiveProgress } from "@/components/MapView";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
 import { AuthGate, signOutAndReturn } from "@/components/AuthGate";
+import { reverseGeocode, placeDetails } from "@/lib/search.functions";
+import { searchNearby, type NearbyPlace } from "@/lib/places.functions";
+
 
 const MapView = lazy(() =>
   import("@/components/MapView").then((m) => ({ default: m.MapView })),

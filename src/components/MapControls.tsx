@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 interface Props {
   mapType: "roadmap" | "satellite" | "terrain";
   traffic: boolean;

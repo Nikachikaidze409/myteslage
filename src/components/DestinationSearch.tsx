@@ -1,86 +1,89 @@
 import { useEffect, useRef, useState } from "react";
-import { loadGoogleMaps } from "@/lib/maps-loader";
+import {
+  autocompletePlaces,
+  placeDetails,
+  type PlaceSuggestion,
+} from "@/lib/search.functions";
 
 export interface Destination {
   lat: number;
   lng: number;
   name: string;
+  address?: string;
 }
 
 interface Props {
   onSelect: (d: Destination) => void;
   disabled?: boolean;
+  /** current position, used to rank nearby streets first */
+  origin?: { lat: number; lng: number } | null;
 }
 
-interface Suggestion {
-  placeId: string;
-  primary: string;
-  secondary: string;
-}
-
-export function DestinationSearch({ onSelect, disabled }: Props) {
+export function DestinationSearch({ onSelect, disabled, origin }: Props) {
   const [q, setQ] = useState("");
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const sessionRef = useRef<any>(null);
-  const gRef = useRef<any>(null);
-  const placesLibRef = useRef<any>(null);
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    loadGoogleMaps().then(async (g) => {
-      gRef.current = g;
-      placesLibRef.current = await g.maps.importLibrary("places");
-      sessionRef.current = new placesLibRef.current.AutocompleteSessionToken();
-    });
-  }, []);
+  const reqRef = useRef(0);
+  const originRef = useRef(origin);
+  originRef.current = origin;
 
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    if (!q.trim() || !placesLibRef.current) {
+    const query = q.trim();
+    if (query.length < 2) {
       setSuggestions([]);
+      setError(null);
+      setLoading(false);
       return;
     }
-    debounceRef.current = window.setTimeout(async () => {
-      try {
-        const { suggestions: raw } =
-          await placesLibRef.current.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-            input: q,
-            sessionToken: sessionRef.current,
-            includedRegionCodes: ["ge"],
-          });
-        setSuggestions(
-          (raw ?? [])
-            .map((s: any) => s.placePrediction)
-            .filter(Boolean)
-            .slice(0, 6)
-            .map((p: any) => ({
-              placeId: p.placeId,
-              primary: p.mainText?.text ?? p.text?.text ?? "",
-              secondary: p.secondaryText?.text ?? "",
-            })),
-        );
-      } catch (e) {
-        console.error(e);
-      }
+    setLoading(true);
+    debounceRef.current = window.setTimeout(() => {
+      const id = ++reqRef.current;
+      const o = originRef.current;
+      autocompletePlaces({
+        data: { query, ...(o ? { lat: o.lat, lng: o.lng } : {}) },
+      })
+        .then((res) => {
+          if (reqRef.current !== id) return;
+          setSuggestions(res.suggestions);
+          setError(res.suggestions.length === 0 ? "No matches found" : null);
+        })
+        .catch((e: unknown) => {
+          if (reqRef.current !== id) return;
+          console.error(e);
+          setSuggestions([]);
+          setError("Search unavailable. Tap to retry.");
+        })
+        .finally(() => {
+          if (reqRef.current === id) setLoading(false);
+        });
     }, 250);
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
   }, [q]);
 
-  const pick = async (s: Suggestion) => {
-    const placesLib = placesLibRef.current;
-    if (!placesLib) return;
-    const place = new placesLib.Place({ id: s.placeId });
-    await place.fetchFields({ fields: ["location", "displayName"] });
-    const loc = place.location;
-    if (!loc) return;
-    const name = place.displayName ?? s.primary;
-    onSelect({
-      lat: typeof loc.lat === "function" ? loc.lat() : loc.lat,
-      lng: typeof loc.lng === "function" ? loc.lng() : loc.lng,
-      name,
-    });
-    setQ(name);
+  const pick = async (s: PlaceSuggestion) => {
     setSuggestions([]);
-    sessionRef.current = new placesLib.AutocompleteSessionToken();
+    setError(null);
+    if (typeof s.lat === "number" && typeof s.lng === "number") {
+      setQ(s.primary);
+      onSelect({ lat: s.lat, lng: s.lng, name: s.primary, address: s.secondary });
+      return;
+    }
+    setLoading(true);
+    try {
+      const d = await placeDetails({ data: { placeId: s.placeId } });
+      setQ(d.name);
+      onSelect({ lat: d.lat, lng: d.lng, name: d.name, address: d.address });
+    } catch (e) {
+      console.error(e);
+      setError("Could not open that place. Try another result.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,10 +96,25 @@ export function DestinationSearch({ onSelect, disabled }: Props) {
           id="tsl-destination-input"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Where to?"
+          placeholder="Search a street, place or address"
           disabled={disabled}
           className="font-display w-full bg-transparent text-lg text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
         />
+        {q && (
+          <button
+            type="button"
+            aria-label="Clear"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setQ("");
+              setSuggestions([]);
+              setError(null);
+            }}
+            className="ml-2 h-10 w-10 shrink-0 rounded-lg text-muted-foreground hover:bg-muted"
+          >
+            ✕
+          </button>
+        )}
         <button
           type="button"
           tabIndex={-1}
@@ -122,23 +140,40 @@ export function DestinationSearch({ onSelect, disabled }: Props) {
           Space
         </button>
       </div>
-      {suggestions.length > 0 && (
-        <ul className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-slate-300/40">
-          {suggestions.map((s) => (
-            <li key={s.placeId}>
-              <button
-                type="button"
-                onClick={() => pick(s)}
-                className="block w-full px-5 py-3 text-left transition hover:bg-muted"
-              >
-                <div className="text-base text-foreground">{s.primary}</div>
-                {s.secondary && (
-                  <div className="text-sm text-muted-foreground">{s.secondary}</div>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
+
+      {(suggestions.length > 0 || error || loading) && q.trim().length >= 2 && (
+        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-slate-300/40">
+          {loading && (
+            <div className="px-5 py-3 text-sm text-muted-foreground">Searching…</div>
+          )}
+          {!loading && error && (
+            <button
+              type="button"
+              onClick={() => setQ((v) => v + "")}
+              className="block w-full px-5 py-3 text-left text-sm text-muted-foreground"
+            >
+              {error}
+            </button>
+          )}
+          {!loading && suggestions.length > 0 && (
+            <ul>
+              {suggestions.map((s) => (
+                <li key={s.placeId}>
+                  <button
+                    type="button"
+                    onClick={() => void pick(s)}
+                    className="block w-full px-5 py-3 text-left transition hover:bg-muted"
+                  >
+                    <div className="text-base text-foreground">{s.primary}</div>
+                    {s.secondary && (
+                      <div className="text-sm text-muted-foreground">{s.secondary}</div>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );

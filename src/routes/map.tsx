@@ -544,6 +544,7 @@ function Index() {
                 setRoutes([]);
               }}
               onRecenter={() => setRecenterSignal((n) => n + 1)}
+              liveRemainingMeters={progress?.remainingMeters}
               muted={muted}
               onToggleMute={() => setMuted((m) => !m)}
             />

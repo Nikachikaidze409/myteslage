@@ -401,6 +401,84 @@ export function MapView({
     }
   }, [destination, mapReady]);
 
+  // ---- preview pin (search result / tapped place) ------------------------
+  useEffect(() => {
+    const g = (window as any).google;
+    const map = mapRef.current;
+    if (!g || !map) return;
+    if (!preview) {
+      if (previewMarker.current) {
+        previewMarker.current.setMap(null);
+        previewMarker.current = null;
+      }
+      return;
+    }
+    const pos = { lat: preview.lat, lng: preview.lng };
+    if (previewMarker.current) {
+      previewMarker.current.setPosition(pos);
+      previewMarker.current.setTitle(preview.name ?? "Selected place");
+    } else {
+      previewMarker.current = new g.maps.Marker({
+        map,
+        position: pos,
+        title: preview.name ?? "Selected place",
+        zIndex: 900,
+        icon: {
+          path: g.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: "#ef4444",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 3,
+        },
+      });
+    }
+    // Fit both the car and the place so the driver sees the relationship.
+    const me = renderedRef.current;
+    programmaticMoveRef.current = true;
+    if (me) {
+      const bounds = new g.maps.LatLngBounds();
+      bounds.extend(me);
+      bounds.extend(pos);
+      map.fitBounds(bounds, 120);
+    } else {
+      map.panTo(pos);
+      if (map.getZoom() < 14) map.setZoom(16);
+    }
+    followRef.current = false;
+    setFollowUi(false);
+    setTimeout(() => (programmaticMoveRef.current = false), 400);
+  }, [preview, mapReady]);
+
+  // ---- category result pins ----------------------------------------------
+  useEffect(() => {
+    const g = (window as any).google;
+    const map = mapRef.current;
+    if (!g || !map) return;
+    for (const m of poiMarkersRef.current) m.setMap(null);
+    poiMarkersRef.current = [];
+    for (const p of pois ?? []) {
+      const marker = new g.maps.Marker({
+        map,
+        position: { lat: p.lat, lng: p.lng },
+        title: p.name,
+        zIndex: 700,
+        icon: {
+          path: g.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: "#0f172a",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 2.5,
+        },
+      });
+      marker.addListener("click", () => onPickPoiRef.current?.(p));
+      poiMarkersRef.current.push(marker);
+    }
+  }, [pois, mapReady]);
+
+
+
   // ---- new fix -> new target --------------------------------------------
   useEffect(() => {
     const g = (window as any).google;

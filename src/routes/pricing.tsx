@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AccountBar } from "@/components/AccountBar";
 
 type Plan = "monthly" | "quarterly";
 const PLAN_KEY = "tsl.pending-plan";
@@ -23,9 +24,15 @@ function PricingPage() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Plan>("quarterly");
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [noMembership, setNoMembership] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    try {
+      setNoMembership(!!window.sessionStorage.getItem("tsl.no-membership"));
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const proceed = () => {
@@ -55,6 +62,13 @@ function PricingPage() {
       </header>
 
       <main className="mx-auto max-w-[1000px] px-6 pb-24 pt-16">
+        <AccountBar
+          note={
+            noMembership
+              ? "This account has no active membership. If you paid with a different email, sign out and sign in with that email."
+              : null
+          }
+        />
         <div className="text-center">
           <div className="text-[11px] font-bold uppercase tracking-widest text-[#e9b149]">
             Membership

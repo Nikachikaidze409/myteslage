@@ -74,7 +74,8 @@ function Index() {
   const [progress, setProgress] = useState<LiveProgress | null>(null);
   const [rerouting, setRerouting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [watching, setWatching] = useState(false);
+  // Start live tracking automatically; no tap required.
+  const [watching, setWatching] = useState(true);
   const [now, setNow] = useState(() => Date.now());
 
   const [destination, setDestination] = useState<Destination | null>(null);

@@ -586,6 +586,18 @@ function Index() {
 
         {/* Map */}
         <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
+          {!hudMode && !sidebarOpen && (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Show panel"
+              title="Show panel"
+              className="absolute left-4 top-4 z-40 flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur hover:bg-white"
+            >
+              <span className="text-lg leading-none">☰</span>
+              Panel
+            </button>
+          )}
           {!navigating && !hudMode && (
             <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-3 p-6">
               <div className="pointer-events-auto w-full max-w-2xl">

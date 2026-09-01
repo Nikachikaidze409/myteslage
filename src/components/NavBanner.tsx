@@ -12,17 +12,29 @@ interface Props {
   fix: Fix | null;
   onStop: () => void;
   liveRemainingMeters?: number;
+  /** metres travelled along the active route (live, from the map engine) */
+  alongMeters?: number;
 }
 
-export function NavBanner({ route, fix, onStop, liveRemainingMeters }: Props) {
+export function NavBanner({ route, fix, onStop, liveRemainingMeters, alongMeters }: Props) {
   const stepStarts = useMemo(
     () => route.steps.map((s) => (s.polyline ? decodePolyline(s.polyline)[0] : null)),
     [route],
   );
+  // Cumulative distance at the END of each step.
+  const stepEnds = useMemo(() => {
+    let acc = 0;
+    return route.steps.map((s) => (acc += s.distanceMeters));
+  }, [route]);
 
   let currentIdx = 0;
   let distToTurn = 0;
-  if (fix) {
+  if (alongMeters != null && stepEnds.length > 0) {
+    // Live along-route progress gives an exact, continuously counting distance.
+    currentIdx = stepEnds.findIndex((end) => end > alongMeters);
+    if (currentIdx < 0) currentIdx = stepEnds.length - 1;
+    distToTurn = Math.max(0, stepEnds[currentIdx] - alongMeters);
+  } else if (fix) {
     let best = Infinity;
     stepStarts.forEach((p, i) => {
       if (!p) return;
@@ -40,6 +52,8 @@ export function NavBanner({ route, fix, onStop, liveRemainingMeters }: Props) {
     : `${Math.max(0, Math.round(distToTurn / 10) * 10)} m`;
   const liveDistance = liveRemainingMeters ?? route.distanceMeters;
   const liveDuration = route.durationSeconds * (liveDistance / Math.max(1, route.distanceMeters));
+  const eta = new Date(Date.now() + liveDuration * 1000);
+
 
   return (
     <div className="pointer-events-auto absolute left-6 top-6 z-30 w-[min(460px,calc(100%-3rem))] animate-in fade-in slide-in-from-top-4 rounded-3xl bg-primary p-5 text-primary-foreground shadow-2xl shadow-primary/30">
@@ -54,7 +68,9 @@ export function NavBanner({ route, fix, onStop, liveRemainingMeters }: Props) {
           <p className="text-xs font-bold uppercase tracking-wider opacity-80">Next</p>
           <p className="font-display truncate text-2xl font-bold leading-tight">{stripHtml(step.instruction)}</p>
           <p className="mt-1 text-[11px] opacity-80">
-            {Math.max(0, Math.round(liveDuration / 60))} min · {(liveDistance / 1000).toFixed(1)} km left
+            {Math.max(0, Math.round(liveDuration / 60))} min · {(liveDistance / 1000).toFixed(1)} km left · arrive{" "}
+            {eta.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+
           </p>
         </div>
         <button

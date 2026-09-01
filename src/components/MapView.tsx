@@ -35,7 +35,15 @@ interface Props {
   onProgress?: (p: LiveProgress) => void;
   /** Increment to programmatically trigger recenter-on-me from a parent. */
   recenterSignal?: number;
+  /** Previewed search result / tapped place, shown as a pin before routing. */
+  preview?: { lat: number; lng: number; name?: string } | null;
+  /** Category results shown as tappable pins. */
+  pois?: { id: string; lat: number; lng: number; name: string; address?: string }[];
+  onPickPoi?: (p: { id: string; lat: number; lng: number; name: string; address?: string }) => void;
+  /** Tap anywhere on the map (or on a Google POI). */
+  onMapClick?: (p: { lat: number; lng: number; placeId?: string }) => void;
 }
+
 
 const DEFAULT_CENTER = { lat: 41.7151, lng: 44.8271 };
 /** Smoothing time constants (seconds). Lower = snappier, higher = smoother. */
@@ -63,6 +71,10 @@ export function MapView({
   onSelectAlternate,
   onProgress,
   recenterSignal,
+  preview,
+  pois,
+  onPickPoi,
+  onMapClick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -70,12 +82,19 @@ export function MapView({
   const [mapError, setMapError] = useState<string | null>(null);
   const meMarker = useRef<any>(null);
   const destMarker = useRef<any>(null);
+  const previewMarker = useRef<any>(null);
+  const poiMarkersRef = useRef<any[]>([]);
   const waypointMarkersRef = useRef<any[]>([]);
   const trafficLayerRef = useRef<any>(null);
   const accuracyCircle = useRef<any>(null);
   const routeLine = useRef<any>(null);
   const altLinesRef = useRef<any[]>([]);
   const lastPolylineRef = useRef<string | null>(null);
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
+  const onPickPoiRef = useRef(onPickPoi);
+  onPickPoiRef.current = onPickPoi;
+
 
   // ---- live engine state -------------------------------------------------
   const pathIdxRef = useRef<PathIndex | null>(null);
@@ -138,9 +157,9 @@ export function MapView({
             center: DEFAULT_CENTER,
             zoom: 7,
             disableDefaultUI: true,
-            zoomControl: true,
+            zoomControl: false,
             gestureHandling: "greedy",
-            clickableIcons: false,
+            clickableIcons: true,
             keyboardShortcuts: false,
             maxZoom: 20,
             minZoom: 4,
@@ -166,7 +185,20 @@ export function MapView({
             }
           };
           mapRef.current.addListener("dragstart", release);
+
+          // Tapping the map (or a Google POI) previews that place.
+          mapRef.current.addListener("click", (ev: any) => {
+            const handler = onMapClickRef.current;
+            if (!handler || !ev?.latLng) return;
+            if (ev.placeId && typeof ev.stop === "function") ev.stop();
+            handler({
+              lat: ev.latLng.lat(),
+              lng: ev.latLng.lng(),
+              placeId: ev.placeId ?? undefined,
+            });
+          });
         })
+
         .catch((e) => {
           if (cancelled) return;
           console.error(e);
@@ -368,6 +400,84 @@ export function MapView({
       });
     }
   }, [destination, mapReady]);
+
+  // ---- preview pin (search result / tapped place) ------------------------
+  useEffect(() => {
+    const g = (window as any).google;
+    const map = mapRef.current;
+    if (!g || !map) return;
+    if (!preview) {
+      if (previewMarker.current) {
+        previewMarker.current.setMap(null);
+        previewMarker.current = null;
+      }
+      return;
+    }
+    const pos = { lat: preview.lat, lng: preview.lng };
+    if (previewMarker.current) {
+      previewMarker.current.setPosition(pos);
+      previewMarker.current.setTitle(preview.name ?? "Selected place");
+    } else {
+      previewMarker.current = new g.maps.Marker({
+        map,
+        position: pos,
+        title: preview.name ?? "Selected place",
+        zIndex: 900,
+        icon: {
+          path: g.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: "#ef4444",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 3,
+        },
+      });
+    }
+    // Fit both the car and the place so the driver sees the relationship.
+    const me = renderedRef.current;
+    programmaticMoveRef.current = true;
+    if (me) {
+      const bounds = new g.maps.LatLngBounds();
+      bounds.extend(me);
+      bounds.extend(pos);
+      map.fitBounds(bounds, 120);
+    } else {
+      map.panTo(pos);
+      if (map.getZoom() < 14) map.setZoom(16);
+    }
+    followRef.current = false;
+    setFollowUi(false);
+    setTimeout(() => (programmaticMoveRef.current = false), 400);
+  }, [preview, mapReady]);
+
+  // ---- category result pins ----------------------------------------------
+  useEffect(() => {
+    const g = (window as any).google;
+    const map = mapRef.current;
+    if (!g || !map) return;
+    for (const m of poiMarkersRef.current) m.setMap(null);
+    poiMarkersRef.current = [];
+    for (const p of pois ?? []) {
+      const marker = new g.maps.Marker({
+        map,
+        position: { lat: p.lat, lng: p.lng },
+        title: p.name,
+        zIndex: 700,
+        icon: {
+          path: g.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: "#0f172a",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 2.5,
+        },
+      });
+      marker.addListener("click", () => onPickPoiRef.current?.(p));
+      poiMarkersRef.current.push(marker);
+    }
+  }, [pois, mapReady]);
+
+
 
   // ---- new fix -> new target --------------------------------------------
   useEffect(() => {
@@ -596,6 +706,40 @@ export function MapView({
         </svg>
         <span className="text-sm font-semibold">My location</span>
       </button>
+
+      {/* Large touch-friendly zoom controls */}
+      <div className="absolute bottom-8 right-4 z-30 flex flex-col overflow-hidden rounded-2xl border border-border bg-white/95 shadow-lg backdrop-blur">
+        <button
+          type="button"
+          aria-label="Zoom in"
+          onClick={() => {
+            const map = mapRef.current;
+            if (!map) return;
+            programmaticMoveRef.current = true;
+            map.setZoom(Math.min(20, (map.getZoom() ?? 15) + 1));
+            setTimeout(() => (programmaticMoveRef.current = false), 200);
+          }}
+          className="h-12 w-12 text-2xl font-semibold text-foreground hover:bg-muted"
+        >
+          +
+        </button>
+        <div className="h-px bg-border" />
+        <button
+          type="button"
+          aria-label="Zoom out"
+          onClick={() => {
+            const map = mapRef.current;
+            if (!map) return;
+            programmaticMoveRef.current = true;
+            map.setZoom(Math.max(4, (map.getZoom() ?? 15) - 1));
+            setTimeout(() => (programmaticMoveRef.current = false), 200);
+          }}
+          className="h-12 w-12 text-2xl font-semibold text-foreground hover:bg-muted"
+        >
+          −
+        </button>
+      </div>
+
     </div>
   );
 }
@@ -625,14 +769,19 @@ function carIcon(g: any, heading: number | null) {
 const LIGHT_STYLE = [
   { elementType: "geometry", stylers: [{ color: "#f1f5f9" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#64748b" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#475569" }] },
   { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#cbd5e1" }] },
   { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
   { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#e2e8f0" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#cbd5e1" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#334155" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#fef3c7" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#fcd34d" }] },
+  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#dbeafe" }] },
   { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#eef2f7" }] },
-  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#dcfce7" }] },
+  { featureType: "poi", elementType: "labels.icon", stylers: [{ visibility: "on" }] },
+  { featureType: "poi.business", elementType: "labels.text", stylers: [{ visibility: "simplified" }] },
+
   { featureType: "transit", stylers: [{ visibility: "off" }] },
 ];

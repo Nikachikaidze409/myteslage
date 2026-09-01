@@ -31,6 +31,9 @@ import { isPlausibleFix, resolveHeading } from "@/lib/fix-filter";
 import type { LiveProgress } from "@/components/MapView";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
 import { AuthGate, signOutAndReturn } from "@/components/AuthGate";
+import { reverseGeocode, placeDetails } from "@/lib/search.functions";
+import { searchNearby, type NearbyPlace } from "@/lib/places.functions";
+
 
 const MapView = lazy(() =>
   import("@/components/MapView").then((m) => ({ default: m.MapView })),
@@ -39,6 +42,14 @@ const MapView = lazy(() =>
 export const Route = createFileRoute("/map")({
   component: IndexGated,
 });
+
+const MAP_CATEGORIES: { key: string; label: string; emoji: string }[] = [
+  { key: "supercharger", label: "Charging", emoji: "⚡" },
+  { key: "gas", label: "Gas", emoji: "⛽" },
+  { key: "food", label: "Food", emoji: "🍽" },
+  { key: "coffee", label: "Coffee", emoji: "☕" },
+  { key: "parking", label: "Parking", emoji: "🅿" },
+];
 
 function IndexGated() {
   return (
@@ -67,6 +78,12 @@ function Index() {
   const [now, setNow] = useState(() => Date.now());
 
   const [destination, setDestination] = useState<Destination | null>(null);
+  // A tapped/searched place shown as a pin with a card, before routing starts.
+  const [preview, setPreview] = useState<Destination | null>(null);
+  const [pois, setPois] = useState<NearbyPlace[]>([]);
+  const [poiCat, setPoiCat] = useState<string | null>(null);
+  const [poiLoading, setPoiLoading] = useState(false);
+
   const [routes, setRoutes] = useState<RouteResult[]>([]);
   const [selectedRouteIdx, setSelectedRouteIdx] = useState(0);
   const [avoid, setAvoid] = useState<AvoidOption[]>([]);
@@ -343,6 +360,58 @@ function Index() {
     clearSession();
   };
 
+  // Tapping the map (or a Google POI) previews that spot with its address.
+  const handleMapClick = useCallback(
+    (p: { lat: number; lng: number; placeId?: string }) => {
+      if (navigating || hudMode) return;
+      setPreview({ lat: p.lat, lng: p.lng, name: "Loading…" });
+      const load = p.placeId
+        ? placeDetails({ data: { placeId: p.placeId } }).then((d) => ({
+            lat: d.lat,
+            lng: d.lng,
+            name: d.name,
+            address: d.address,
+          }))
+        : reverseGeocode({ data: { lat: p.lat, lng: p.lng } }).then((r) => ({
+            lat: p.lat,
+            lng: p.lng,
+            name: r.name,
+            address: r.address,
+          }));
+      load
+        .then(setPreview)
+        .catch(() => setPreview({ lat: p.lat, lng: p.lng, name: "Dropped pin" }));
+    },
+    [navigating, hudMode],
+  );
+
+  const runCategory = useCallback(
+    (cat: string) => {
+      if (!fix) return;
+      if (poiCat === cat) {
+        setPoiCat(null);
+        setPois([]);
+        return;
+      }
+      setPoiCat(cat);
+      setPoiLoading(true);
+      searchNearby({ data: { lat: fix.lat, lng: fix.lng, category: cat } })
+        .then((r) => setPois(r.places.slice(0, 12)))
+        .catch(() => setPois([]))
+        .finally(() => setPoiLoading(false));
+    },
+    [fix, poiCat],
+  );
+
+  const startTo = (d: Destination) => {
+    setPreview(null);
+    setPois([]);
+    setPoiCat(null);
+    setDestination(d);
+  };
+
+
+
   // Called by PairPhonePanel when the phone broadcasts a full NavState.
   // In HUD mode we bypass Tesla-side route computation entirely.
   const applyPairedNav = useCallback((n: import("@/lib/pair-channel").PairedNavState) => {
@@ -504,12 +573,71 @@ function Index() {
         {/* Map */}
         <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
           {!navigating && !hudMode && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-6">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-3 p-6">
               <div className="pointer-events-auto w-full max-w-2xl">
-                <DestinationSearch onSelect={setDestination} />
+                <DestinationSearch onSelect={setPreview} origin={fix} />
+              </div>
+              <div className="pointer-events-auto flex max-w-full flex-wrap justify-center gap-2">
+                {MAP_CATEGORIES.map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => runCategory(c.key)}
+                    disabled={!fix}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold shadow-md backdrop-blur transition disabled:opacity-40 ${
+                      poiCat === c.key
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-white/90 text-foreground hover:bg-white"
+                    }`}
+                  >
+                    <span className="mr-1">{c.emoji}</span>
+                    {c.label}
+                  </button>
+                ))}
+                {poiLoading && (
+                  <span className="self-center rounded-full bg-white/90 px-3 py-1 text-xs text-muted-foreground shadow">
+                    Searching…
+                  </span>
+                )}
               </div>
             </div>
           )}
+
+          {preview && !navigating && !hudMode && (
+            <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-40 flex justify-center px-4">
+              <div className="w-full max-w-xl rounded-3xl border border-border bg-white/97 p-5 shadow-2xl backdrop-blur">
+                <div className="font-display truncate text-xl font-bold text-foreground">
+                  {preview.name}
+                </div>
+                {preview.address && (
+                  <div className="mt-0.5 truncate text-sm text-muted-foreground">{preview.address}</div>
+                )}
+                {fix && (
+                  <div className="mt-1 text-sm font-semibold text-primary">
+                    {(distanceMeters(fix, preview) / 1000).toFixed(1)} km away
+                  </div>
+                )}
+                <div className="mt-4 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => startTo(preview)}
+                    className="flex-1 rounded-2xl bg-primary px-5 py-3 text-base font-bold text-primary-foreground shadow-lg"
+                  >
+                    Directions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreview(null)}
+                    className="rounded-2xl border border-border px-5 py-3 text-base font-semibold text-muted-foreground hover:bg-muted"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+
 
           {!hudMode && (
           <div className="absolute right-4 top-4 z-30">
@@ -533,6 +661,8 @@ function Index() {
               fix={fix}
               onStop={stopNav}
               liveRemainingMeters={progress?.remainingMeters}
+              alongMeters={progress?.along}
+
             />
           )}
 
@@ -604,7 +734,14 @@ function Index() {
                 alternates={routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i }))}
                 onSelectAlternate={setSelectedRouteIdx}
                 recenterSignal={recenterSignal}
+                preview={preview}
+                pois={pois}
+                onPickPoi={(p) =>
+                  setPreview({ lat: p.lat, lng: p.lng, name: p.name, address: p.address })
+                }
+                onMapClick={handleMapClick}
               />
+
             </Suspense>
           </ClientOnly>
         </main>

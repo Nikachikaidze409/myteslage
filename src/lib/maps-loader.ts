@@ -38,8 +38,17 @@ export function loadGoogleMaps(): Promise<any> {
     authFailureListeners.forEach((cb) => cb(message));
   };
 
-  loaderPromise = new Promise((resolve, reject) => {
-    (window as any).__initGmaps = () => resolve((window as any).google);
+  const attempt = new Promise<any>((resolve, reject) => {
+    let settled = false;
+    const done = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      fn();
+    };
+
+    (window as any).__initGmaps = () => done(() => resolve((window as any).google));
+
     const s = document.createElement("script");
     const params = new URLSearchParams({
       key,
@@ -51,8 +60,23 @@ export function loadGoogleMaps(): Promise<any> {
     if (channel) params.set("channel", channel);
     s.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
     s.async = true;
-    s.onerror = () => reject(new Error("Failed to load Google Maps"));
+    s.onerror = () => done(() => {
+      s.remove();
+      reject(new Error("network"));
+    });
+    // Slow in-car connections: fail fast so we can retry instead of hanging.
+    const timer = window.setTimeout(() => done(() => {
+      s.remove();
+      reject(new Error("timeout"));
+    }), 15000);
     document.head.appendChild(s);
+  });
+
+  // A failed load must not be cached: let the next call try again.
+  loaderPromise = attempt.catch((err) => {
+    loaderPromise = null;
+    throw err;
   });
   return loaderPromise;
 }
+

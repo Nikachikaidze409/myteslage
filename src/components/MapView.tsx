@@ -119,43 +119,70 @@ export function MapView({
   };
 
   // ---- map bootstrap -----------------------------------------------------
+  const [bootAttempt, setBootAttempt] = useState(0);
+  const [retrying, setRetrying] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    loadGoogleMaps()
-      .then((g) => {
-        if (cancelled || !containerRef.current) return;
-        mapRef.current = new g.maps.Map(containerRef.current, {
-          center: DEFAULT_CENTER,
-          zoom: 7,
-          disableDefaultUI: true,
-          zoomControl: true,
-          gestureHandling: "greedy",
-          clickableIcons: false,
-          keyboardShortcuts: false,
-          maxZoom: 20,
-          minZoom: 4,
-          isFractionalZoomEnabled: false,
-          styles: LIGHT_STYLE,
-          backgroundColor: "#f1f5f9",
-        });
-        setMapReady(true);
 
-        // Any user gesture disables follow-me so the camera doesn't fight the finger.
-        const release = () => {
-          if (programmaticMoveRef.current) return;
-          if (followRef.current) {
-            followRef.current = false;
-            setFollowUi(false);
+    const boot = (tries: number) => {
+      loadGoogleMaps()
+        .then((g) => {
+          if (cancelled || !containerRef.current) return;
+          if (mapRef.current) {
+            setMapError(null);
+            return;
           }
-        };
-        mapRef.current.addListener("dragstart", release);
-      })
-      .catch((e) => {
-        console.error(e);
-        if (!cancelled) setMapError("The map could not load. Check your connection and try again.");
-      });
+          mapRef.current = new g.maps.Map(containerRef.current, {
+            center: DEFAULT_CENTER,
+            zoom: 7,
+            disableDefaultUI: true,
+            zoomControl: true,
+            gestureHandling: "greedy",
+            clickableIcons: false,
+            keyboardShortcuts: false,
+            maxZoom: 20,
+            minZoom: 4,
+            isFractionalZoomEnabled: false,
+            styles: LIGHT_STYLE,
+            backgroundColor: "#f1f5f9",
+          });
+          setMapError(null);
+          setRetrying(false);
+          setMapReady(true);
+
+          // Any user gesture disables follow-me so the camera doesn't fight the finger.
+          const release = () => {
+            if (programmaticMoveRef.current) return;
+            if (followRef.current) {
+              followRef.current = false;
+              setFollowUi(false);
+            }
+          };
+          mapRef.current.addListener("dragstart", release);
+        })
+        .catch((e) => {
+          if (cancelled) return;
+          console.error(e);
+          // Transient network/timeout failures are common in the car: retry quietly.
+          if (tries < 3) {
+            setRetrying(true);
+            window.setTimeout(() => {
+              if (!cancelled) boot(tries + 1);
+            }, 1200 * (tries + 1));
+            return;
+          }
+          setRetrying(false);
+          setMapError("The map could not load. Check the car's internet connection and try again.");
+        });
+    };
+
+    boot(0);
+
     const offAuth = onMapsAuthFailure((message) => {
-      if (!cancelled) setMapError(message);
+      if (!cancelled) {
+        setRetrying(false);
+        setMapError(message);
+      }
     });
     return () => {
       cancelled = true;
@@ -165,7 +192,8 @@ export function MapView({
         trafficLayerRef.current = null;
       }
     };
-  }, []);
+  }, [bootAttempt]);
+
 
   useEffect(() => {
     navigatingRef.current = !!navigating;
@@ -489,14 +517,24 @@ export function MapView({
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full rounded-2xl bg-muted" />
 
+      {retrying && !mapError && (
+        <div className="pointer-events-none absolute inset-0 z-40 grid place-items-center rounded-2xl bg-background/80">
+          <div className="animate-pulse text-sm font-semibold text-muted-foreground">Loading map…</div>
+        </div>
+      )}
+
       {mapError && (
         <div className="absolute inset-0 z-40 grid place-items-center rounded-2xl bg-background/95 p-6 text-center">
           <div className="max-w-md">
-            <h2 className="font-display text-lg font-bold text-foreground">Map can't load on this domain</h2>
+            <h2 className="font-display text-lg font-bold text-foreground">Map didn't load</h2>
             <p className="mt-2 text-sm text-muted-foreground">{mapError}</p>
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                setMapError(null);
+                setRetrying(true);
+                setBootAttempt((n) => n + 1);
+              }}
               className="mt-5 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground"
             >
               Try again
@@ -504,6 +542,7 @@ export function MapView({
           </div>
         </div>
       )}
+
 
 
       {rerouting && (

@@ -226,8 +226,9 @@ function Index() {
         })
         .catch((e: unknown) => {
           if (routeRequestRef.current !== requestId) return;
-          setRouteError(e instanceof Error ? e.message : "Route failed");
-          const cached = loadCachedRoute();
+           setRouteError(e instanceof Error ? e.message : "Route failed");
+           if (options?.reroute) setRerouting(false);
+           const cached = loadCachedRoute();
           if (
             cached &&
             Math.abs(cached.destination.lat - nextDestination.lat) < 1e-4 &&

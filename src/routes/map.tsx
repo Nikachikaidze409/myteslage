@@ -447,8 +447,8 @@ function Index() {
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
-        {/* Sidebar - hidden in HUD mode (phone is the brain) */}
-        {!hudMode && (
+        {/* Sidebar - hidden in HUD mode (phone is the brain) or when minimized */}
+        {!hudMode && sidebarOpen && (
         <aside className="flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto rounded-3xl border border-border bg-card/60 p-3">
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">

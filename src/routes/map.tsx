@@ -102,6 +102,8 @@ function Index() {
   const [hudMode, setHudMode] = useState(false);
   const [muted, setMuted] = useState(false);
   const [recenterSignal, setRecenterSignal] = useState(0);
+  // Sidebar collapse so the map can fill the full screen.
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Session restore state
   const restoredRef = useRef(false);
@@ -445,24 +447,35 @@ function Index() {
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
-        {/* Sidebar - hidden in HUD mode (phone is the brain) */}
-        {!hudMode && (
+        {/* Sidebar - hidden in HUD mode (phone is the brain) or when minimized */}
+        {!hudMode && sidebarOpen && (
         <aside className="flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto rounded-3xl border border-border bg-card/60 p-3">
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
               Tesla · Georgia
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
                 Browser navigation
               </h1>
-              <button
-                type="button"
-                onClick={() => void signOutAndReturn()}
-                className="rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
-              >
-                Sign out
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void signOutAndReturn()}
+                  className="rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
+                >
+                  Sign out
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(false)}
+                  aria-label="Hide panel"
+                  title="Hide panel"
+                  className="grid h-8 w-8 place-items-center rounded-lg border border-border bg-white text-lg font-bold leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             {!online && (
               <div className="mt-2 rounded-lg border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5 px-2 py-1 text-[11px] font-semibold text-[color:var(--bad)]">
@@ -573,6 +586,18 @@ function Index() {
 
         {/* Map */}
         <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
+          {!hudMode && !sidebarOpen && (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Show panel"
+              title="Show panel"
+              className="absolute left-4 top-4 z-40 flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur hover:bg-white"
+            >
+              <span className="text-lg leading-none">☰</span>
+              Panel
+            </button>
+          )}
           {!navigating && !hudMode && (
             <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-3 p-6">
               <div className="pointer-events-auto w-full max-w-2xl">

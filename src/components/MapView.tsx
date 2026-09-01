@@ -517,14 +517,24 @@ export function MapView({
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full rounded-2xl bg-muted" />
 
+      {retrying && !mapError && (
+        <div className="pointer-events-none absolute inset-0 z-40 grid place-items-center rounded-2xl bg-background/80">
+          <div className="animate-pulse text-sm font-semibold text-muted-foreground">Loading map…</div>
+        </div>
+      )}
+
       {mapError && (
         <div className="absolute inset-0 z-40 grid place-items-center rounded-2xl bg-background/95 p-6 text-center">
           <div className="max-w-md">
-            <h2 className="font-display text-lg font-bold text-foreground">Map can't load on this domain</h2>
+            <h2 className="font-display text-lg font-bold text-foreground">Map didn't load</h2>
             <p className="mt-2 text-sm text-muted-foreground">{mapError}</p>
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                setMapError(null);
+                setRetrying(true);
+                setBootAttempt((n) => n + 1);
+              }}
               className="mt-5 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground"
             >
               Try again
@@ -532,6 +542,7 @@ export function MapView({
           </div>
         </div>
       )}
+
 
 
       {rerouting && (

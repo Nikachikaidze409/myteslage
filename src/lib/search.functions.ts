@@ -150,7 +150,8 @@ export const placeDetails = createServerFn({ method: "POST" })
         headers: {
           Authorization: `Bearer ${lovableKey}`,
           "X-Connection-Api-Key": connKey,
-          "X-Goog-FieldMask": "id,displayName,formattedAddress,location",
+          "X-Goog-FieldMask":
+            "id,displayName,formattedAddress,location,rating,userRatingCount,nationalPhoneNumber,websiteUri,currentOpeningHours,regularOpeningHours,primaryType,editorialSummary",
         },
       },
     );
@@ -160,6 +161,15 @@ export const placeDetails = createServerFn({ method: "POST" })
       displayName?: { text?: string };
       formattedAddress?: string;
       location?: { latitude?: number; longitude?: number };
+      rating?: number;
+      userRatingCount?: number;
+      nationalPhoneNumber?: string;
+      websiteUri?: string;
+      currentOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[] };
+      regularOpeningHours?: { weekdayDescriptions?: string[] };
+      primaryTypeDisplayName?: { text?: string };
+      primaryType?: string;
+      editorialSummary?: { text?: string };
     };
     if (typeof p.location?.latitude !== "number" || typeof p.location?.longitude !== "number") {
       throw new Error("Place has no location");
@@ -170,6 +180,14 @@ export const placeDetails = createServerFn({ method: "POST" })
       address: p.formattedAddress ?? "",
       lat: p.location.latitude,
       lng: p.location.longitude,
+      rating: p.rating,
+      ratingCount: p.userRatingCount,
+      phone: p.nationalPhoneNumber,
+      website: p.websiteUri,
+      openNow: p.currentOpeningHours?.openNow,
+      hours: p.currentOpeningHours?.weekdayDescriptions ?? p.regularOpeningHours?.weekdayDescriptions,
+      category: p.primaryTypeDisplayName?.text ?? p.primaryType,
+      summary: p.editorialSummary?.text,
     };
   });
 

@@ -263,7 +263,7 @@ export function MapView({
       map.fitBounds(bounds, 60);
     }
     lastPolylineRef.current = encodedPolyline;
-  }, [encodedPolyline, navigating]);
+  }, [encodedPolyline, navigating, mapReady]);
 
   // ---- alternates --------------------------------------------------------
   useEffect(() => {

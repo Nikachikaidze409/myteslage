@@ -1,6 +1,7 @@
 import type { Destination } from "./DestinationSearch";
 import type { Fix } from "./StatusPanel";
 import { distanceMeters } from "@/lib/geo";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   place: Destination;

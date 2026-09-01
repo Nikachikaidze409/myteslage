@@ -291,7 +291,9 @@ function Index() {
     requestRoute(fix, destination);
   }, [destination, fix, route, routeLoading, requestRoute]);
 
-  // Live progress + off-route detection + periodic traffic-aware refresh
+  // Live progress + off-route detection + periodic traffic-aware refresh.
+  // The map performs local projection every frame; this effect only decides
+  // when the server should build a genuinely new route.
   useEffect(() => {
     if (hudMode) return;
     if (!navigating || !destination || !fix || routeLoading) return;
@@ -302,13 +304,16 @@ function Index() {
       const d = distanceToPolylineMeters({ lat: fix.lat, lng: fix.lng }, route.encodedPolyline);
       if (d > 35) {
         if (offRouteSinceRef.current == null) offRouteSinceRef.current = Date.now();
+        // A short confirmation filters GPS noise without making a wrong turn
+        // feel delayed. The request uses the newest fix as its origin.
         if (
-          Date.now() - (offRouteSinceRef.current ?? 0) > 2_500 &&
-          Date.now() - lastRerouteAtRef.current > 5_000
+          Date.now() - (offRouteSinceRef.current ?? 0) > 700 &&
+          Date.now() - lastRerouteAtRef.current > 2_500
         ) {
           setOffRoute(true);
+          setRerouting(true);
           lastRerouteAtRef.current = Date.now();
-          requestRoute(fix, destination, { silent: true });
+          requestRoute(fix, destination, { silent: true, reroute: true });
           return;
         }
       } else {
@@ -319,7 +324,7 @@ function Index() {
 
     const moved = distanceMeters(fix, lastRouteOrigin);
     const elapsed = Date.now() - lastLiveRouteAtRef.current;
-    if (moved >= 80 && elapsed >= 10_000) {
+    if (moved >= 120 && elapsed >= 15_000) {
       lastLiveRouteAtRef.current = Date.now();
       requestRoute(fix, destination, { silent: true });
     }

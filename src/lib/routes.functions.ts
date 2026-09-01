@@ -145,15 +145,12 @@ export const computeRoute = createServerFn({ method: "POST" })
       });
     }
     if (!routes.length) throw new Error("No route found");
-    // Soft filter: if the caller wants to avoid unpaved/restricted roads and any route
-    // has NO such warning, drop the flagged ones. Otherwise keep them (better than nothing).
-    if (data.avoidUnpaved) {
-      const isBad = (r: RouteResult) =>
-        (r.warnings ?? []).some((w) => /unpaved|dirt|restricted|private|rough|ferry/i.test(w));
-      const clean = routes.filter((r) => !isBad(r));
-      if (clean.length) return { routes: clean };
+    // Match the Google Maps app: its recommended (DEFAULT_ROUTE) result comes first and
+    // is what the driver gets. Alternatives keep Google's own ordering. No post-filtering.
+    const defaultIdx = routes.findIndex((r) => r.label === "Fastest");
+    if (defaultIdx > 0) {
+      const [primary] = routes.splice(defaultIdx, 1);
+      routes.unshift(primary);
     }
-    // Reorder: put routes without warnings first (Google's "fastest" can be a dirt road).
-    routes.sort((a, b) => Number((a.warnings ?? []).length > 0) - Number((b.warnings ?? []).length > 0));
     return { routes };
   });

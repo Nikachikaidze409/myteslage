@@ -107,6 +107,11 @@ const T = {
     saveBadge: "დაზოგე 10%",
     pricingFoot:
       "შედარება: Tesla Premium Connectivity ≈ 300 ₾/წელი და მაინც არ მარშრუტდება საქართველოში.",
+    contactEyebrow: "კითხვა გაქვს?",
+    contactTitle: "დაგვიკავშირდი",
+    contactBody:
+      "ნებისმიერი შეკითხვისთვის დაგვირეკე ამ ნომერზე. დაგეხმარებით ნავიგაციის, გადახდის ან ანგარიშის საკითხებში.",
+    contactCta: "დაგვირეკე",
     footer: "Tesla-ს მფლობელებისთვის საქართველოში",
   },
   en: {
@@ -180,6 +185,11 @@ const T = {
     saveBadge: "Save 10%",
     pricingFoot:
       "Compare: Tesla Premium Connectivity ≈ 300 ₾/year and still doesn't route Georgia.",
+    contactEyebrow: "Have a question?",
+    contactTitle: "Reach out to us",
+    contactBody:
+      "Call us on this number for any question. We help with navigation, payment, or account issues.",
+    contactCta: "Call us",
     footer: "Made for Tesla owners in Georgia",
   },
 } as const;
@@ -345,6 +355,26 @@ function Landing() {
             />
           </div>
           <p className="mt-6 text-center text-sm text-white/50">{t.pricingFoot}</p>
+        </div>
+      </section>
+
+      {/* CONTACT */}
+      <section className="py-20">
+        <div className="mx-auto max-w-[1200px] px-6">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#3b82f6]/10 to-[#e9b149]/5 px-8 py-12 text-center">
+            <div className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[#e9b149]">
+              {t.contactEyebrow}
+            </div>
+            <h2 className="font-display text-3xl font-black md:text-4xl">{t.contactTitle}</h2>
+            <p className="mx-auto mt-3 max-w-md text-white/60">{t.contactBody}</p>
+            <a
+              href="tel:+995591700312"
+              className="font-display mt-6 inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-white px-7 text-base font-bold text-black transition hover:bg-white/90"
+            >
+              <span className="text-lg">📞</span>
+              {t.contactCta}: +995 591 700 312
+            </a>
+          </div>
         </div>
       </section>
 

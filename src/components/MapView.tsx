@@ -28,7 +28,6 @@ interface Props {
   encodedPolyline: string | null;
   navigating?: boolean;
   showTraffic?: boolean;
-  mapTypeId?: "roadmap" | "satellite" | "terrain";
   rerouting?: boolean;
   waypoints?: { lat: number; lng: number; name?: string }[];
   alternates?: { encodedPolyline: string; index: number }[];
@@ -66,7 +65,6 @@ export function MapView({
   encodedPolyline,
   navigating,
   showTraffic,
-  mapTypeId,
   rerouting,
   waypoints,
   alternates,
@@ -166,9 +164,8 @@ export function MapView({
             maxZoom: 20,
             minZoom: 4,
             isFractionalZoomEnabled: false,
-             styles: LIGHT_STYLE,
-             mapTypeId: mapTypeId ?? "roadmap",
-             backgroundColor: "#f1f5f9",
+            styles: LIGHT_STYLE,
+            backgroundColor: "#f1f5f9",
           });
           clearMapsAuthFailure();
           if (authTimerRef.current != null) {
@@ -257,12 +254,6 @@ export function MapView({
   useEffect(() => {
     navigatingRef.current = !!navigating;
   }, [navigating]);
-
-  // Keep the native Google map type in sync without rebuilding the map or interrupting live motion.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (map && mapTypeId) map.setMapTypeId(mapTypeId);
-  }, [mapTypeId]);
 
   // Turn follow on when navigation starts.
   useEffect(() => {

@@ -27,20 +27,29 @@ export function AuthGate({ children }: Props) {
         return;
       }
       const userId = data.session.user.id;
-      const { data: subscription, error: subscriptionError } = await supabase
-        .from("subscriptions")
-        .select("status, current_period_end")
+      const { data: adminRole } = await supabase
+        .from("user_roles")
+        .select("role")
         .eq("user_id", userId)
-        .eq("environment", getPaddleEnvironment())
-        .order("created_at", { ascending: false })
-        .limit(1)
+        .eq("role", "admin")
         .maybeSingle();
-      const periodIsOpen = !subscription?.current_period_end || new Date(subscription.current_period_end).getTime() > Date.now();
-      const hasAccess = !subscriptionError && !!subscription && periodIsOpen &&
-        ["active", "trialing", "past_due", "canceled"].includes(subscription.status);
-      if (!hasAccess) {
-        navigate({ to: "/pricing" });
-        return;
+      const isAdmin = !!adminRole;
+      if (!isAdmin) {
+        const { data: subscription, error: subscriptionError } = await supabase
+          .from("subscriptions")
+          .select("status, current_period_end")
+          .eq("user_id", userId)
+          .eq("environment", getPaddleEnvironment())
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const periodIsOpen = !subscription?.current_period_end || new Date(subscription.current_period_end).getTime() > Date.now();
+        const hasAccess = !subscriptionError && !!subscription && periodIsOpen &&
+          ["active", "trialing", "past_due", "canceled"].includes(subscription.status);
+        if (!hasAccess) {
+          navigate({ to: "/pricing" });
+          return;
+        }
       }
       try {
         await claimDevice({ data: { deviceId, label: getDeviceLabel() } });

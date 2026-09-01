@@ -584,7 +584,19 @@ function Index() {
         )}
 
         {/* Map */}
-        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
+        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode || !sidebarOpen ? "" : "rounded-3xl border border-border"}`}>
+          {!hudMode && !sidebarOpen && (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar"
+              title="Open sidebar"
+              className="absolute left-4 top-4 z-40 grid h-12 w-12 place-items-center rounded-xl border border-border bg-white/95 text-xl font-semibold text-foreground shadow-lg backdrop-blur hover:bg-white"
+            >
+              ☰
+            </button>
+          )}
+
           {!navigating && !hudMode && (
             <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-3 p-6">
               <div className="pointer-events-auto w-full max-w-2xl">
@@ -612,6 +624,22 @@ function Index() {
                     Searching…
                   </span>
                 )}
+              </div>
+            </div>
+          )}
+
+          {!sidebarOpen && route && !preview && !navigating && !hudMode && (
+            <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-40 flex justify-center px-4">
+              <div className="w-full max-w-xl">
+                <RoutePreview
+                  route={route}
+                  destinationName={destination?.name ?? null}
+                  loading={routeLoading}
+                  error={routeError}
+                  offRoute={offRoute}
+                  offline={offlineCache}
+                  onStart={startNavigation}
+                />
               </div>
             </div>
           )}

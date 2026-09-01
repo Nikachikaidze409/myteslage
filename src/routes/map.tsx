@@ -43,6 +43,14 @@ export const Route = createFileRoute("/map")({
   component: IndexGated,
 });
 
+const MAP_CATEGORIES: { key: string; label: string; emoji: string }[] = [
+  { key: "supercharger", label: "Charging", emoji: "⚡" },
+  { key: "gas", label: "Gas", emoji: "⛽" },
+  { key: "food", label: "Food", emoji: "🍽" },
+  { key: "coffee", label: "Coffee", emoji: "☕" },
+  { key: "parking", label: "Parking", emoji: "🅿" },
+];
+
 function IndexGated() {
   return (
     <AuthGate>

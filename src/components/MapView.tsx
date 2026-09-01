@@ -157,9 +157,9 @@ export function MapView({
             center: DEFAULT_CENTER,
             zoom: 7,
             disableDefaultUI: true,
-            zoomControl: true,
+            zoomControl: false,
             gestureHandling: "greedy",
-            clickableIcons: false,
+            clickableIcons: true,
             keyboardShortcuts: false,
             maxZoom: 20,
             minZoom: 4,
@@ -185,6 +185,20 @@ export function MapView({
             }
           };
           mapRef.current.addListener("dragstart", release);
+
+          // Tapping the map (or a Google POI) previews that place.
+          mapRef.current.addListener("click", (ev: any) => {
+            const handler = onMapClickRef.current;
+            if (!handler || !ev?.latLng) return;
+            if (ev.placeId && typeof ev.stop === "function") ev.stop();
+            handler({
+              lat: ev.latLng.lat(),
+              lng: ev.latLng.lng(),
+              placeId: ev.placeId ?? undefined,
+            });
+          });
+        })
+
         })
         .catch((e) => {
           if (cancelled) return;

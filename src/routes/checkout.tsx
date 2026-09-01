@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getPaddleEnvironment, getPaddlePriceId, initializePaddle } from "@/lib/paddle";
+import { AccountBar } from "@/components/AccountBar";
 
 type Plan = "monthly" | "quarterly";
 
@@ -115,6 +116,7 @@ function Checkout() {
       </header>
 
       <main className="mx-auto max-w-[720px] px-6 py-16">
+        <AccountBar note="Paying for someone else's email? Sign out first and sign in with the email that should get the membership." />
         <div className="text-[11px] font-bold uppercase tracking-widest text-[#e9b149]">Almost there</div>
         <h1 className="font-display mt-2 text-4xl font-black">Confirm your subscription</h1>
         <p className="mt-3 text-white/60">Secure checkout powered by Paddle. Paddle is the Merchant of Record for your payment.</p>

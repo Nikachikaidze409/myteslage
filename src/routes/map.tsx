@@ -724,7 +724,14 @@ function Index() {
                 alternates={routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i }))}
                 onSelectAlternate={setSelectedRouteIdx}
                 recenterSignal={recenterSignal}
+                preview={preview}
+                pois={pois}
+                onPickPoi={(p) =>
+                  setPreview({ lat: p.lat, lng: p.lng, name: p.name, address: p.address })
+                }
+                onMapClick={handleMapClick}
               />
+
             </Suspense>
           </ClientOnly>
         </main>

@@ -391,7 +391,7 @@ export function MapView({
           });
       }
     }
-  }, [fix, navigating]);
+  }, [fix, navigating, mapReady]);
 
   // ---- single persistent animation loop ----------------------------------
   useEffect(() => {

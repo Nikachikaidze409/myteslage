@@ -459,7 +459,7 @@ function Index() {
             />
           )}
 
-          {route && <DirectionsPanel route={route} />}
+          {route && <DirectionsPanel route={route} fix={fix} />}
 
           <div className="mt-auto flex flex-col gap-3">
             <RoutePreview

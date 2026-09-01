@@ -413,6 +413,12 @@ function Index() {
     setDestination(d);
   };
 
+  const startNavigation = () => {
+    if (!route) return;
+    setNavigating(true);
+    setRecenterSignal((n) => n + 1);
+  };
+
 
 
   // Called by PairPhonePanel when the phone broadcasts a full NavState.

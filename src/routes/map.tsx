@@ -201,8 +201,9 @@ function Index() {
         )
         .then((resp) => {
           if (routeRequestRef.current !== requestId) return;
-          setRoutes(resp.routes);
-          setSelectedRouteIdx(0);
+           setRoutes(resp.routes);
+           setSelectedRouteIdx(0);
+           if (options?.reroute) setRerouting(false);
           lastRouteOriginRef.current = originFix;
           setOffRoute(false);
           offRouteSinceRef.current = null;

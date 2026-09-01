@@ -67,9 +67,24 @@ export function loadGoogleMaps(): Promise<any> {
   if ((window as any).google?.maps) return Promise.resolve((window as any).google);
   if (loaderPromise) return loaderPromise;
 
-  const key = getMapsApiKey();
   const channel = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID as string | undefined;
-  if (!key) return Promise.reject(new Error("Missing Google Maps browser key"));
+
+  // Prefer a project-owned key fetched from the server (covers teslanavi.online).
+  // The server fn prefers GOOGLE_API_KEY, falling back to the Lovable connector key.
+  loaderPromise = resolveBrowserKey().then((key) => {
+    if (!key) throw new Error("Missing Google Maps browser key");
+    return loadGoogleMapsWithKey(key, channel);
+  });
+
+  // A failed load must not be cached: let the next call try again.
+  loaderPromise = loaderPromise.catch((err) => {
+    loaderPromise = null;
+    throw err;
+  });
+  return loaderPromise;
+}
+
+function loadGoogleMapsWithKey(key: string, channel: string | undefined): Promise<any> {
 
   // Google calls this global when the key is rejected (e.g. domain not allowed).
   (window as any).gm_authFailure = () => {

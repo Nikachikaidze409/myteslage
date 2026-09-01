@@ -352,6 +352,58 @@ function Index() {
     clearSession();
   };
 
+  // Tapping the map (or a Google POI) previews that spot with its address.
+  const handleMapClick = useCallback(
+    (p: { lat: number; lng: number; placeId?: string }) => {
+      if (navigating || hudMode) return;
+      setPreview({ lat: p.lat, lng: p.lng, name: "Loading…" });
+      const load = p.placeId
+        ? placeDetails({ data: { placeId: p.placeId } }).then((d) => ({
+            lat: d.lat,
+            lng: d.lng,
+            name: d.name,
+            address: d.address,
+          }))
+        : reverseGeocode({ data: { lat: p.lat, lng: p.lng } }).then((r) => ({
+            lat: p.lat,
+            lng: p.lng,
+            name: r.name,
+            address: r.address,
+          }));
+      load
+        .then(setPreview)
+        .catch(() => setPreview({ lat: p.lat, lng: p.lng, name: "Dropped pin" }));
+    },
+    [navigating, hudMode],
+  );
+
+  const runCategory = useCallback(
+    (cat: string) => {
+      if (!fix) return;
+      if (poiCat === cat) {
+        setPoiCat(null);
+        setPois([]);
+        return;
+      }
+      setPoiCat(cat);
+      setPoiLoading(true);
+      searchNearby({ data: { lat: fix.lat, lng: fix.lng, category: cat } })
+        .then((r) => setPois(r.places.slice(0, 12)))
+        .catch(() => setPois([]))
+        .finally(() => setPoiLoading(false));
+    },
+    [fix, poiCat],
+  );
+
+  const startTo = (d: Destination) => {
+    setPreview(null);
+    setPois([]);
+    setPoiCat(null);
+    setDestination(d);
+  };
+
+
+
   // Called by PairPhonePanel when the phone broadcasts a full NavState.
   // In HUD mode we bypass Tesla-side route computation entirely.
   const applyPairedNav = useCallback((n: import("@/lib/pair-channel").PairedNavState) => {

@@ -28,6 +28,11 @@ function resolveBrowserKey(): Promise<string | null> {
   return fetchKeyPromise;
 }
 
+/** The Lovable-managed connector browser key (authorized on *.lovable.app). */
+function getConnectorKey(): string | undefined {
+  return import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
+}
+
 function authFailureMessage(): string {
   const host = typeof window !== "undefined" ? window.location.hostname : "this domain";
   return `The map key does not allow ${host}. Add ${host} to the Google Maps API key's allowed websites, or open the app on the Lovable domain.`;
@@ -58,8 +63,25 @@ export function resetMapsLoader(): void {
 
 export function getMapsApiKey(): string | undefined {
   const own = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
-  const connector = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
+  const connector = getConnectorKey();
   return (own && own.trim()) || connector;
+}
+
+/**
+ * Pick the browser key by hostname:
+ *  - *.lovable.app (and preview) → Lovable-managed connector key, always authorized there.
+ *  - custom domains (teslanavi.online, etc.) → project-owned key from the server fn.
+ *
+ * This avoids Google's gm_authFailure timing race: each domain uses a key that is
+ * actually authorized for it, so no fallback retry is needed.
+ */
+function pickKey(): Promise<string | null> {
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  const isLovable = host.endsWith(".lovable.app");
+  const connector = getConnectorKey();
+  if (isLovable && connector) return Promise.resolve(connector);
+  // Custom domain (or localhost dev): prefer the project-owned key.
+  return resolveBrowserKey().then((own) => own ?? connector ?? null);
 }
 
 export function loadGoogleMaps(): Promise<any> {
@@ -69,9 +91,7 @@ export function loadGoogleMaps(): Promise<any> {
 
   const channel = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID as string | undefined;
 
-  // Prefer a project-owned key fetched from the server (covers teslanavi.online).
-  // The server fn prefers GOOGLE_API_KEY, falling back to the Lovable connector key.
-  loaderPromise = resolveBrowserKey().then((key) => {
+  loaderPromise = pickKey().then((key) => {
     if (!key) throw new Error("Missing Google Maps browser key");
     return loadGoogleMapsWithKey(key, channel);
   });
@@ -85,6 +105,7 @@ export function loadGoogleMaps(): Promise<any> {
 }
 
 function loadGoogleMapsWithKey(key: string, channel: string | undefined): Promise<any> {
+  authFailed = false;
 
   // Google calls this global when the key is rejected (e.g. domain not allowed).
   (window as any).gm_authFailure = () => {
@@ -93,7 +114,7 @@ function loadGoogleMapsWithKey(key: string, channel: string | undefined): Promis
     authFailureListeners.forEach((cb) => cb(message));
   };
 
-  const attempt = new Promise<any>((resolve, reject) => {
+  return new Promise<any>((resolve, reject) => {
     let settled = false;
     const done = (fn: () => void) => {
       if (settled) return;
@@ -126,7 +147,4 @@ function loadGoogleMapsWithKey(key: string, channel: string | undefined): Promis
     }), 15000);
     document.head.appendChild(s);
   });
-
-  return attempt;
 }
-

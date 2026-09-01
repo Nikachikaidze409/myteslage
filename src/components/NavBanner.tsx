@@ -11,6 +11,7 @@ interface Props {
   route: RouteResult;
   fix: Fix | null;
   onStop: () => void;
+  liveRemainingMeters?: number;
 }
 
 export function NavBanner({ route, fix, onStop }: Props) {

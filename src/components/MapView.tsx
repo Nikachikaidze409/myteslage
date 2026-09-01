@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { loadGoogleMaps } from "@/lib/maps-loader";
+import { loadGoogleMaps, onMapsAuthFailure } from "@/lib/maps-loader";
 import type { Fix } from "./StatusPanel";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
 import { decodePolyline } from "@/lib/geo";
@@ -67,6 +67,7 @@ export function MapView({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
   const meMarker = useRef<any>(null);
   const destMarker = useRef<any>(null);
   const waypointMarkersRef = useRef<any[]>([]);
@@ -149,9 +150,16 @@ export function MapView({
         };
         mapRef.current.addListener("dragstart", release);
       })
-      .catch((e) => console.error(e));
+      .catch((e) => {
+        console.error(e);
+        if (!cancelled) setMapError("The map could not load. Check your connection and try again.");
+      });
+    const offAuth = onMapsAuthFailure((message) => {
+      if (!cancelled) setMapError(message);
+    });
     return () => {
       cancelled = true;
+      offAuth();
       if (trafficLayerRef.current) {
         trafficLayerRef.current.setMap(null);
         trafficLayerRef.current = null;
@@ -480,6 +488,23 @@ export function MapView({
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full rounded-2xl bg-muted" />
+
+      {mapError && (
+        <div className="absolute inset-0 z-40 grid place-items-center rounded-2xl bg-background/95 p-6 text-center">
+          <div className="max-w-md">
+            <h2 className="font-display text-lg font-bold text-foreground">Map can't load on this domain</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{mapError}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-5 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      )}
+
 
       {rerouting && (
         <div className="pointer-events-none absolute inset-x-0 top-24 z-30 flex justify-center">

@@ -16,11 +16,23 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: nextDest() });
+      setCurrentEmail(data.session?.user.email ?? null);
     });
-  }, [navigate]);
+  }, []);
+
+  const switchAccount = async () => {
+    try {
+      window.sessionStorage.removeItem("tsl.no-membership");
+    } catch {
+      /* ignore */
+    }
+    await supabase.auth.signOut();
+    setCurrentEmail(null);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +74,30 @@ function AuthPage() {
           Membership required. One account = one device. Signing in on a new device signs the old one out.
 
         </p>
+
+        {currentEmail && (
+          <div className="mt-4 rounded-xl border border-border bg-muted/40 p-3 text-sm">
+            <div className="text-muted-foreground">
+              You are signed in as <span className="font-semibold text-foreground">{currentEmail}</span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => navigate({ to: nextDest() })}
+                className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
+              >
+                Continue →
+              </button>
+              <button
+                type="button"
+                onClick={() => void switchAccount()}
+                className="rounded-lg border border-input px-3 py-2 text-xs font-semibold"
+              >
+                Not you? Sign out
+              </button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={submit} className="mt-5 space-y-3">
           <label className="block">

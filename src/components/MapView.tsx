@@ -199,7 +199,7 @@ export function MapView({
     } else if (trafficLayerRef.current) {
       trafficLayerRef.current.setMap(null);
     }
-  }, [showTraffic]);
+  }, [showTraffic, mapReady]);
 
   // ---- waypoints ---------------------------------------------------------
   useEffect(() => {

@@ -27,6 +27,8 @@ import {
   type RoutePrefs,
 } from "@/lib/favorites";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
+import { isPlausibleFix, resolveHeading } from "@/lib/fix-filter";
+import type { LiveProgress } from "@/components/MapView";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
 import { AuthGate, signOutAndReturn } from "@/components/AuthGate";
 

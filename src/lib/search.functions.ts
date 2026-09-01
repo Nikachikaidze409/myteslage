@@ -150,8 +150,8 @@ export const placeDetails = createServerFn({ method: "POST" })
         headers: {
           Authorization: `Bearer ${lovableKey}`,
           "X-Connection-Api-Key": connKey,
-          "X-Goog-FieldMask":
-            "id,displayName,formattedAddress,location,rating,userRatingCount,nationalPhoneNumber,websiteUri,currentOpeningHours,regularOpeningHours,primaryType,editorialSummary",
+           "X-Goog-FieldMask":
+             "id,displayName,formattedAddress,location,rating,userRatingCount,nationalPhoneNumber,websiteUri,currentOpeningHours,regularOpeningHours,primaryTypeDisplayName,primaryType,editorialSummary,photos",
         },
       },
     );

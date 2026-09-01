@@ -71,6 +71,10 @@ export function MapView({
   onSelectAlternate,
   onProgress,
   recenterSignal,
+  preview,
+  pois,
+  onPickPoi,
+  onMapClick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -78,12 +82,19 @@ export function MapView({
   const [mapError, setMapError] = useState<string | null>(null);
   const meMarker = useRef<any>(null);
   const destMarker = useRef<any>(null);
+  const previewMarker = useRef<any>(null);
+  const poiMarkersRef = useRef<any[]>([]);
   const waypointMarkersRef = useRef<any[]>([]);
   const trafficLayerRef = useRef<any>(null);
   const accuracyCircle = useRef<any>(null);
   const routeLine = useRef<any>(null);
   const altLinesRef = useRef<any[]>([]);
   const lastPolylineRef = useRef<string | null>(null);
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
+  const onPickPoiRef = useRef(onPickPoi);
+  onPickPoiRef.current = onPickPoi;
+
 
   // ---- live engine state -------------------------------------------------
   const pathIdxRef = useRef<PathIndex | null>(null);

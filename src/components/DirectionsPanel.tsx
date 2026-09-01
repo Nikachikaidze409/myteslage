@@ -26,8 +26,20 @@ function Arrow({ kind }: { kind: ReturnType<typeof maneuverIcon> }) {
   );
 }
 
-export function DirectionsPanel({ route }: { route: RouteResult }) {
+export function DirectionsPanel({ route, fix }: { route: RouteResult; fix?: Fix | null }) {
   if (!route.steps.length) return null;
+  const activeIndex = fix
+    ? Math.min(
+        route.steps.reduce((best, step, index) => {
+          const start = step.polyline ? decodePolyline(step.polyline)[0] : null;
+          if (!start) return best;
+          const bestStart = route.steps[best]?.polyline ? decodePolyline(route.steps[best].polyline)[0] : null;
+          if (!bestStart) return index;
+          return distanceMeters(fix, start) < distanceMeters(fix, bestStart) ? index : best;
+        }, 0),
+        route.steps.length - 1,
+      )
+    : 0;
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="font-display mb-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">

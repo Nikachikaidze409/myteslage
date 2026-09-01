@@ -7,7 +7,6 @@ export function RoutePreview({
   error,
   offRoute,
   offline,
-  onStart,
 }: {
   route: RouteResult | null;
   destinationName: string | null;
@@ -15,7 +14,6 @@ export function RoutePreview({
   error: string | null;
   offRoute?: boolean;
   offline?: boolean;
-  onStart?: () => void;
 }) {
   if (!destinationName && !loading && !route && !error) return null;
   return (
@@ -28,7 +26,7 @@ export function RoutePreview({
       {error && <div className="text-sm text-[color:var(--bad)]">{error}</div>}
       {route && (
         <>
-          <div className="flex items-end justify-between gap-3">
+          <div className="flex items-end justify-between">
             <span className="font-display text-3xl font-bold text-foreground">
               {Math.round(route.durationSeconds / 60)} min
             </span>
@@ -40,15 +38,6 @@ export function RoutePreview({
             {(route.distanceMeters / 1000).toFixed(1)} km · to {destinationName}
             {offline && " · offline cache"}
           </p>
-          {onStart && (
-            <button
-              type="button"
-              onClick={onStart}
-              className="mt-4 w-full rounded-xl bg-primary px-5 py-3 text-base font-bold text-primary-foreground shadow-lg transition hover:brightness-110"
-            >
-              Start
-            </button>
-          )}
         </>
       )}
     </div>

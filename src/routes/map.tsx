@@ -100,7 +100,6 @@ function Index() {
 
   // HUD mode: driven entirely by the phone. Tesla becomes a big display.
   const [hudMode, setHudMode] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [muted, setMuted] = useState(false);
   const [recenterSignal, setRecenterSignal] = useState(0);
 
@@ -185,7 +184,6 @@ function Index() {
       options?: {
         silent?: boolean;
         reroute?: boolean;
-        resume?: boolean;
         avoid?: AvoidOption[];
         waypoints?: { lat: number; lng: number; name: string }[];
       },
@@ -242,7 +240,7 @@ function Index() {
               savedAt: Date.now(),
             });
           }
-          if (options?.resume || options?.reroute) setNavigating(true);
+          setNavigating(true);
         })
         .catch((e: unknown) => {
           if (routeRequestRef.current !== requestId) return;
@@ -413,12 +411,6 @@ function Index() {
     setDestination(d);
   };
 
-  const startNavigation = () => {
-    if (!route) return;
-    setNavigating(true);
-    setRecenterSignal((n) => n + 1);
-  };
-
 
 
   // Called by PairPhonePanel when the phone broadcasts a full NavState.
@@ -452,33 +444,24 @@ function Index() {
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
-      <div className={`mx-auto flex h-full w-full ${hudMode || !sidebarOpen ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
+      <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
         {/* Sidebar - hidden in HUD mode (phone is the brain) */}
-        {!hudMode && sidebarOpen && (
+        {!hudMode && (
         <aside className="flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto rounded-3xl border border-border bg-card/60 p-3">
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
               Tesla · Georgia
             </div>
-            <div className="flex items-center gap-2">
-              <h1 className="min-w-0 flex-1 truncate font-display mt-1 text-xl font-bold leading-tight text-foreground">
+            <div className="flex items-center justify-between">
+              <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
                 Browser navigation
               </h1>
               <button
                 type="button"
                 onClick={() => void signOutAndReturn()}
-                className="shrink-0 rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
+                className="rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
               >
                 Sign out
-              </button>
-              <button
-                type="button"
-                onClick={() => setSidebarOpen(false)}
-                aria-label="Close sidebar"
-                title="Close sidebar"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border bg-white text-lg font-semibold text-muted-foreground hover:bg-muted"
-              >
-                ×
               </button>
             </div>
             {!online && (
@@ -558,11 +541,10 @@ function Index() {
               destinationName={destination?.name ?? null}
               loading={routeLoading}
               error={routeError}
-               offRoute={offRoute}
-               offline={offlineCache}
-               onStart={startNavigation}
-             />
-             <FeasibilityNote />
+              offRoute={offRoute}
+              offline={offlineCache}
+            />
+            <FeasibilityNote />
           </div>
         </aside>
         )}
@@ -590,19 +572,7 @@ function Index() {
         )}
 
         {/* Map */}
-        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode || !sidebarOpen ? "" : "rounded-3xl border border-border"}`}>
-          {!hudMode && !sidebarOpen && (
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open sidebar"
-              title="Open sidebar"
-              className="absolute left-4 top-4 z-40 grid h-12 w-12 place-items-center rounded-xl border border-border bg-white/95 text-xl font-semibold text-foreground shadow-lg backdrop-blur hover:bg-white"
-            >
-              ☰
-            </button>
-          )}
-
+        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
           {!navigating && !hudMode && (
             <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-3 p-6">
               <div className="pointer-events-auto w-full max-w-2xl">
@@ -630,22 +600,6 @@ function Index() {
                     Searching…
                   </span>
                 )}
-              </div>
-            </div>
-          )}
-
-          {!sidebarOpen && route && !preview && !navigating && !hudMode && (
-            <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-40 flex justify-center px-4">
-              <div className="w-full max-w-xl">
-                <RoutePreview
-                  route={route}
-                  destinationName={destination?.name ?? null}
-                  loading={routeLoading}
-                  error={routeError}
-                  offRoute={offRoute}
-                  offline={offlineCache}
-                  onStart={startNavigation}
-                />
               </div>
             </div>
           )}

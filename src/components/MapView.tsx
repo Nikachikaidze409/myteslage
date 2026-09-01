@@ -258,6 +258,12 @@ export function MapView({
     navigatingRef.current = !!navigating;
   }, [navigating]);
 
+  // Keep the native Google map type in sync without rebuilding the map or interrupting live motion.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map && mapTypeId) map.setMapTypeId(mapTypeId);
+  }, [mapTypeId]);
+
   // Turn follow on when navigation starts.
   useEffect(() => {
     if (!navigating) return;

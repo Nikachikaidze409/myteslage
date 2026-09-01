@@ -102,6 +102,8 @@ function Index() {
   const [hudMode, setHudMode] = useState(false);
   const [muted, setMuted] = useState(false);
   const [recenterSignal, setRecenterSignal] = useState(0);
+  // Sidebar collapse so the map can fill the full screen.
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Session restore state
   const restoredRef = useRef(false);

@@ -127,11 +127,6 @@ function loadGoogleMapsWithKey(key: string, channel: string | undefined): Promis
     document.head.appendChild(s);
   });
 
-  // A failed load must not be cached: let the next call try again.
-  loaderPromise = attempt.catch((err) => {
-    loaderPromise = null;
-    throw err;
-  });
-  return loaderPromise;
+  return attempt;
 }
 

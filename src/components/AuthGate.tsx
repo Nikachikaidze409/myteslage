@@ -47,6 +47,11 @@ export function AuthGate({ children }: Props) {
         const hasAccess = !subscriptionError && !!subscription && periodIsOpen &&
           ["active", "trialing", "past_due", "canceled"].includes(subscription.status);
         if (!hasAccess) {
+          try {
+            window.sessionStorage.setItem("tsl.no-membership", data.session.user.email ?? "1");
+          } catch {
+            /* ignore */
+          }
           navigate({ to: "/pricing" });
           return;
         }

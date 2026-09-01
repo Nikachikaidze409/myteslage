@@ -26,8 +26,10 @@ function fmtEta(s: number) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export function HudBottomBar({ route, fix, onCancel, onRecenter, muted, onToggleMute }: Props) {
+export function HudBottomBar({ route, fix, onCancel, onRecenter, muted, onToggleMute, liveRemainingMeters }: Props) {
   const speedKmh = fix?.speed != null ? Math.max(0, Math.round(fix.speed * 3.6)) : null;
+  const remaining = liveRemainingMeters ?? route.distanceMeters;
+  const liveDuration = route.durationSeconds * (remaining / Math.max(1, route.distanceMeters));
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 border-t border-white/10 bg-slate-950/85 px-8 py-5 text-white backdrop-blur-md">
       <div className="mx-auto flex max-w-[1400px] items-center gap-6">

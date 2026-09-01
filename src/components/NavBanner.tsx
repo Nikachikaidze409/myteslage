@@ -39,6 +39,7 @@ export function NavBanner({ route, fix, onStop, liveRemainingMeters }: Props) {
   const dText = distToTurn >= 1000
     ? `${(distToTurn / 1000).toFixed(1)} km`
     : `${Math.max(0, Math.round(distToTurn / 10) * 10)} m`;
+  const liveDistance = liveRemainingMeters ?? route.distanceMeters;
 
   return (
     <div className="pointer-events-auto absolute left-6 top-6 z-30 w-[min(460px,calc(100%-3rem))] animate-in fade-in slide-in-from-top-4 rounded-3xl bg-primary p-5 text-primary-foreground shadow-2xl shadow-primary/30">

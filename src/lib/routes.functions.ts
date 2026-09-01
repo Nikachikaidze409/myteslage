@@ -53,8 +53,8 @@ export const computeRoute = createServerFn({ method: "POST" })
     const connKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!lovableKey || !connKey) throw new Error("Google Maps connector not configured");
 
-    // Always avoid ferries by default (Tesla owners rarely want a ferry route).
-    const modifiers: Record<string, boolean> = { avoidFerries: true };
+    // Mirror Google Maps: only apply modifiers the driver explicitly asked for.
+    const modifiers: Record<string, boolean> = {};
     for (const a of data.avoid ?? []) {
       if (a === "tolls") modifiers.avoidTolls = true;
       if (a === "highways") modifiers.avoidHighways = true;

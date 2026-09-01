@@ -83,7 +83,7 @@ export function LocationButton({ onFix, onError, active, onActiveChange }: Props
       onClick={active ? stop : start}
       className="font-display h-14 w-full rounded-2xl bg-primary px-8 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 active:scale-[0.98]"
     >
-      {pending ? "Searching for live GPS…" : active ? "Stop tracking" : "Detect live location"}
+      {pending ? "Searching for live GPS…" : active ? "Tracking on" : "Start tracking"}
     </button>
   );
 }

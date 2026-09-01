@@ -133,6 +133,9 @@ export function MapView({
           maxZoom: 20,
           minZoom: 4,
           isFractionalZoomEnabled: false,
+          // Prefer the low-latency vector renderer on capable Tesla browsers.
+          // Google falls back to raster tiles when this option is unavailable.
+          renderingType: "VECTOR",
           styles: LIGHT_STYLE,
           backgroundColor: "#f1f5f9",
         });

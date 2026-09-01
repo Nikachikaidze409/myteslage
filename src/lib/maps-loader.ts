@@ -16,6 +16,22 @@ export function onMapsAuthFailure(cb: AuthFailureListener): () => void {
   return () => authFailureListeners.delete(cb);
 }
 
+/** A working map wins over a stale rejection: called once a map actually renders. */
+export function clearMapsAuthFailure(): void {
+  authFailed = false;
+}
+
+/** Drop the cached script/promise so the next load starts completely fresh. */
+export function resetMapsLoader(): void {
+  loaderPromise = null;
+  authFailed = false;
+  if (typeof window !== "undefined") {
+    document
+      .querySelectorAll('script[src*="maps.googleapis.com/maps/api/js"]')
+      .forEach((el) => el.remove());
+  }
+}
+
 export function getMapsApiKey(): string | undefined {
   const own = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
   const connector = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;

@@ -16,11 +16,23 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: nextDest() });
+      setCurrentEmail(data.session?.user.email ?? null);
     });
-  }, [navigate]);
+  }, []);
+
+  const switchAccount = async () => {
+    try {
+      window.sessionStorage.removeItem("tsl.no-membership");
+    } catch {
+      /* ignore */
+    }
+    await supabase.auth.signOut();
+    setCurrentEmail(null);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -585,7 +585,9 @@ function Index() {
                 destination={destination}
                 encodedPolyline={route?.encodedPolyline ?? null}
                 navigating={navigating}
+                rerouting={rerouting}
                 showTraffic={showTraffic}
+                onProgress={setProgress}
                 waypoints={waypoints}
                 alternates={routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i }))}
                 onSelectAlternate={setSelectedRouteIdx}

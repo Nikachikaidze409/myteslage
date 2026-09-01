@@ -35,7 +35,7 @@ export function HudBottomBar({ route, fix, onCancel, onRecenter, muted, onToggle
       <div className="mx-auto flex max-w-[1400px] items-center gap-6">
         <div className="flex flex-col">
           <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">ETA</div>
-          <div className="font-display text-3xl font-bold leading-none">{fmtEta(route.durationSeconds)}</div>
+          <div className="font-display text-3xl font-bold leading-none">{fmtEta(liveDuration)}</div>
         </div>
         <div className="flex flex-col">
           <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">Remaining</div>

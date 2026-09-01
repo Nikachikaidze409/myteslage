@@ -706,6 +706,40 @@ export function MapView({
         </svg>
         <span className="text-sm font-semibold">My location</span>
       </button>
+
+      {/* Large touch-friendly zoom controls */}
+      <div className="absolute bottom-8 right-4 z-30 flex flex-col overflow-hidden rounded-2xl border border-border bg-white/95 shadow-lg backdrop-blur">
+        <button
+          type="button"
+          aria-label="Zoom in"
+          onClick={() => {
+            const map = mapRef.current;
+            if (!map) return;
+            programmaticMoveRef.current = true;
+            map.setZoom(Math.min(20, (map.getZoom() ?? 15) + 1));
+            setTimeout(() => (programmaticMoveRef.current = false), 200);
+          }}
+          className="h-12 w-12 text-2xl font-semibold text-foreground hover:bg-muted"
+        >
+          +
+        </button>
+        <div className="h-px bg-border" />
+        <button
+          type="button"
+          aria-label="Zoom out"
+          onClick={() => {
+            const map = mapRef.current;
+            if (!map) return;
+            programmaticMoveRef.current = true;
+            map.setZoom(Math.max(4, (map.getZoom() ?? 15) - 1));
+            setTimeout(() => (programmaticMoveRef.current = false), 200);
+          }}
+          className="h-12 w-12 text-2xl font-semibold text-foreground hover:bg-muted"
+        >
+          −
+        </button>
+      </div>
+
     </div>
   );
 }

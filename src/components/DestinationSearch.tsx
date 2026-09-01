@@ -10,7 +10,18 @@ export interface Destination {
   lng: number;
   name: string;
   address?: string;
+  rating?: number;
+  ratingCount?: number;
+  phone?: string;
+  website?: string;
+  openNow?: boolean;
+  hours?: string[];
+  category?: string;
+  summary?: string;
+  photos?: string[];
+  placeId?: string;
 }
+
 
 interface Props {
   onSelect: (d: Destination) => void;
@@ -69,15 +80,29 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
     setSuggestions([]);
     setError(null);
     if (typeof s.lat === "number" && typeof s.lng === "number") {
-      setQ(s.primary);
-      onSelect({ lat: s.lat, lng: s.lng, name: s.primary, address: s.secondary });
-      return;
-    }
-    setLoading(true);
-    try {
-      const d = await placeDetails({ data: { placeId: s.placeId } });
-      setQ(d.name);
-      onSelect({ lat: d.lat, lng: d.lng, name: d.name, address: d.address });
+       setQ(s.primary);
+       onSelect({ lat: s.lat, lng: s.lng, name: s.primary, address: s.secondary, placeId: s.placeId });
+       return;
+     }
+     setLoading(true);
+     try {
+       const d = await placeDetails({ data: { placeId: s.placeId } });
+       setQ(d.name);
+       onSelect({
+         lat: d.lat,
+         lng: d.lng,
+         name: d.name,
+         address: d.address,
+         placeId: d.placeId,
+         rating: d.rating,
+         ratingCount: d.ratingCount,
+         phone: d.phone,
+         website: d.website,
+         openNow: d.openNow,
+         hours: d.hours,
+         category: d.category,
+         summary: d.summary,
+       });
     } catch (e) {
       console.error(e);
       setError("Could not open that place. Try another result.");

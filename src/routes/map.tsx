@@ -1,5 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ClientOnly } from "@tanstack/react-router";
+import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { LocationButton } from "@/components/LocationButton";
 import { StatusPanel, type Fix } from "@/components/StatusPanel";
@@ -14,6 +13,8 @@ import { NearbyChips } from "@/components/NearbyChips";
 import { FavoritesPanel } from "@/components/FavoritesPanel";
 import { AlternativesPanel } from "@/components/AlternativesPanel";
 import { BatteryPanel } from "@/components/BatteryPanel";
+import { PlaceSheet } from "@/components/PlaceSheet";
+import { MapControls } from "@/components/MapControls";
 import { distanceMeters } from "@/lib/geo";
 import { distanceToPolylineMeters } from "@/lib/off-route";
 import { computeRoute, type RouteResult, type AvoidOption } from "@/lib/routes.functions";
@@ -95,7 +96,9 @@ function Index() {
   const [navigating, setNavigating] = useState(false);
   const [offRoute, setOffRoute] = useState(false);
   const [showTraffic, setShowTraffic] = useState(true);
+  const [mapType, setMapType] = useState<"roadmap" | "satellite" | "terrain">("roadmap");
   const [offlineCache, setOfflineCache] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const online = useNetworkStatus();
 
   // HUD mode: driven entirely by the phone. Tesla becomes a big display.
@@ -366,13 +369,22 @@ function Index() {
     (p: { lat: number; lng: number; placeId?: string }) => {
       if (navigating || hudMode) return;
       setPreview({ lat: p.lat, lng: p.lng, name: "Loading…" });
-      const load = p.placeId
-        ? placeDetails({ data: { placeId: p.placeId } }).then((d) => ({
-            lat: d.lat,
-            lng: d.lng,
-            name: d.name,
-            address: d.address,
-          }))
+       const load = p.placeId
+         ? placeDetails({ data: { placeId: p.placeId } }).then((d) => ({
+             lat: d.lat,
+             lng: d.lng,
+             name: d.name,
+             address: d.address,
+             placeId: d.placeId,
+             rating: d.rating,
+             ratingCount: d.ratingCount,
+             phone: d.phone,
+             website: d.website,
+             openNow: d.openNow,
+             hours: d.hours,
+             category: d.category,
+             summary: d.summary,
+           }))
         : reverseGeocode({ data: { lat: p.lat, lng: p.lng } }).then((r) => ({
             lat: p.lat,
             lng: p.lng,
@@ -443,308 +455,40 @@ function Index() {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-background text-foreground">
-      <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
-        {/* Sidebar - hidden in HUD mode (phone is the brain) */}
+    <div className="h-[100dvh] overflow-hidden bg-background text-foreground">
+      <div className={`relative mx-auto flex h-full w-full ${hudMode ? "max-w-none" : "max-w-[1800px] p-2 sm:p-3"}`}>
         {!hudMode && (
-        <aside className="flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto rounded-3xl border border-border bg-card/60 p-3">
-          <header className="px-2 pt-2">
-            <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
-              Tesla · Georgia
-            </div>
-            <div className="flex items-center justify-between">
-              <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
-                Browser navigation
-              </h1>
-              <button
-                type="button"
-                onClick={() => void signOutAndReturn()}
-                className="rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
-              >
-                Sign out
-              </button>
-            </div>
-            {!online && (
-              <div className="mt-2 rounded-lg border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5 px-2 py-1 text-[11px] font-semibold text-[color:var(--bad)]">
-                Offline - using cached route
-              </div>
-            )}
-          </header>
-
-          <LocationButton
-            onFix={(f) => {
-              setError(null);
-              setFix(f);
-            }}
-            onError={(msg) => setError(msg)}
-            active={watching}
-            onActiveChange={setWatching}
-          />
-
-          <PairPhonePanel
-            onPairedFix={(p) => {
-              setError(null);
-              setWatching(true);
-              setFix({
-                lat: p.lat,
-                lng: p.lng,
-                accuracy: p.accuracy,
-                heading: p.heading,
-                speed: p.speed,
-                timestamp: p.timestamp,
-                source: "phone",
-              });
-            }}
-            onPairedNav={applyPairedNav}
-          />
-
-          {error && (
-            <div className="rounded-2xl border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/5 p-4">
-              <div className="text-sm font-semibold text-[color:var(--bad)]">
-                Live location needs attention
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {error} Pair your phone above if the Tesla browser stops updating while driving.
-              </p>
-            </div>
-          )}
-
-          {fix && <StatusPanel fix={fix} now={now} />}
-
-          <FavoritesPanel currentDestination={destination} onPick={setDestination} />
-
-          <NearbyChips origin={fix} onPick={setDestination} />
-
-          {routes.length > 1 && (
-            <AlternativesPanel
-              routes={routes}
-              selectedIndex={selectedRouteIdx}
-              onSelect={setSelectedRouteIdx}
-              prefs={prefs}
-              onPrefsChange={setPrefs}
-            />
-          )}
-
-          {route && (
-            <BatteryPanel
-              routeKm={route.distanceMeters / 1000}
-              encodedPolyline={route.encodedPolyline}
-              onAddStop={addWaypoint}
-            />
-          )}
-
-          {route && <DirectionsPanel route={route} fix={fix} />}
-
-          <div className="mt-auto flex flex-col gap-3">
-            <RoutePreview
-              route={route}
-              destinationName={destination?.name ?? null}
-              loading={routeLoading}
-              error={routeError}
-              offRoute={offRoute}
-              offline={offlineCache}
-            />
-            <FeasibilityNote />
-          </div>
-        </aside>
+          <aside className={`absolute left-3 top-3 z-50 flex max-h-[calc(100%-1.5rem)] w-[min(380px,calc(100%-1.5rem))] flex-col overflow-hidden rounded-[1.35rem] border border-border bg-card/95 shadow-2xl shadow-foreground/15 backdrop-blur-xl transition-all duration-200 lg:static lg:max-h-full lg:w-[380px] lg:shrink-0 lg:rounded-[1.35rem] ${toolsOpen ? "" : "-translate-x-[calc(100%+1rem)] lg:translate-x-0"}`}>
+            <header className="shrink-0 border-b border-border px-5 pb-4 pt-5">
+              <div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Tesla Map Georgia</p><h1 className="mt-1 truncate font-display text-2xl font-bold text-card-foreground">Where to next?</h1></div><button type="button" onClick={() => void signOutAndReturn()} className="min-h-11 shrink-0 rounded-lg px-2 text-xs font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground">Sign out</button></div>
+              {!online && <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive">Offline · cached route available</div>}
+            </header>
+            <div className="shrink-0 p-4 pb-2"><LocationButton onFix={(f) => { setError(null); setFix(f); }} onError={setError} active={watching} onActiveChange={setWatching} /></div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4"><div className="space-y-3">
+              {error && <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"><strong>Live location needs attention</strong><p className="mt-1 text-muted-foreground">{error}</p></div>}
+              {fix && <StatusPanel fix={fix} now={now} />}
+              <FavoritesPanel currentDestination={destination} onPick={setDestination} />
+              <NearbyChips origin={fix} onPick={setDestination} />
+              {routes.length > 1 && <AlternativesPanel routes={routes} selectedIndex={selectedRouteIdx} onSelect={setSelectedRouteIdx} prefs={prefs} onPrefsChange={setPrefs} />}
+              {route && <BatteryPanel routeKm={route.distanceMeters / 1000} encodedPolyline={route.encodedPolyline} onAddStop={addWaypoint} />}
+              {route && <DirectionsPanel route={route} fix={fix} />}
+              <RoutePreview route={route} destinationName={destination?.name ?? null} loading={routeLoading} error={routeError} offRoute={offRoute} offline={offlineCache} />
+              <FeasibilityNote />
+              <PairPhonePanel onPairedFix={(p) => { setError(null); setWatching(true); setFix({ ...p, source: "phone" }); }} onPairedNav={applyPairedNav} />
+            </div></div>
+          </aside>
         )}
+        {hudMode && <div className="hidden"><PairPhonePanel onPairedFix={(p) => { setError(null); setWatching(true); setFix({ ...p, source: "phone" }); }} onPairedNav={applyPairedNav} /></div>}
 
-        {/* Hidden PairPhonePanel in HUD mode - still needs to be mounted to receive nav broadcasts. */}
-        {hudMode && (
-          <div className="hidden">
-            <PairPhonePanel
-              onPairedFix={(p) => {
-                setError(null);
-                setWatching(true);
-                setFix({
-                  lat: p.lat,
-                  lng: p.lng,
-                  accuracy: p.accuracy,
-                  heading: p.heading,
-                  speed: p.speed,
-                  timestamp: p.timestamp,
-                  source: "phone",
-                });
-              }}
-              onPairedNav={applyPairedNav}
-            />
-          </div>
-        )}
-
-        {/* Map */}
-        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
-          {!navigating && !hudMode && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-3 p-6">
-              <div className="pointer-events-auto w-full max-w-2xl">
-                <DestinationSearch onSelect={setPreview} origin={fix} />
-              </div>
-              <div className="pointer-events-auto flex max-w-full flex-wrap justify-center gap-2">
-                {MAP_CATEGORIES.map((c) => (
-                  <button
-                    key={c.key}
-                    type="button"
-                    onClick={() => runCategory(c.key)}
-                    disabled={!fix}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold shadow-md backdrop-blur transition disabled:opacity-40 ${
-                      poiCat === c.key
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-white/90 text-foreground hover:bg-white"
-                    }`}
-                  >
-                    <span className="mr-1">{c.emoji}</span>
-                    {c.label}
-                  </button>
-                ))}
-                {poiLoading && (
-                  <span className="self-center rounded-full bg-white/90 px-3 py-1 text-xs text-muted-foreground shadow">
-                    Searching…
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {preview && !navigating && !hudMode && (
-            <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-40 flex justify-center px-4">
-              <div className="w-full max-w-xl rounded-3xl border border-border bg-white/97 p-5 shadow-2xl backdrop-blur">
-                <div className="font-display truncate text-xl font-bold text-foreground">
-                  {preview.name}
-                </div>
-                {preview.address && (
-                  <div className="mt-0.5 truncate text-sm text-muted-foreground">{preview.address}</div>
-                )}
-                {fix && (
-                  <div className="mt-1 text-sm font-semibold text-primary">
-                    {(distanceMeters(fix, preview) / 1000).toFixed(1)} km away
-                  </div>
-                )}
-                <div className="mt-4 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => startTo(preview)}
-                    className="flex-1 rounded-2xl bg-primary px-5 py-3 text-base font-bold text-primary-foreground shadow-lg"
-                  >
-                    Directions
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPreview(null)}
-                    className="rounded-2xl border border-border px-5 py-3 text-base font-semibold text-muted-foreground hover:bg-muted"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-
-
-          {!hudMode && (
-          <div className="absolute right-4 top-4 z-30">
-            <button
-              type="button"
-              onClick={() => setShowTraffic((v) => !v)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
-                showTraffic
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-white/90 text-foreground hover:bg-white"
-              }`}
-            >
-              {showTraffic ? "Traffic on" : "Traffic off"}
-            </button>
-          </div>
-          )}
-
-          {navigating && route && (
-            <NavBanner
-              route={route}
-              fix={fix}
-              onStop={stopNav}
-              liveRemainingMeters={progress?.remainingMeters}
-              alongMeters={progress?.along}
-
-            />
-          )}
-
-          {hudMode && route && (
-            <HudBottomBar
-              route={route}
-              fix={fix}
-              onCancel={() => {
-                // Cancel locally; the phone will re-broadcast if it's still navigating.
-                setHudMode(false);
-                setNavigating(false);
-                setDestination(null);
-                setRoutes([]);
-              }}
-              onRecenter={() => setRecenterSignal((n) => n + 1)}
-              liveRemainingMeters={progress?.remainingMeters}
-              muted={muted}
-              onToggleMute={() => setMuted((m) => !m)}
-            />
-          )}
-
-          {resumedName && (
-            <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-30 flex justify-center px-4">
-              <div className="flex items-center gap-3 rounded-full border border-border bg-white/95 px-4 py-2 text-sm shadow-lg backdrop-blur">
-                <span className="text-lg" aria-hidden>↻</span>
-                <span className="font-medium text-foreground">
-                  Resumed trip to <span className="font-semibold">{resumedName}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setResumedName(null);
-                    setDestination(null);
-                    setNavigating(false);
-                    setWaypoints([]);
-                    clearSession();
-                  }}
-                  className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          <ClientOnly
-            fallback={
-              <div className="flex h-full items-center justify-center text-muted-foreground">
-                Loading map…
-              </div>
-            }
-          >
-            <Suspense
-              fallback={
-                <div className="flex h-full items-center justify-center text-muted-foreground">
-                  Loading map…
-                </div>
-              }
-            >
-              <MapView
-                fix={fix}
-                destination={destination}
-                encodedPolyline={route?.encodedPolyline ?? null}
-                navigating={navigating}
-                rerouting={rerouting}
-                showTraffic={showTraffic}
-                onProgress={setProgress}
-                waypoints={waypoints}
-                alternates={routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i }))}
-                onSelectAlternate={setSelectedRouteIdx}
-                recenterSignal={recenterSignal}
-                preview={preview}
-                pois={pois}
-                onPickPoi={(p) =>
-                  setPreview({ lat: p.lat, lng: p.lng, name: p.name, address: p.address })
-                }
-                onMapClick={handleMapClick}
-              />
-
-            </Suspense>
-          </ClientOnly>
+        <main className={`relative min-h-0 min-w-0 flex-1 overflow-hidden bg-muted shadow-xl shadow-foreground/10 ${hudMode ? "" : "rounded-[1.35rem] border border-border lg:ml-3"}`}>
+          {!hudMode && <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-3 p-3 sm:p-5 lg:items-start lg:pl-5"><div className="pointer-events-auto w-full max-w-2xl lg:max-w-[520px]"><DestinationSearch onSelect={(d) => { setPreview(d); setToolsOpen(false); }} origin={fix} /></div><div className="pointer-events-auto flex max-w-full gap-2 overflow-x-auto pb-1 lg:max-w-[520px]">{MAP_CATEGORIES.map((c) => <button key={c.key} type="button" onClick={() => runCategory(c.key)} disabled={!fix} className={`min-h-11 shrink-0 rounded-full border px-4 text-sm font-semibold shadow-md backdrop-blur transition disabled:opacity-40 ${poiCat === c.key ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/95 text-card-foreground hover:bg-card"}`}><span className="mr-1" aria-hidden>{c.emoji}</span>{c.label}</button>)}{poiLoading && <span className="self-center rounded-full bg-card/95 px-3 py-2 text-xs text-muted-foreground shadow">Searching…</span>}</div></div>}
+          {!hudMode && <button type="button" onClick={() => setToolsOpen((v) => !v)} aria-label={toolsOpen ? "Close map tools" : "Open map tools"} className="absolute left-4 top-28 z-40 grid min-h-12 min-w-12 place-items-center rounded-xl border border-border bg-card/95 text-foreground shadow-lg backdrop-blur-xl lg:hidden"><span className="text-xl" aria-hidden>{toolsOpen ? "×" : "☰"}</span></button>}
+          {!hudMode && <MapControls mapType={mapType} traffic={showTraffic} onMapTypeChange={setMapType} onTrafficChange={setShowTraffic} />}
+          {preview && !navigating && !hudMode && <div className="pointer-events-auto absolute inset-x-0 bottom-4 z-40 flex justify-center px-3 sm:bottom-6 sm:px-4 lg:justify-start lg:pl-5"><div className="w-full max-w-xl"><PlaceSheet place={preview} fix={fix} loading={routeLoading} onDirections={() => startTo(preview)} onClose={() => setPreview(null)} /></div></div>}
+          {navigating && route && <NavBanner route={route} fix={fix} onStop={stopNav} liveRemainingMeters={progress?.remainingMeters} alongMeters={progress?.along} />}
+          {hudMode && route && <HudBottomBar route={route} fix={fix} onCancel={() => { setHudMode(false); setNavigating(false); setDestination(null); setRoutes([]); }} onRecenter={() => setRecenterSignal((n) => n + 1)} liveRemainingMeters={progress?.remainingMeters} muted={muted} onToggleMute={() => setMuted((m) => !m)} />}
+          {resumedName && <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-30 flex justify-center px-4"><div className="flex items-center gap-3 rounded-full border border-border bg-card/95 px-4 py-2 text-sm shadow-lg backdrop-blur"><span aria-hidden>↻</span><span className="font-medium text-card-foreground">Resumed trip to <span className="font-semibold">{resumedName}</span></span><button type="button" onClick={() => { setResumedName(null); setDestination(null); setNavigating(false); setWaypoints([]); clearSession(); }} className="min-h-11 rounded-full border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-muted">Cancel</button></div></div>}
+          <ClientOnly fallback={<div className="flex h-full items-center justify-center text-muted-foreground">Loading map…</div>}><Suspense fallback={<div className="flex h-full items-center justify-center text-muted-foreground">Loading map…</div>}><MapView fix={fix} destination={destination} encodedPolyline={route?.encodedPolyline ?? null} navigating={navigating} rerouting={rerouting} showTraffic={showTraffic} mapTypeId={mapType} onProgress={setProgress} waypoints={waypoints} alternates={routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i }))} onSelectAlternate={setSelectedRouteIdx} recenterSignal={recenterSignal} preview={preview} pois={pois} onPickPoi={(p) => setPreview({ lat: p.lat, lng: p.lng, name: p.name, address: p.address })} onMapClick={handleMapClick} /></Suspense></ClientOnly>
         </main>
       </div>
     </div>

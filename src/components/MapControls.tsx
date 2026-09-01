@@ -7,7 +7,7 @@ interface Props {
   onTrafficChange: (enabled: boolean) => void;
 }
 
-function ControlIcon({ children }: { children: React.ReactNode }) {
+function ControlIcon({ children }: { children: ReactNode }) {
   return <span className="grid size-5 place-items-center" aria-hidden>{children}</span>;
 }
 

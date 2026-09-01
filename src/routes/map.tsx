@@ -565,12 +565,71 @@ function Index() {
         {/* Map */}
         <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
           {!navigating && !hudMode && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-6">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-3 p-6">
               <div className="pointer-events-auto w-full max-w-2xl">
-                <DestinationSearch onSelect={setDestination} />
+                <DestinationSearch onSelect={setPreview} origin={fix} />
+              </div>
+              <div className="pointer-events-auto flex max-w-full flex-wrap justify-center gap-2">
+                {MAP_CATEGORIES.map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => runCategory(c.key)}
+                    disabled={!fix}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold shadow-md backdrop-blur transition disabled:opacity-40 ${
+                      poiCat === c.key
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-white/90 text-foreground hover:bg-white"
+                    }`}
+                  >
+                    <span className="mr-1">{c.emoji}</span>
+                    {c.label}
+                  </button>
+                ))}
+                {poiLoading && (
+                  <span className="self-center rounded-full bg-white/90 px-3 py-1 text-xs text-muted-foreground shadow">
+                    Searching…
+                  </span>
+                )}
               </div>
             </div>
           )}
+
+          {preview && !navigating && !hudMode && (
+            <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-40 flex justify-center px-4">
+              <div className="w-full max-w-xl rounded-3xl border border-border bg-white/97 p-5 shadow-2xl backdrop-blur">
+                <div className="font-display truncate text-xl font-bold text-foreground">
+                  {preview.name}
+                </div>
+                {preview.address && (
+                  <div className="mt-0.5 truncate text-sm text-muted-foreground">{preview.address}</div>
+                )}
+                {fix && (
+                  <div className="mt-1 text-sm font-semibold text-primary">
+                    {(distanceMeters(fix, preview) / 1000).toFixed(1)} km away
+                  </div>
+                )}
+                <div className="mt-4 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => startTo(preview)}
+                    className="flex-1 rounded-2xl bg-primary px-5 py-3 text-base font-bold text-primary-foreground shadow-lg"
+                  >
+                    Directions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreview(null)}
+                    className="rounded-2xl border border-border px-5 py-3 text-base font-semibold text-muted-foreground hover:bg-muted"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+
 
           {!hudMode && (
           <div className="absolute right-4 top-4 z-30">

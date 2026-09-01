@@ -185,6 +185,11 @@ const T = {
     saveBadge: "Save 10%",
     pricingFoot:
       "Compare: Tesla Premium Connectivity ≈ 300 ₾/year and still doesn't route Georgia.",
+    contactEyebrow: "Have a question?",
+    contactTitle: "Reach out to us",
+    contactBody:
+      "Call us on this number for any question. We help with navigation, payment, or account issues.",
+    contactCta: "Call us",
     footer: "Made for Tesla owners in Georgia",
   },
 } as const;

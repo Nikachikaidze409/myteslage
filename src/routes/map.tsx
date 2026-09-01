@@ -47,7 +47,19 @@ function IndexGated() {
 }
 
 function Index() {
-  const [fix, setFix] = useState<Fix | null>(null);
+  const [fix, setFixRaw] = useState<Fix | null>(null);
+  const prevFixRef = useRef<Fix | null>(null);
+  // Discard impossible jumps / junk accuracy and derive heading from motion.
+  const setFix = useCallback((next: Fix) => {
+    const prev = prevFixRef.current;
+    if (!isPlausibleFix(prev, next)) return;
+    const heading = resolveHeading(prev, next);
+    const cleaned: Fix = { ...next, heading };
+    prevFixRef.current = cleaned;
+    setFixRaw(cleaned);
+  }, []);
+  const [progress, setProgress] = useState<LiveProgress | null>(null);
+  const [rerouting, setRerouting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [watching, setWatching] = useState(false);
   const [now, setNow] = useState(() => Date.now());

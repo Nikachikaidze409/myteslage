@@ -219,7 +219,7 @@ export function MapView({
         }),
       );
     }
-  }, [waypoints]);
+  }, [waypoints, mapReady]);
 
   // ---- route polyline (reused instance) ----------------------------------
   useEffect(() => {

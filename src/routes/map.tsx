@@ -212,7 +212,7 @@ function Index() {
               destination: snappedDest,
               alternatives: true,
               avoid: options?.avoid ?? avoid,
-              avoidUnpaved: prefs.avoidUnpaved,
+              avoidUnpaved: prefs.avoidUnpaved ? true : undefined,
               waypoints: (options?.waypoints ?? waypoints).map((w) => ({ lat: w.lat, lng: w.lng })),
             },
           }),

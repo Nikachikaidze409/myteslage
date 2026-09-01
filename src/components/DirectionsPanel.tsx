@@ -1,4 +1,8 @@
 import type { RouteResult } from "@/lib/routes.functions";
+import type { Fix } from "./StatusPanel";
+import { decodePolyline, distanceMeters } from "@/lib/geo";
+
+
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, "");
@@ -23,8 +27,20 @@ function Arrow({ kind }: { kind: ReturnType<typeof maneuverIcon> }) {
   );
 }
 
-export function DirectionsPanel({ route }: { route: RouteResult }) {
+export function DirectionsPanel({ route, fix }: { route: RouteResult; fix?: Fix | null }) {
   if (!route.steps.length) return null;
+  const activeIndex = fix
+    ? Math.min(
+        route.steps.reduce((best, step, index) => {
+          const start = step.polyline ? decodePolyline(step.polyline)[0] : null;
+          if (!start) return best;
+          const bestStart = route.steps[best]?.polyline ? decodePolyline(route.steps[best].polyline)[0] : null;
+          if (!bestStart) return index;
+          return distanceMeters(fix, start) < distanceMeters(fix, bestStart) ? index : best;
+        }, 0),
+        route.steps.length - 1,
+      )
+    : 0;
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="font-display mb-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -32,7 +48,7 @@ export function DirectionsPanel({ route }: { route: RouteResult }) {
       </div>
       <ol className="max-h-[42vh] space-y-6 overflow-y-auto pr-1">
         {route.steps.map((s, i) => {
-          const active = i === 0;
+          const active = i === activeIndex;
           const isLast = i === route.steps.length - 1;
           const kind = maneuverIcon(s.instruction);
           return (

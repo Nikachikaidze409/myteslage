@@ -27,6 +27,8 @@ import {
   type RoutePrefs,
 } from "@/lib/favorites";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
+import { isPlausibleFix, resolveHeading } from "@/lib/fix-filter";
+import type { LiveProgress } from "@/components/MapView";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
 import { AuthGate, signOutAndReturn } from "@/components/AuthGate";
 
@@ -47,7 +49,19 @@ function IndexGated() {
 }
 
 function Index() {
-  const [fix, setFix] = useState<Fix | null>(null);
+  const [fix, setFixRaw] = useState<Fix | null>(null);
+  const prevFixRef = useRef<Fix | null>(null);
+  // Discard impossible jumps / junk accuracy and derive heading from motion.
+  const setFix = useCallback((next: Fix) => {
+    const prev = prevFixRef.current;
+    if (!isPlausibleFix(prev, next)) return;
+    const heading = resolveHeading(prev, next) ?? next.heading ?? null;
+    const cleaned: Fix = { ...next, heading };
+    prevFixRef.current = cleaned;
+    setFixRaw(cleaned);
+  }, []);
+  const [progress, setProgress] = useState<LiveProgress | null>(null);
+  const [rerouting, setRerouting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [watching, setWatching] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -151,6 +165,7 @@ function Index() {
       nextDestination: Destination,
       options?: {
         silent?: boolean;
+        reroute?: boolean;
         avoid?: AvoidOption[];
         waypoints?: { lat: number; lng: number; name: string }[];
       },
@@ -186,8 +201,9 @@ function Index() {
         )
         .then((resp) => {
           if (routeRequestRef.current !== requestId) return;
-          setRoutes(resp.routes);
-          setSelectedRouteIdx(0);
+           setRoutes(resp.routes);
+           setSelectedRouteIdx(0);
+           if (options?.reroute) setRerouting(false);
           lastRouteOriginRef.current = originFix;
           setOffRoute(false);
           offRouteSinceRef.current = null;
@@ -210,8 +226,9 @@ function Index() {
         })
         .catch((e: unknown) => {
           if (routeRequestRef.current !== requestId) return;
-          setRouteError(e instanceof Error ? e.message : "Route failed");
-          const cached = loadCachedRoute();
+           setRouteError(e instanceof Error ? e.message : "Route failed");
+           if (options?.reroute) setRerouting(false);
+           const cached = loadCachedRoute();
           if (
             cached &&
             Math.abs(cached.destination.lat - nextDestination.lat) < 1e-4 &&
@@ -243,6 +260,8 @@ function Index() {
     if (hudMode) return;
     setRoutes([]);
     setSelectedRouteIdx(0);
+    setProgress(null);
+    setRerouting(false);
     // Preserve waypoints when a session restore just seeded them.
     if (!pendingResumeRef.current) setWaypoints([]);
     setNavigating(false);
@@ -276,7 +295,9 @@ function Index() {
     requestRoute(fix, destination);
   }, [destination, fix, route, routeLoading, requestRoute]);
 
-  // Live progress + off-route detection + periodic traffic-aware refresh
+  // Live progress + off-route detection + periodic traffic-aware refresh.
+  // The map performs local projection every frame; this effect only decides
+  // when the server should build a genuinely new route.
   useEffect(() => {
     if (hudMode) return;
     if (!navigating || !destination || !fix || routeLoading) return;
@@ -287,13 +308,16 @@ function Index() {
       const d = distanceToPolylineMeters({ lat: fix.lat, lng: fix.lng }, route.encodedPolyline);
       if (d > 35) {
         if (offRouteSinceRef.current == null) offRouteSinceRef.current = Date.now();
+        // A short confirmation filters GPS noise without making a wrong turn
+        // feel delayed. The request uses the newest fix as its origin.
         if (
-          Date.now() - (offRouteSinceRef.current ?? 0) > 2_500 &&
-          Date.now() - lastRerouteAtRef.current > 5_000
+          Date.now() - (offRouteSinceRef.current ?? 0) > 700 &&
+          Date.now() - lastRerouteAtRef.current > 2_500
         ) {
           setOffRoute(true);
+          setRerouting(true);
           lastRerouteAtRef.current = Date.now();
-          requestRoute(fix, destination, { silent: true });
+          requestRoute(fix, destination, { silent: true, reroute: true });
           return;
         }
       } else {
@@ -304,7 +328,7 @@ function Index() {
 
     const moved = distanceMeters(fix, lastRouteOrigin);
     const elapsed = Date.now() - lastLiveRouteAtRef.current;
-    if (moved >= 80 && elapsed >= 10_000) {
+    if (moved >= 120 && elapsed >= 15_000) {
       lastLiveRouteAtRef.current = Date.now();
       requestRoute(fix, destination, { silent: true });
     }
@@ -312,6 +336,8 @@ function Index() {
 
   const stopNav = () => {
     setNavigating(false);
+    setProgress(null);
+    setRerouting(false);
     setWaypoints([]);
     setDestination(null);
     clearSession();
@@ -437,7 +463,7 @@ function Index() {
             />
           )}
 
-          {route && <DirectionsPanel route={route} />}
+          {route && <DirectionsPanel route={route} fix={fix} />}
 
           <div className="mt-auto flex flex-col gap-3">
             <RoutePreview
@@ -501,7 +527,14 @@ function Index() {
           </div>
           )}
 
-          {navigating && route && <NavBanner route={route} fix={fix} onStop={stopNav} />}
+          {navigating && route && (
+            <NavBanner
+              route={route}
+              fix={fix}
+              onStop={stopNav}
+              liveRemainingMeters={progress?.remainingMeters}
+            />
+          )}
 
           {hudMode && route && (
             <HudBottomBar
@@ -515,6 +548,7 @@ function Index() {
                 setRoutes([]);
               }}
               onRecenter={() => setRecenterSignal((n) => n + 1)}
+              liveRemainingMeters={progress?.remainingMeters}
               muted={muted}
               onToggleMute={() => setMuted((m) => !m)}
             />
@@ -563,7 +597,9 @@ function Index() {
                 destination={destination}
                 encodedPolyline={route?.encodedPolyline ?? null}
                 navigating={navigating}
+                rerouting={rerouting}
                 showTraffic={showTraffic}
+                onProgress={setProgress}
                 waypoints={waypoints}
                 alternates={routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i }))}
                 onSelectAlternate={setSelectedRouteIdx}

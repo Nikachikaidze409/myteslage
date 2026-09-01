@@ -68,10 +68,22 @@ export function getMapsApiKey(): string | undefined {
 }
 
 /**
- * Load Google Maps, preferring the project-owned key (covers teslanavi.online).
- * If Google rejects that key (gm_authFailure), fall back once to the
- * Lovable-managed connector key, which is authorized on *.lovable.app.
+ * Pick the browser key by hostname:
+ *  - *.lovable.app (and preview) → Lovable-managed connector key, always authorized there.
+ *  - custom domains (teslanavi.online, etc.) → project-owned key from the server fn.
+ *
+ * This avoids Google's gm_authFailure timing race: each domain uses a key that is
+ * actually authorized for it, so no fallback retry is needed.
  */
+function pickKey(): Promise<string | null> {
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  const isLovable = host.endsWith(".lovable.app");
+  const connector = getConnectorKey();
+  if (isLovable && connector) return Promise.resolve(connector);
+  // Custom domain (or localhost dev): prefer the project-owned key.
+  return resolveBrowserKey().then((own) => own ?? connector ?? null);
+}
+
 export function loadGoogleMaps(): Promise<any> {
   if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
   if ((window as any).google?.maps) return Promise.resolve((window as any).google);
@@ -79,21 +91,9 @@ export function loadGoogleMaps(): Promise<any> {
 
   const channel = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID as string | undefined;
 
-  loaderPromise = resolveBrowserKey().then(async (primary) => {
-    const connector = getConnectorKey();
-    if (!primary && !connector) throw new Error("Missing Google Maps browser key");
-
-    const firstKey = primary ?? connector!;
-    try {
-      return await loadGoogleMapsWithKey(firstKey, channel);
-    } catch (err) {
-      // Auth failure (domain not allowed): try the other key once.
-      if ((err as Error).message !== "auth") throw err;
-      const fallbackKey = firstKey === connector ? primary : connector;
-      if (!fallbackKey || fallbackKey === firstKey) throw err;
-      resetMapsLoader();
-      return await loadGoogleMapsWithKey(fallbackKey, channel);
-    }
+  loaderPromise = pickKey().then((key) => {
+    if (!key) throw new Error("Missing Google Maps browser key");
+    return loadGoogleMapsWithKey(key, channel);
   });
 
   // A failed load must not be cached: let the next call try again.
@@ -123,13 +123,7 @@ function loadGoogleMapsWithKey(key: string, channel: string | undefined): Promis
       fn();
     };
 
-    (window as any).__initGmaps = () => {
-      // If Google rejected the key, treat as auth failure so we can fall back.
-      done(() => {
-        if (authFailed) return reject(new Error("auth"));
-        resolve((window as any).google);
-      });
-    };
+    (window as any).__initGmaps = () => done(() => resolve((window as any).google));
 
     const s = document.createElement("script");
     const params = new URLSearchParams({

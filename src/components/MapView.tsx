@@ -534,7 +534,7 @@ export function MapView({
       if (proj && proj.offset < 45) {
         projRef.current = proj;
         target = proj.point;
-        if (heading == null || speedRef.current > 1.5) heading = proj.bearing;
+        if (heading == null || speedRef.current <= 1.5) heading = proj.bearing;
       } else if (proj) {
         projRef.current = proj;
       }

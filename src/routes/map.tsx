@@ -462,10 +462,19 @@ function Index() {
                 type="button"
                 onClick={() => void signOutAndReturn()}
                 className="rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
-              >
-                Sign out
-              </button>
-            </div>
+               >
+                 Sign out
+               </button>
+               <button
+                 type="button"
+                 onClick={() => setSidebarOpen(false)}
+                 aria-label="Close sidebar"
+                 title="Close sidebar"
+                 className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border bg-white text-lg font-semibold text-muted-foreground hover:bg-muted"
+               >
+                 ×
+               </button>
+             </div>
             {!online && (
               <div className="mt-2 rounded-lg border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5 px-2 py-1 text-[11px] font-semibold text-[color:var(--bad)]">
                 Offline - using cached route
@@ -543,10 +552,11 @@ function Index() {
               destinationName={destination?.name ?? null}
               loading={routeLoading}
               error={routeError}
-              offRoute={offRoute}
-              offline={offlineCache}
-            />
-            <FeasibilityNote />
+               offRoute={offRoute}
+               offline={offlineCache}
+               onStart={startNavigation}
+             />
+             <FeasibilityNote />
           </div>
         </aside>
         )}

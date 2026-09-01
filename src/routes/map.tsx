@@ -97,7 +97,9 @@ function Index() {
   const [navigating, setNavigating] = useState(false);
   const [offRoute, setOffRoute] = useState(false);
   const [showTraffic, setShowTraffic] = useState(true);
+  const [mapType, setMapType] = useState<"roadmap" | "satellite" | "terrain">("roadmap");
   const [offlineCache, setOfflineCache] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const online = useNetworkStatus();
 
   // HUD mode: driven entirely by the phone. Tesla becomes a big display.

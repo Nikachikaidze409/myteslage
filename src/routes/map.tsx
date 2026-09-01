@@ -101,7 +101,6 @@ function Index() {
   // HUD mode: driven entirely by the phone. Tesla becomes a big display.
   const [hudMode, setHudMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [muted, setMuted] = useState(false);
   const [recenterSignal, setRecenterSignal] = useState(0);
 
@@ -461,27 +460,27 @@ function Index() {
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
               Tesla · Georgia
             </div>
-            <div className="flex items-center justify-between">
-              <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
+            <div className="flex items-center gap-2">
+              <h1 className="min-w-0 flex-1 truncate font-display mt-1 text-xl font-bold leading-tight text-foreground">
                 Browser navigation
               </h1>
               <button
                 type="button"
                 onClick={() => void signOutAndReturn()}
-                className="rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
-               >
-                 Sign out
-               </button>
-               <button
-                 type="button"
-                 onClick={() => setSidebarOpen(false)}
-                 aria-label="Close sidebar"
-                 title="Close sidebar"
-                 className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border bg-white text-lg font-semibold text-muted-foreground hover:bg-muted"
-               >
-                 ×
-               </button>
-             </div>
+                className="shrink-0 rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
+              >
+                Sign out
+              </button>
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(false)}
+                aria-label="Close sidebar"
+                title="Close sidebar"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border bg-white text-lg font-semibold text-muted-foreground hover:bg-muted"
+              >
+                ×
+              </button>
+            </div>
             {!online && (
               <div className="mt-2 rounded-lg border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5 px-2 py-1 text-[11px] font-semibold text-[color:var(--bad)]">
                 Offline - using cached route

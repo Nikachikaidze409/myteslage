@@ -745,6 +745,8 @@ export function MapView({
 }
 
 function carIcon(g: any, heading: number | null) {
+  // Use a forward-facing navigation arrow once a route has started. Google Maps
+  // headings are clockwise from north, which matches this symbol's up direction.
   if (heading == null) {
     return {
       path: g.maps.SymbolPath.CIRCLE,
@@ -757,12 +759,12 @@ function carIcon(g: any, heading: number | null) {
   }
   return {
     path: g.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-    scale: 6,
+    scale: 7,
     rotation: heading,
-    fillColor: "#3b82f6",
+    fillColor: "#2563eb",
     fillOpacity: 1,
     strokeColor: "#ffffff",
-    strokeWeight: 3,
+    strokeWeight: 2.5,
   };
 }
 

@@ -140,6 +140,7 @@ export function MapView({
           styles: LIGHT_STYLE,
           backgroundColor: "#f1f5f9",
         });
+        setMapReady(true);
 
         // Any user gesture disables follow-me so the camera doesn't fight the finger.
         const release = () => {

@@ -101,6 +101,7 @@ function Index() {
   // HUD mode: driven entirely by the phone. Tesla becomes a big display.
   const [hudMode, setHudMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [muted, setMuted] = useState(false);
   const [recenterSignal, setRecenterSignal] = useState(0);
 
@@ -452,9 +453,9 @@ function Index() {
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
-      <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
+      <div className={`mx-auto flex h-full w-full ${hudMode || !sidebarOpen ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
         {/* Sidebar - hidden in HUD mode (phone is the brain) */}
-        {!hudMode && (
+        {!hudMode && sidebarOpen && (
         <aside className="flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto rounded-3xl border border-border bg-card/60 p-3">
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">

@@ -369,13 +369,22 @@ function Index() {
     (p: { lat: number; lng: number; placeId?: string }) => {
       if (navigating || hudMode) return;
       setPreview({ lat: p.lat, lng: p.lng, name: "Loading…" });
-      const load = p.placeId
-        ? placeDetails({ data: { placeId: p.placeId } }).then((d) => ({
-            lat: d.lat,
-            lng: d.lng,
-            name: d.name,
-            address: d.address,
-          }))
+       const load = p.placeId
+         ? placeDetails({ data: { placeId: p.placeId } }).then((d) => ({
+             lat: d.lat,
+             lng: d.lng,
+             name: d.name,
+             address: d.address,
+             placeId: d.placeId,
+             rating: d.rating,
+             ratingCount: d.ratingCount,
+             phone: d.phone,
+             website: d.website,
+             openNow: d.openNow,
+             hours: d.hours,
+             category: d.category,
+             summary: d.summary,
+           }))
         : reverseGeocode({ data: { lat: p.lat, lng: p.lng } }).then((r) => ({
             lat: p.lat,
             lng: p.lng,

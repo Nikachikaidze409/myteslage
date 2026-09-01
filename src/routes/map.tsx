@@ -454,17 +454,28 @@ function Index() {
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
               Tesla · Georgia
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
                 Browser navigation
               </h1>
-              <button
-                type="button"
-                onClick={() => void signOutAndReturn()}
-                className="rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
-              >
-                Sign out
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void signOutAndReturn()}
+                  className="rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
+                >
+                  Sign out
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(false)}
+                  aria-label="Hide panel"
+                  title="Hide panel"
+                  className="grid h-8 w-8 place-items-center rounded-lg border border-border bg-white text-lg font-bold leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             {!online && (
               <div className="mt-2 rounded-lg border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5 px-2 py-1 text-[11px] font-semibold text-[color:var(--bad)]">

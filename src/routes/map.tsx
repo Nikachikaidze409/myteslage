@@ -523,7 +523,14 @@ function Index() {
           </div>
           )}
 
-          {navigating && route && <NavBanner route={route} fix={fix} onStop={stopNav} />}
+          {navigating && route && (
+            <NavBanner
+              route={route}
+              fix={fix}
+              onStop={stopNav}
+              liveRemainingMeters={progress?.remainingMeters}
+            />
+          )}
 
           {hudMode && route && (
             <HudBottomBar

@@ -66,6 +66,7 @@ export function MapView({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+  const [mapReady, setMapReady] = useState(false);
   const meMarker = useRef<any>(null);
   const destMarker = useRef<any>(null);
   const waypointMarkersRef = useRef<any[]>([]);

@@ -1,5 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ClientOnly } from "@tanstack/react-router";
+import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { LocationButton } from "@/components/LocationButton";
 import { StatusPanel, type Fix } from "@/components/StatusPanel";

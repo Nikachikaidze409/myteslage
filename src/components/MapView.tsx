@@ -134,9 +134,6 @@ export function MapView({
           maxZoom: 20,
           minZoom: 4,
           isFractionalZoomEnabled: false,
-          // Prefer the low-latency vector renderer on capable Tesla browsers.
-          // Google falls back to raster tiles when this option is unavailable.
-          renderingType: "VECTOR",
           styles: LIGHT_STYLE,
           backgroundColor: "#f1f5f9",
         });
@@ -413,6 +410,11 @@ export function MapView({
         const predicted = proj.along + speedRef.current * Math.min(sinceFix, 6);
         target = pointAtAlong(idx, predicted);
       }
+      // Project the animated/dead-reckoned point too, so ETA and the travelled
+      // route advance continuously instead of waiting for the next GPS fix.
+      const liveProj = navigatingRef.current && idx
+        ? projectOnPath(target, idx, proj?.along, 600) ?? proj
+        : proj;
 
       // Exponential smoothing toward the target - frame-rate independent.
       const rendered = renderedRef.current ?? target;
@@ -436,8 +438,8 @@ export function MapView({
       // Camera: eased follow with a look-ahead offset while driving.
       if (followRef.current) {
         let camTarget = { lat, lng };
-        if (navigatingRef.current && idx && proj && speedRef.current > 2) {
-          camTarget = pointAtAlong(idx, proj.along + speedRef.current * LOOKAHEAD_S);
+        if (navigatingRef.current && idx && liveProj && speedRef.current > 2) {
+          camTarget = pointAtAlong(idx, liveProj.along + speedRef.current * LOOKAHEAD_S);
         }
         const cam = camRef.current ?? camTarget;
         const ca = 1 - Math.exp(-dt / CAM_TAU);
@@ -453,18 +455,18 @@ export function MapView({
       }
 
       // Consume the travelled part of the route (twice a second is plenty).
-      if (navigatingRef.current && idx && proj && routeLine.current && now - lastLineUpdateRef.current > 500) {
+      if (navigatingRef.current && idx && liveProj && routeLine.current && now - lastLineUpdateRef.current > 500) {
         lastLineUpdateRef.current = now;
-        routeLine.current.setPath(remainingPath(idx, proj));
+        routeLine.current.setPath(remainingPath(idx, liveProj));
       }
 
       // Live remaining distance for the ETA readouts.
-      if (idx && proj && now - lastProgressAtRef.current > 900) {
+      if (idx && liveProj && now - lastProgressAtRef.current > 900) {
         lastProgressAtRef.current = now;
         onProgressRef.current?.({
-          remainingMeters: remainingMeters(idx, proj),
-          along: proj.along,
-          offset: proj.offset,
+          remainingMeters: remainingMeters(idx, liveProj),
+          along: liveProj.along,
+          offset: liveProj.offset,
         });
       }
     };

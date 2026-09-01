@@ -199,7 +199,6 @@ export function MapView({
           });
         })
 
-        })
         .catch((e) => {
           if (cancelled) return;
           console.error(e);

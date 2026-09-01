@@ -14,6 +14,8 @@ import { NearbyChips } from "@/components/NearbyChips";
 import { FavoritesPanel } from "@/components/FavoritesPanel";
 import { AlternativesPanel } from "@/components/AlternativesPanel";
 import { BatteryPanel } from "@/components/BatteryPanel";
+import { PlaceSheet } from "@/components/PlaceSheet";
+import { MapControls } from "@/components/MapControls";
 import { distanceMeters } from "@/lib/geo";
 import { distanceToPolylineMeters } from "@/lib/off-route";
 import { computeRoute, type RouteResult, type AvoidOption } from "@/lib/routes.functions";

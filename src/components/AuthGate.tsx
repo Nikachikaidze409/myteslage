@@ -101,6 +101,11 @@ export function AuthGate({ children }: Props) {
           (payload: any) => {
             const next = payload?.new?.active_device_id as string | undefined;
             if (next && next !== deviceId) {
+              try {
+                window.sessionStorage.setItem("tsl.kicked-device", "1");
+              } catch {
+                /* ignore */
+              }
               void supabase.auth.signOut().then(() => navigate({ to: "/auth" }));
             }
           },

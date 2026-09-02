@@ -125,6 +125,12 @@ export function AuthGate({ children }: Props) {
     return () => {
       alive = false;
       sub.subscription.unsubscribe();
+      if (heartbeatTimer !== null) window.clearInterval(heartbeatTimer);
+      if (onWake) {
+        document.removeEventListener("visibilitychange", onWake);
+        window.removeEventListener("online", onWake);
+        window.removeEventListener("focus", onWake);
+      }
       if (channel) void supabase.removeChannel(channel);
     };
   }, [navigate]);

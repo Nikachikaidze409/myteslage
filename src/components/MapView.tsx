@@ -128,6 +128,8 @@ export function MapView({
   const lastSnapAtRef = useRef(0);
   /** Serial number of the newest GPS fix; late snap answers are discarded. */
   const fixSeqRef = useRef(0);
+  const routeLockRef = useRef(false);
+
   const resizeObsRef = useRef<any>(null);
   const lastCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   const [weakGps, setWeakGps] = useState(false);

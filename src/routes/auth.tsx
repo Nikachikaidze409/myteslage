@@ -84,6 +84,12 @@ function AuthPage() {
 
         </p>
 
+        {kickedDevice && (
+          <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm text-primary" role="status">
+            Your account was signed in on another device. This device was signed out. Sign in again to continue.
+          </div>
+        )}
+
         {currentEmail && (
           <div className="mt-4 rounded-xl border border-border bg-muted/40 p-3 text-sm">
             <div className="text-muted-foreground">

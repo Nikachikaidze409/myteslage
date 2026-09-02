@@ -547,6 +547,11 @@ export function MapView({
       fixIntervalRef.current = Math.min(5000, Math.max(400, gap));
     }
     lastFixAtRef.current = now;
+    fixSeqRef.current += 1;
+    if (weakGpsRef.current) {
+      weakGpsRef.current = false;
+      setWeakGps(false);
+    }
     speedRef.current = fix.speed != null && fix.speed > 0 ? fix.speed : 0;
 
     // Marker + accuracy halo
@@ -580,31 +585,51 @@ export function MapView({
     accuracyCircle.current.setVisible(fix.accuracy > 25);
 
     // Local snap to the active route - no network, no lag.
+    // Hysteresis: lock on only when clearly on the line, release only when
+    // clearly off it, so parallel streets don't make the arrow ping-pong.
     const idx = pathIdxRef.current;
     let target = raw;
     let heading = fix.heading ?? null;
     if (navigating && idx) {
       const proj = projectOnPath(raw, idx, projRef.current?.along, 600);
-      if (proj && proj.offset < 45) {
+      if (proj) {
         projRef.current = proj;
-        target = proj.point;
-        if (heading == null || speedRef.current > 1.5) heading = proj.bearing;
-      } else if (proj) {
-        projRef.current = proj;
+        const lockOn = proj.offset < 20;
+        const lockOff = proj.offset > 35;
+        if (lockOn) routeLockRef.current = true;
+        else if (lockOff) routeLockRef.current = false;
+        if (routeLockRef.current) {
+          target = proj.point;
+          if (heading == null || speedRef.current > 1.5) heading = proj.bearing;
+        }
       }
+    } else {
+      routeLockRef.current = false;
     }
     targetRef.current = target;
     if (heading != null) targetHeadingRef.current = heading;
 
     // Off-route (or no route yet): fall back to the Roads API, throttled hard.
+    // Only at low/medium speed, and the answer is dropped if a newer fix landed
+    // meanwhile - a late snap would otherwise teleport the arrow backwards.
     if (!navigating || !idx) {
       const ms = Date.now();
-      if (!snapInFlightRef.current && ms - lastSnapAtRef.current > 8000 && speedRef.current > 2) {
+      const speed = speedRef.current;
+      if (!snapInFlightRef.current && ms - lastSnapAtRef.current > 8000 && speed > 2 && speed < 14) {
         snapInFlightRef.current = true;
         lastSnapAtRef.current = ms;
+        const seq = fixSeqRef.current;
         snapToRoad({ data: { lat: raw.lat, lng: raw.lng } })
           .then((s) => {
-            targetRef.current = { lat: s.lat, lng: s.lng };
+            if (seq !== fixSeqRef.current) return; // stale answer
+            const cur = targetRef.current ?? raw;
+            const snapped = { lat: s.lat, lng: s.lng };
+            if (distanceMeters(cur, snapped) > 40) return; // implausible correction
+            // Blend rather than overwrite so the arrow never hops.
+            targetRef.current = {
+              lat: cur.lat + (snapped.lat - cur.lat) * 0.6,
+              lng: cur.lng + (snapped.lng - cur.lng) * 0.6,
+            };
           })
           .catch(() => {})
           .finally(() => {
@@ -613,6 +638,7 @@ export function MapView({
       }
     }
   }, [fix, navigating, mapReady]);
+
 
   // ---- single persistent animation loop ----------------------------------
   useEffect(() => {

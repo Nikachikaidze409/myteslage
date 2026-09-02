@@ -787,6 +787,16 @@ export function MapView({
         </div>
       )}
 
+      {weakGps && !rerouting && (
+        <div className="pointer-events-none absolute inset-x-0 top-24 z-30 flex justify-center">
+          <div className="rounded-full bg-amber-500/95 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white shadow-lg">
+            GPS signal weak
+          </div>
+        </div>
+      )}
+
+
+
       <button
         type="button"
         onClick={recenterOnMe}

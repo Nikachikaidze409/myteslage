@@ -44,3 +44,26 @@ export const claimDevice = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const, deviceId: data.deviceId };
   });
+
+const VerifySchema = z.object({ deviceId: z.string().min(1).max(80) });
+
+/**
+ * Server-side check that this browser is still the account's active device.
+ * Reliable fallback for the realtime kick (which only works while the tab is
+ * alive and connected).
+ */
+export const verifyDevice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => VerifySchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: profile, error } = await context.supabase
+      .from("profiles")
+      .select("active_device_id")
+      .eq("id", context.userId)
+      .maybeSingle();
+    if (error) return { ok: true as const }; // soft-fail: never lock people out on a transient error
+
+    const active = profile?.active_device_id ?? null;
+    if (!active || active === data.deviceId) return { ok: true as const };
+    return { ok: false as const, reason: "other-device" as const };
+  });

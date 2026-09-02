@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { claimDevice } from "@/lib/auth.functions";
+import { claimDevice, verifyDevice } from "@/lib/auth.functions";
 import { getOrCreateDeviceId, getDeviceLabel } from "@/lib/device";
 import { getPaddleEnvironment } from "@/lib/paddle";
 
@@ -16,6 +16,8 @@ export function AuthGate({ children }: Props) {
   useEffect(() => {
     let alive = true;
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let heartbeatTimer: number | null = null;
+    let onWake: (() => void) | null = null;
     const deviceId = getOrCreateDeviceId();
 
     const bootstrap = async () => {
@@ -64,6 +66,34 @@ export function AuthGate({ children }: Props) {
       if (!alive) return;
       setStatus("authed");
 
+      // Reliable fallback for the realtime kick: ask the server every 30s (and
+      // whenever the tab wakes up) whether this is still the active device.
+      const kickOut = async () => {
+        try {
+          window.sessionStorage.setItem("tsl.kicked-device", "1");
+        } catch {
+          /* ignore */
+        }
+        await supabase.auth.signOut();
+        window.location.replace("/auth");
+      };
+      const heartbeat = async () => {
+        if (!alive || document.visibilityState === "hidden") return;
+        try {
+          const res = await verifyDevice({ data: { deviceId } });
+          if (alive && !res.ok) await kickOut();
+        } catch {
+          /* network hiccup: ignore, try again next tick */
+        }
+      };
+      heartbeatTimer = window.setInterval(() => void heartbeat(), 30_000);
+      onWake = () => void heartbeat();
+      document.addEventListener("visibilitychange", onWake);
+      window.addEventListener("online", onWake);
+      window.addEventListener("focus", onWake);
+      void heartbeat();
+
+
       channel = supabase
         .channel(`profile-${userId}`)
         .on(
@@ -72,6 +102,11 @@ export function AuthGate({ children }: Props) {
           (payload: any) => {
             const next = payload?.new?.active_device_id as string | undefined;
             if (next && next !== deviceId) {
+              try {
+                window.sessionStorage.setItem("tsl.kicked-device", "1");
+              } catch {
+                /* ignore */
+              }
               void supabase.auth.signOut().then(() => navigate({ to: "/auth" }));
             }
           },
@@ -91,6 +126,12 @@ export function AuthGate({ children }: Props) {
     return () => {
       alive = false;
       sub.subscription.unsubscribe();
+      if (heartbeatTimer !== null) window.clearInterval(heartbeatTimer);
+      if (onWake) {
+        document.removeEventListener("visibilitychange", onWake);
+        window.removeEventListener("online", onWake);
+        window.removeEventListener("focus", onWake);
+      }
       if (channel) void supabase.removeChannel(channel);
     };
   }, [navigate]);

@@ -17,11 +17,20 @@ function AuthPage() {
   const [info, setInfo] = useState<string | null>(null);
 
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+  const [kickedDevice, setKickedDevice] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setCurrentEmail(data.session?.user.email ?? null);
     });
+    try {
+      if (window.sessionStorage.getItem("tsl.kicked-device") === "1") {
+        setKickedDevice(true);
+        window.sessionStorage.removeItem("tsl.kicked-device");
+      }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const switchAccount = async () => {
@@ -74,6 +83,12 @@ function AuthPage() {
           Membership required. One account = one device. Signing in on a new device signs the old one out.
 
         </p>
+
+        {kickedDevice && (
+          <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm text-primary" role="status">
+            Your account was signed in on another device. This device was signed out. Sign in again to continue.
+          </div>
+        )}
 
         {currentEmail && (
           <div className="mt-4 rounded-xl border border-border bg-muted/40 p-3 text-sm">

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { claimDevice } from "@/lib/auth.functions";
+import { claimDevice, verifyDevice } from "@/lib/auth.functions";
 import { getOrCreateDeviceId, getDeviceLabel } from "@/lib/device";
 import { getPaddleEnvironment } from "@/lib/paddle";
 

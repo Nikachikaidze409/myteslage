@@ -56,12 +56,6 @@ export const verifyDevice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => VerifySchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    if (isAdmin) return { ok: true as const };
-
     const { data: profile, error } = await context.supabase
       .from("profiles")
       .select("active_device_id")

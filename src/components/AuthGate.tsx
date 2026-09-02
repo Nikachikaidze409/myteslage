@@ -91,6 +91,7 @@ export function AuthGate({ children }: Props) {
       document.addEventListener("visibilitychange", onWake);
       window.addEventListener("online", onWake);
       window.addEventListener("focus", onWake);
+      void heartbeat();
 
 
       channel = supabase

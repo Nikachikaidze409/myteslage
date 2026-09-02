@@ -16,6 +16,8 @@ export function AuthGate({ children }: Props) {
   useEffect(() => {
     let alive = true;
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let heartbeatTimer: number | null = null;
+    let onWake: (() => void) | null = null;
     const deviceId = getOrCreateDeviceId();
 
     const bootstrap = async () => {

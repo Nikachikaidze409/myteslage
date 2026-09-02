@@ -23,6 +23,14 @@ function AuthPage() {
     supabase.auth.getSession().then(({ data }) => {
       setCurrentEmail(data.session?.user.email ?? null);
     });
+    try {
+      if (window.sessionStorage.getItem("tsl.kicked-device") === "1") {
+        setKickedDevice(true);
+        window.sessionStorage.removeItem("tsl.kicked-device");
+      }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const switchAccount = async () => {

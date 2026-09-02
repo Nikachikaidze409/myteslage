@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps, onMapsAuthFailure, clearMapsAuthFailure, resetMapsLoader } from "@/lib/maps-loader";
 import type { Fix } from "./StatusPanel";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
-import { decodePolyline } from "@/lib/geo";
+import { decodePolyline, distanceMeters } from "@/lib/geo";
 import {
   buildPathIndex,
   pointAtAlong,

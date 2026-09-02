@@ -658,9 +658,23 @@ export function MapView({
       const idx = pathIdxRef.current;
       const proj = projRef.current;
       const sinceFix = (now - lastFixAtRef.current) / 1000;
-      if (navigatingRef.current && idx && proj && speedRef.current > 1.5 && sinceFix > 0) {
-        const predicted = proj.along + speedRef.current * Math.min(sinceFix, 6);
+      if (
+        navigatingRef.current &&
+        idx &&
+        proj &&
+        routeLockRef.current &&
+        speedRef.current > 1.5 &&
+        sinceFix > 0 &&
+        sinceFix < MAX_DEAD_RECKON_S
+      ) {
+        const predicted = proj.along + speedRef.current * sinceFix;
         target = pointAtAlong(idx, predicted);
+      }
+      // Signal has gone quiet: stop pretending we know where the car is.
+      const stale = lastFixAtRef.current > 0 && sinceFix > MAX_DEAD_RECKON_S + 2;
+      if (stale !== weakGpsRef.current) {
+        weakGpsRef.current = stale;
+        setWeakGps(stale);
       }
       // Project the animated/dead-reckoned point too, so ETA and the travelled
       // route advance continuously instead of waiting for the next GPS fix.
@@ -668,9 +682,10 @@ export function MapView({
         ? projectOnPath(target, idx, proj?.along, 600) ?? proj
         : proj;
 
-      // Exponential smoothing toward the target - frame-rate independent.
+      // Exponential smoothing toward the target - frame-rate independent and
+      // speed-aware: snappier at speed so the arrow doesn't trail the car.
       const rendered = renderedRef.current ?? target;
-      const a = 1 - Math.exp(-dt / POS_TAU);
+      const a = 1 - Math.exp(-dt / tauFor(speedRef.current, POS_TAU_SLOW, POS_TAU_FAST));
       const lat = rendered.lat + (target.lat - rendered.lat) * a;
       const lng = rendered.lng + (target.lng - rendered.lng) * a;
       renderedRef.current = { lat, lng };
@@ -694,7 +709,8 @@ export function MapView({
           camTarget = pointAtAlong(idx, liveProj.along + speedRef.current * LOOKAHEAD_S);
         }
         const cam = camRef.current ?? camTarget;
-        const ca = 1 - Math.exp(-dt / CAM_TAU);
+        const ca = 1 - Math.exp(-dt / tauFor(speedRef.current, CAM_TAU_SLOW, CAM_TAU_FAST));
+
         const clat = cam.lat + (camTarget.lat - cam.lat) * ca;
         const clng = cam.lng + (camTarget.lng - cam.lng) * ca;
         camRef.current = { lat: clat, lng: clng };

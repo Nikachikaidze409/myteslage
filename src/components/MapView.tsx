@@ -292,11 +292,16 @@ export function MapView({
         window.clearTimeout(authTimerRef.current);
         authTimerRef.current = null;
       }
+      if (resizeObsRef.current) {
+        resizeObsRef.current.disconnect();
+        resizeObsRef.current = null;
+      }
       if (trafficLayerRef.current) {
         trafficLayerRef.current.setMap(null);
         trafficLayerRef.current = null;
       }
     };
+
   }, [bootAttempt]);
 
 

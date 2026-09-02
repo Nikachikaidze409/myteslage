@@ -215,7 +215,38 @@ export function MapView({
               placeId: ev.placeId ?? undefined,
             });
           });
+
+          // Remember the last settled center so a container resize can restore it.
+          mapRef.current.addListener("idle", () => {
+            const c = mapRef.current?.getCenter?.();
+            if (c) lastCenterRef.current = { lat: c.lat(), lng: c.lng() };
+          });
+
+          // The container changes size when the side panel is hidden/shown or
+          // HUD mode toggles. Google must re-measure or the map appears frozen.
+          if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+            let raf = 0;
+            resizeObsRef.current = new ResizeObserver(() => {
+              if (raf) cancelAnimationFrame(raf);
+              raf = requestAnimationFrame(() => {
+                raf = 0;
+                const map = mapRef.current;
+                if (!map) return;
+                const keep = followRef.current
+                  ? renderedRef.current ?? lastCenterRef.current
+                  : lastCenterRef.current;
+                g.maps.event.trigger(map, "resize");
+                if (keep) {
+                  programmaticMoveRef.current = true;
+                  map.setCenter(keep);
+                  window.setTimeout(() => (programmaticMoveRef.current = false), 200);
+                }
+              });
+            });
+            resizeObsRef.current.observe(containerRef.current);
+          }
         })
+
 
         .catch((e) => {
           if (cancelled) return;

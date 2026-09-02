@@ -47,10 +47,21 @@ interface Props {
 
 const DEFAULT_CENTER = { lat: 41.7151, lng: 44.8271 };
 /** Smoothing time constants (seconds). Lower = snappier, higher = smoother. */
-const POS_TAU = 0.35;
-const CAM_TAU = 0.55;
+const POS_TAU_SLOW = 0.45;
+const POS_TAU_FAST = 0.16;
+const CAM_TAU_SLOW = 0.7;
+const CAM_TAU_FAST = 0.3;
 /** How far ahead of the car the camera looks while driving (seconds of travel). */
 const LOOKAHEAD_S = 4;
+/** Stop predicting movement once fixes have been missing this long (seconds). */
+const MAX_DEAD_RECKON_S = 3;
+
+/** Blend between the slow and fast constant based on speed (m/s). */
+function tauFor(speed: number, slow: number, fast: number): number {
+  const t = Math.min(1, Math.max(0, (speed - 2) / 18)); // 2 m/s -> 20 m/s
+  return slow + (fast - slow) * t;
+}
+
 
 function shortestDelta(from: number, to: number): number {
   let d = to - from;

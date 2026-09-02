@@ -17,6 +17,7 @@ function AuthPage() {
   const [info, setInfo] = useState<string | null>(null);
 
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+  const [kickedDevice, setKickedDevice] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {

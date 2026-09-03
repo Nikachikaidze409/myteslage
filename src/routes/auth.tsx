@@ -199,7 +199,7 @@ function AuthPage() {
           className="mt-4 w-full text-base font-bold text-primary hover:brightness-110"
         >
           {mode === "signin"
-            ? "New here? Create an account — დარეგისტრირებისთვის დააჭირე აქ →"
+            ? "New here? Create an account · დარეგისტრირებისთვის დააჭირე აქ →"
             : "← Back to sign in"}
         </button>
       </div>

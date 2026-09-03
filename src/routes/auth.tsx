@@ -196,9 +196,11 @@ function AuthPage() {
             setError(null);
             setInfo(null);
           }}
-          className="mt-4 w-full text-sm text-muted-foreground hover:text-foreground"
+          className="mt-4 w-full text-base font-bold text-primary hover:brightness-110"
         >
-          {mode === "signin" ? "New here? Create an account →" : "← Back to sign in"}
+          {mode === "signin"
+            ? "New here? Create an account · დარეგისტრირებისთვის დააჭირე აქ →"
+            : "← Back to sign in"}
         </button>
       </div>
     </div>

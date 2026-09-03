@@ -5,6 +5,8 @@ import { z } from "zod";
 const SignupSchema = z.object({
   email: z.string().email().max(200),
   password: z.string().min(6).max(200),
+  fullName: z.string().trim().min(2, "Please enter your full name").max(120),
+  phone: z.string().trim().min(5, "Please enter a valid mobile number").max(30),
 });
 
 export const signupWithCode = createServerFn({ method: "POST" })
@@ -21,6 +23,34 @@ export const signupWithCode = createServerFn({ method: "POST" })
       throw new Error(createErr?.message ?? "Could not create account.");
     }
 
+    const { error: profileErr } = await supabaseAdmin
+      .from("profiles")
+      .upsert({
+        id: created.user.id,
+        email: data.email,
+        full_name: data.fullName,
+        phone: data.phone,
+      });
+    if (profileErr) throw new Error(profileErr.message);
+
+    return { ok: true as const };
+  });
+
+const ProfileDetailsSchema = z.object({
+  fullName: z.string().trim().min(2, "Please enter your full name").max(120),
+  phone: z.string().trim().min(5, "Please enter a valid mobile number").max(30),
+});
+
+/** Signed-in user updates their own name/phone (used on checkout before paying). */
+export const saveProfileDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => ProfileDetailsSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({ full_name: data.fullName, phone: data.phone })
+      .eq("id", context.userId);
+    if (error) throw new Error(error.message);
     return { ok: true as const };
   });
 

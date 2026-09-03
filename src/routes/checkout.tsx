@@ -84,9 +84,18 @@ function Checkout() {
 
   const startCheckout = async () => {
     if (!userId) return;
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      setError("Please enter your full name.");
+      return;
+    }
+    if (!phone.trim() || phone.trim().length < 5) {
+      setError("Please enter a valid mobile number.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
+      await saveProfileDetails({ data: { fullName: fullName.trim(), phone: phone.trim() } });
       await initializePaddle();
       const paddlePriceId = await getPaddlePriceId(PLANS[plan].paddlePriceId);
       window.Paddle?.Checkout.open({
@@ -134,6 +143,32 @@ function Checkout() {
         <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.02] p-6">
           <div className="text-[11px] font-bold uppercase tracking-widest text-white/50">Account</div>
           <div className="mt-1 text-lg">{email}</div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-xs font-semibold text-white/50">Full name</span>
+              <input
+                type="text"
+                required
+                autoComplete="name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="mt-1 h-12 w-full rounded-xl border border-white/15 bg-white/5 px-3 text-base text-white placeholder:text-white/30"
+                placeholder="Your name"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold text-white/50">Mobile number</span>
+              <input
+                type="tel"
+                required
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="mt-1 h-12 w-full rounded-xl border border-white/15 bg-white/5 px-3 text-base text-white placeholder:text-white/30"
+                placeholder="+995 5XX XXX XXX"
+              />
+            </label>
+          </div>
           <div className="my-6 h-px bg-white/10" />
           <div className="flex items-baseline justify-between gap-5">
             <div>

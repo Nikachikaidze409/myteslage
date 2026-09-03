@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getPaddleEnvironment, getPaddlePriceId, initializePaddle } from "@/lib/paddle";
+import { saveProfileDetails } from "@/lib/auth.functions";
 import { AccountBar } from "@/components/AccountBar";
 
 type Plan = "monthly" | "quarterly";
@@ -52,6 +53,8 @@ function Checkout() {
   const [plan, setPlan] = useState<Plan>("quarterly");
   const [email, setEmail] = useState("");
   const [userId, setUserId] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +63,7 @@ function Checkout() {
     const stored = window.localStorage.getItem(PLAN_KEY);
     if (stored === "monthly" || stored === "quarterly") setPlan(stored);
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       const session = data.session;
       if (!session) {
         navigate({ to: "/auth" });
@@ -68,6 +71,13 @@ function Checkout() {
       }
       setEmail(session.user.email ?? "");
       setUserId(session.user.id);
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, phone")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      setFullName(profile?.full_name ?? "");
+      setPhone(profile?.phone ?? "");
       setLoading(false);
     });
   }, [navigate]);

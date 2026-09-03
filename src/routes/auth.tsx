@@ -52,7 +52,7 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        await signupWithCode({ data: { email, password } });
+        await signupWithCode({ data: { email, password, fullName, phone } });
         setInfo("Account created. Signing you in…");
       }
       const { error: signErr } = await supabase.auth.signInWithPassword({ email, password });
@@ -117,6 +117,35 @@ function AuthPage() {
         )}
 
         <form onSubmit={submit} className="mt-5 space-y-3">
+          {mode === "signup" && (
+            <>
+              <label className="block">
+                <span className="text-xs font-semibold text-muted-foreground">Full name</span>
+                <input
+                  type="text"
+                  required
+                  minLength={2}
+                  autoComplete="name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 text-base"
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold text-muted-foreground">Mobile number</span>
+                <input
+                  type="tel"
+                  required
+                  minLength={5}
+                  autoComplete="tel"
+                  placeholder="+995 5XX XXX XXX"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 text-base"
+                />
+              </label>
+            </>
+          )}
           <label className="block">
             <span className="text-xs font-semibold text-muted-foreground">Email</span>
             <input

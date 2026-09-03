@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getPaddleEnvironment, getPaddlePriceId, initializePaddle } from "@/lib/paddle";
+import { saveProfileDetails } from "@/lib/auth.functions";
 import { AccountBar } from "@/components/AccountBar";
 
 type Plan = "monthly" | "quarterly";
@@ -52,6 +53,8 @@ function Checkout() {
   const [plan, setPlan] = useState<Plan>("quarterly");
   const [email, setEmail] = useState("");
   const [userId, setUserId] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +63,7 @@ function Checkout() {
     const stored = window.localStorage.getItem(PLAN_KEY);
     if (stored === "monthly" || stored === "quarterly") setPlan(stored);
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       const session = data.session;
       if (!session) {
         navigate({ to: "/auth" });
@@ -68,15 +71,31 @@ function Checkout() {
       }
       setEmail(session.user.email ?? "");
       setUserId(session.user.id);
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, phone")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      setFullName(profile?.full_name ?? "");
+      setPhone(profile?.phone ?? "");
       setLoading(false);
     });
   }, [navigate]);
 
   const startCheckout = async () => {
     if (!userId) return;
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      setError("Please enter your full name.");
+      return;
+    }
+    if (!phone.trim() || phone.trim().length < 5) {
+      setError("Please enter a valid mobile number.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
+      await saveProfileDetails({ data: { fullName: fullName.trim(), phone: phone.trim() } });
       await initializePaddle();
       const paddlePriceId = await getPaddlePriceId(PLANS[plan].paddlePriceId);
       window.Paddle?.Checkout.open({
@@ -124,6 +143,32 @@ function Checkout() {
         <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.02] p-6">
           <div className="text-[11px] font-bold uppercase tracking-widest text-white/50">Account</div>
           <div className="mt-1 text-lg">{email}</div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-xs font-semibold text-white/50">Full name</span>
+              <input
+                type="text"
+                required
+                autoComplete="name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="mt-1 h-12 w-full rounded-xl border border-white/15 bg-white/5 px-3 text-base text-white placeholder:text-white/30"
+                placeholder="Your name"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold text-white/50">Mobile number</span>
+              <input
+                type="tel"
+                required
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="mt-1 h-12 w-full rounded-xl border border-white/15 bg-white/5 px-3 text-base text-white placeholder:text-white/30"
+                placeholder="+995 5XX XXX XXX"
+              />
+            </label>
+          </div>
           <div className="my-6 h-px bg-white/10" />
           <div className="flex items-baseline justify-between gap-5">
             <div>

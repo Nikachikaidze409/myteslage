@@ -315,36 +315,14 @@ function Index() {
     requestRoute(fix, destination);
   }, [destination, fix, route, routeLoading, requestRoute]);
 
-  // Live progress + off-route detection + periodic traffic-aware refresh.
-  // The map performs local projection every frame; this effect only decides
-  // when the server should build a genuinely new route.
+  // The map engine owns off-route detection (it matches against the real
+  // route geometry every frame and calls onRerouteNeeded). This effect only
+  // handles the periodic traffic-aware refresh of a route we are still on.
   useEffect(() => {
     if (hudMode) return;
     if (!navigating || !destination || !fix || routeLoading) return;
     const lastRouteOrigin = lastRouteOriginRef.current;
     if (!lastRouteOrigin) return;
-
-    if (route?.encodedPolyline) {
-      const d = distanceToPolylineMeters({ lat: fix.lat, lng: fix.lng }, route.encodedPolyline);
-      if (d > 35) {
-        if (offRouteSinceRef.current == null) offRouteSinceRef.current = Date.now();
-        // A short confirmation filters GPS noise without making a wrong turn
-        // feel delayed. The request uses the newest fix as its origin.
-        if (
-          Date.now() - (offRouteSinceRef.current ?? 0) > 700 &&
-          Date.now() - lastRerouteAtRef.current > 2_500
-        ) {
-          setOffRoute(true);
-          setRerouting(true);
-          lastRerouteAtRef.current = Date.now();
-          requestRoute(fix, destination, { silent: true, reroute: true });
-          return;
-        }
-      } else {
-        offRouteSinceRef.current = null;
-        if (offRoute) setOffRoute(false);
-      }
-    }
 
     const moved = distanceMeters(fix, lastRouteOrigin);
     const elapsed = Date.now() - lastLiveRouteAtRef.current;
@@ -352,7 +330,22 @@ function Index() {
       lastLiveRouteAtRef.current = Date.now();
       requestRoute(fix, destination, { silent: true });
     }
-  }, [destination, fix, navigating, requestRoute, routeLoading, route, offRoute]);
+  }, [destination, fix, hudMode, navigating, requestRoute, routeLoading]);
+
+  const handleRerouteNeeded = useCallback(() => {
+    if (!navigating || !destination || !fix) return;
+    if (Date.now() - lastRerouteAtRef.current < 2_500) return;
+    lastRerouteAtRef.current = Date.now();
+    offRouteSinceRef.current = Date.now();
+    setOffRoute(true);
+    setRerouting(true);
+    requestRoute(fix, destination, { silent: true, reroute: true });
+  }, [destination, fix, navigating, requestRoute]);
+
+  useEffect(() => {
+    if (!rerouting && offRoute) setOffRoute(false);
+  }, [rerouting, offRoute]);
+
 
   const stopNav = () => {
     setNavigating(false);

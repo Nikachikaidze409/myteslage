@@ -2,16 +2,14 @@
 
 Goal: one Google Maps account (your key) powering everything, and a driving view that behaves like Google's own map — no custom prediction layer inventing positions.
 
-## Part 1 — your Google Cloud key (your side)
+## Part 1 — your Google Cloud key (done)
 
-To remove the website restriction on your existing key:
+You set "Application restrictions" to **None**, so the same key now works for both the browser map and server-side calls. Changes can take up to 5 minutes to apply on Google's side.
 
-1. Open Google Cloud Console, pick the same project the key lives in.
-2. APIs & Services > Credentials > click your key name.
-3. Under "Application restrictions", select **None** and Save. (Changes can take up to 5 minutes to apply.)
-4. Under "API restrictions", make sure these are allowed: Maps JavaScript API, Places API (New), Routes API, Roads API, Geocoding API.
+Still check once, under APIs & Services > Credentials > your key > API restrictions, that these are allowed: Maps JavaScript API, Places API (New), Routes API, Roads API, Geocoding API.
 
-Note: with "None", anyone who copies the key from the site could use it on your billing. Safer alternative if you prefer: keep the current key website-restricted for the map display and create a **second** key with no restriction that only the server uses. Tell me which you picked; the code supports both without changes.
+Security note: with "None", anyone who copies the key from the site could use it on your billing. If you'd rather lock it down later, keep the website restriction on the map key and create a second unrestricted key for the server only — the code will support both without changes.
+
 
 ## Part 2 — everything runs on your key
 

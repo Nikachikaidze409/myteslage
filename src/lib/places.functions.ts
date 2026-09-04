@@ -67,8 +67,8 @@ export const searchNearby = createServerFn({ method: "POST" })
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": connKey,
+        "X-Goog-Api-Key": googleKey(),
+
         "Content-Type": "application/json",
         "X-Goog-FieldMask":
           "places.id,places.displayName,places.formattedAddress,places.location,places.rating",

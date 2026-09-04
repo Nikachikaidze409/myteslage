@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { googleKey, ROUTES_API } from "@/lib/google-api";
 
 export interface LatLng {
   lat: number;
@@ -49,10 +50,6 @@ export const computeRoute = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }): Promise<RoutesResponse> => {
-    const lovableKey = process.env.LOVABLE_API_KEY;
-    const connKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (!lovableKey || !connKey) throw new Error("Google Maps connector not configured");
-
     // Mirror Google Maps: only apply modifiers the driver explicitly asked for.
     const modifiers: Record<string, boolean> = {};
     for (const a of data.avoid ?? []) {
@@ -62,12 +59,11 @@ export const computeRoute = createServerFn({ method: "POST" })
     }
 
     const res = await fetch(
-      "https://connector-gateway.lovable.dev/google_maps/routes/directions/v2:computeRoutes",
+      `${ROUTES_API}/directions/v2:computeRoutes`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": connKey,
+          "X-Goog-Api-Key": googleKey(),
           "Content-Type": "application/json",
           "X-Goog-FieldMask":
             "routes.distanceMeters,routes.duration,routes.description,routes.routeLabels,routes.warnings,routes.travelAdvisory,routes.polyline.encodedPolyline,routes.legs.steps.distanceMeters,routes.legs.steps.navigationInstruction,routes.legs.steps.polyline.encodedPolyline",

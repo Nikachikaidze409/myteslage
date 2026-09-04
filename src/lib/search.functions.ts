@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
-const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
+import { googleKey, googleFail, PLACES_API, MAPS_API } from "@/lib/google-api";
 
 export interface PlaceSuggestion {
   placeId: string;
@@ -19,18 +19,7 @@ export interface PlaceDetail {
   lng: number;
 }
 
-function keys() {
-  const lovableKey = process.env["LOVABLE_API_KEY"];
-  const connKey = process.env["GOOGLE_MAPS_API_KEY"];
-  if (!lovableKey || !connKey) throw new Error("Search is not configured");
-  return { lovableKey, connKey };
-}
-
-async function fail(res: Response, what: string): Promise<never> {
-  const body = await res.text();
-  console.error(`${what} failed [${res.status}]: ${body}`);
-  throw new Error(`${what} failed [${res.status}]`);
-}
+const fail = googleFail;
 
 /** Type-ahead suggestions for streets, addresses and places (server side). */
 export const autocompletePlaces = createServerFn({ method: "POST" })
@@ -41,10 +30,8 @@ export const autocompletePlaces = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ suggestions: PlaceSuggestion[] }> => {
     const q = data.query.trim();
     if (q.length < 2) return { suggestions: [] };
-    const { lovableKey, connKey } = keys();
     const headers = {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": connKey,
+      "X-Goog-Api-Key": googleKey(),
       "Content-Type": "application/json",
     };
     const bias =
@@ -52,7 +39,7 @@ export const autocompletePlaces = createServerFn({ method: "POST" })
         ? { circle: { center: { latitude: data.lat, longitude: data.lng }, radius: 50000 } }
         : undefined;
 
-    const res = await fetch(`${GATEWAY}/places/v1/places:autocomplete`, {
+    const res = await fetch(`${PLACES_API}/places:autocomplete`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -89,7 +76,7 @@ export const autocompletePlaces = createServerFn({ method: "POST" })
 
     // Fallback: full text search returns results (with coordinates) for queries
     // autocomplete cannot predict.
-    const textRes = await fetch(`${GATEWAY}/places/v1/places:searchText`, {
+    const textRes = await fetch(`${PLACES_API}/places:searchText`, {
       method: "POST",
       headers: {
         ...headers,
@@ -132,13 +119,11 @@ export const placeDetails = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }): Promise<PlaceDetail> => {
-    const { lovableKey, connKey } = keys();
     const res = await fetch(
-      `${GATEWAY}/places/v1/places/${encodeURIComponent(data.placeId)}`,
+      `${PLACES_API}/places/${encodeURIComponent(data.placeId)}`,
       {
         headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": connKey,
+          "X-Goog-Api-Key": googleKey(),
           "X-Goog-FieldMask": "id,displayName,formattedAddress,location",
         },
       },
@@ -171,15 +156,8 @@ export const reverseGeocode = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }): Promise<{ name: string; address: string }> => {
-    const { lovableKey, connKey } = keys();
     const res = await fetch(
-      `${GATEWAY}/maps/api/geocode/json?latlng=${data.lat},${data.lng}&language=en`,
-      {
-        headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": connKey,
-        },
-      },
+      `${MAPS_API}/maps/api/geocode/json?latlng=${data.lat},${data.lng}&language=en&key=${encodeURIComponent(googleKey())}`,
     );
     if (!res.ok) await fail(res, "Reverse geocode");
     const json = (await res.json()) as {

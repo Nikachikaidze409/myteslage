@@ -6,7 +6,7 @@ type AuthFailureListener = (message: string) => void;
 const authFailureListeners = new Set<AuthFailureListener>();
 let authFailed = false;
 
-// Cached browser key fetched from the server (project-owned key, referrer-restricted).
+// The project-owned browser key, fetched once from the server.
 let fetchedKey: string | null | undefined = undefined;
 let fetchKeyPromise: Promise<string | null> | null = null;
 
@@ -28,14 +28,9 @@ function resolveBrowserKey(): Promise<string | null> {
   return fetchKeyPromise;
 }
 
-/** The Lovable-managed connector browser key (authorized on *.lovable.app). */
-function getConnectorKey(): string | undefined {
-  return import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
-}
-
 function authFailureMessage(): string {
   const host = typeof window !== "undefined" ? window.location.hostname : "this domain";
-  return `The map key does not allow ${host}. Add ${host} to the Google Maps API key's allowed websites, or open the app on the Lovable domain.`;
+  return `Google rejected the Maps key on ${host}. Check the key's restrictions and that billing is enabled in Google Cloud.`;
 }
 
 /** Subscribe to Google's auth failure callback (invalid key / domain not allowed). */
@@ -61,27 +56,10 @@ export function resetMapsLoader(): void {
   }
 }
 
+/** Build-time key, when one is configured. The server key is the source of truth. */
 export function getMapsApiKey(): string | undefined {
   const own = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
-  const connector = getConnectorKey();
-  return (own && own.trim()) || connector;
-}
-
-/**
- * Pick the browser key by hostname:
- *  - *.lovable.app (and preview) → Lovable-managed connector key, always authorized there.
- *  - custom domains (teslanavi.online, etc.) → project-owned key from the server fn.
- *
- * This avoids Google's gm_authFailure timing race: each domain uses a key that is
- * actually authorized for it, so no fallback retry is needed.
- */
-function pickKey(): Promise<string | null> {
-  const host = typeof window !== "undefined" ? window.location.hostname : "";
-  const isLovable = host.endsWith(".lovable.app");
-  const connector = getConnectorKey();
-  if (isLovable && connector) return Promise.resolve(connector);
-  // Custom domain (or localhost dev): prefer the project-owned key.
-  return resolveBrowserKey().then((own) => own ?? connector ?? null);
+  return own && own.trim() ? own : undefined;
 }
 
 export function loadGoogleMaps(): Promise<any> {
@@ -89,12 +67,12 @@ export function loadGoogleMaps(): Promise<any> {
   if ((window as any).google?.maps) return Promise.resolve((window as any).google);
   if (loaderPromise) return loaderPromise;
 
-  const channel = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID as string | undefined;
-
-  loaderPromise = pickKey().then((key) => {
-    if (!key) throw new Error("Missing Google Maps browser key");
-    return loadGoogleMapsWithKey(key, channel);
-  });
+  loaderPromise = Promise.resolve(getMapsApiKey() ?? null)
+    .then((k) => k ?? resolveBrowserKey())
+    .then((key) => {
+      if (!key) throw new Error("Missing Google Maps browser key");
+      return loadGoogleMapsWithKey(key);
+    });
 
   // A failed load must not be cached: let the next call try again.
   loaderPromise = loaderPromise.catch((err) => {
@@ -104,7 +82,7 @@ export function loadGoogleMaps(): Promise<any> {
   return loaderPromise;
 }
 
-function loadGoogleMapsWithKey(key: string, channel: string | undefined): Promise<any> {
+function loadGoogleMapsWithKey(key: string): Promise<any> {
   authFailed = false;
 
   // Google calls this global when the key is rejected (e.g. domain not allowed).
@@ -133,7 +111,6 @@ function loadGoogleMapsWithKey(key: string, channel: string | undefined): Promis
       libraries: "places,geometry",
       callback: "__initGmaps",
     });
-    if (channel) params.set("channel", channel);
     s.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
     s.async = true;
     s.onerror = () => done(() => {

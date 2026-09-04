@@ -12,40 +12,20 @@ export interface RawFix {
   timestamp: number;
 }
 
-/** Max plausible speed for a car, m/s (~200 km/h) - anything above is a glitch. */
-const MAX_SPEED_MS = 55;
-/** Anything worse than this is treated as noise once we already have a fix. */
-const MAX_ACCURACY_M = 150;
+/** Anything worse than this cannot place a car on a street. */
+const MAX_ACCURACY_M = 300;
 
-/** A big unexplained jump must repeat before we believe it. */
-let pendingJump: RawFix | null = null;
-
-export function isPlausibleFix(prev: RawFix | null, next: RawFix): boolean {
+/**
+ * Only clearly unusable fixes are dropped. Everything the device reports is
+ * trusted, exactly like the Google Maps app does.
+ */
+export function isPlausibleFix(_prev: RawFix | null, next: RawFix): boolean {
   if (!Number.isFinite(next.lat) || !Number.isFinite(next.lng)) return false;
-  if (!prev) return true;
-  // A sudden collapse in quality is noise, not movement.
-  if (next.accuracy > MAX_ACCURACY_M && prev.accuracy <= MAX_ACCURACY_M) return false;
-  if (next.accuracy > prev.accuracy * 4 && next.accuracy > 60) return false;
-  const dt = Math.max(0.2, (next.timestamp - prev.timestamp) / 1000);
-  if (dt > 30) {
-    pendingJump = null;
-    return true; // long gap - accept, we have nothing better
-  }
-  const d = distanceMeters(prev, next);
-  // Small accuracy slack only, so a noisy fix can't shift the car a block away.
-  const slack = Math.min(30, (prev.accuracy + next.accuracy) / 4);
-  if (d - slack <= MAX_SPEED_MS * dt) {
-    pendingJump = null;
-    return true;
-  }
-  // Implausible jump: accept only if the next fix confirms roughly the same spot.
-  if (pendingJump && distanceMeters(pendingJump, next) < 60) {
-    pendingJump = null;
-    return true;
-  }
-  pendingJump = next;
-  return false;
+  if (Math.abs(next.lat) > 90 || Math.abs(next.lng) > 180) return false;
+  if (Number.isFinite(next.accuracy) && next.accuracy > MAX_ACCURACY_M) return false;
+  return true;
 }
+
 
 
 /** Heading from the device, or derived from movement when it's missing. */

@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps, onMapsAuthFailure, clearMapsAuthFailure, resetMapsLoader } from "@/lib/maps-loader";
 import type { Fix } from "./StatusPanel";
-import { snapToRoad } from "@/lib/snap-to-road.functions";
-import { decodePolyline, distanceMeters } from "@/lib/geo";
+import { decodePolyline } from "@/lib/geo";
 import {
   buildPathIndex,
-  pointAtAlong,
   projectOnPath,
   remainingMeters,
   remainingPath,
@@ -46,21 +44,9 @@ interface Props {
 
 
 const DEFAULT_CENTER = { lat: 41.7151, lng: 44.8271 };
-/** Smoothing time constants (seconds). Lower = snappier, higher = smoother. */
-const POS_TAU_SLOW = 0.45;
-const POS_TAU_FAST = 0.16;
-const CAM_TAU_SLOW = 0.7;
-const CAM_TAU_FAST = 0.3;
-/** How far ahead of the car the camera looks while driving (seconds of travel). */
-const LOOKAHEAD_S = 4;
-/** Stop predicting movement once fixes have been missing this long (seconds). */
-const MAX_DEAD_RECKON_S = 3;
-
-/** Blend between the slow and fast constant based on speed (m/s). */
-function tauFor(speed: number, slow: number, fast: number): number {
-  const t = Math.min(1, Math.max(0, (speed - 2) / 18)); // 2 m/s -> 20 m/s
-  return slow + (fast - slow) * t;
-}
+/** Longest tween between two real GPS fixes (ms). Google Maps behaves the same:
+ *  it only ever animates between positions the device actually reported. */
+const MAX_TWEEN_MS = 1200;
 
 
 function shortestDelta(from: number, to: number): number {
@@ -110,7 +96,11 @@ export function MapView({
   // ---- live engine state -------------------------------------------------
   const pathIdxRef = useRef<PathIndex | null>(null);
   const projRef = useRef<Projection | null>(null);
-  const targetRef = useRef<{ lat: number; lng: number } | null>(null);
+  const tweenFromRef = useRef<{ lat: number; lng: number } | null>(null);
+  const tweenToRef = useRef<{ lat: number; lng: number } | null>(null);
+  const tweenStartRef = useRef<number>(0);
+  const tweenMsRef = useRef<number>(600);
+  const prevFixAtRef = useRef<number>(0);
   const targetHeadingRef = useRef<number | null>(null);
   const renderedRef = useRef<{ lat: number; lng: number } | null>(null);
   const renderedHeadingRef = useRef<number>(0);
@@ -118,22 +108,14 @@ export function MapView({
   const camRef = useRef<{ lat: number; lng: number } | null>(null);
   const speedRef = useRef<number>(0);
   const lastFixAtRef = useRef<number>(0);
-  const fixIntervalRef = useRef<number>(1000);
   const rafRef = useRef<number | null>(null);
   const lastFrameRef = useRef<number>(0);
   const lastCamSetRef = useRef<number>(0);
   const lastLineUpdateRef = useRef<number>(0);
   const lastProgressAtRef = useRef<number>(0);
-  const snapInFlightRef = useRef(false);
-  const lastSnapAtRef = useRef(0);
-  /** Serial number of the newest GPS fix; late snap answers are discarded. */
-  const fixSeqRef = useRef(0);
-  const routeLockRef = useRef(false);
 
   const resizeObsRef = useRef<any>(null);
   const lastCenterRef = useRef<{ lat: number; lng: number } | null>(null);
-  const [weakGps, setWeakGps] = useState(false);
-  const weakGpsRef = useRef(false);
   const navigatingRef = useRef<boolean>(false);
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
@@ -543,20 +525,9 @@ export function MapView({
 
     const raw = { lat: fix.lat, lng: fix.lng };
     const now = performance.now();
-    if (lastFixAtRef.current) {
-      const gap = now - lastFixAtRef.current;
-      // Keep a running estimate of the fix cadence so the tween matches reality.
-      fixIntervalRef.current = Math.min(5000, Math.max(400, gap));
-    }
     lastFixAtRef.current = now;
-    fixSeqRef.current += 1;
-    if (weakGpsRef.current) {
-      weakGpsRef.current = false;
-      setWeakGps(false);
-    }
     speedRef.current = fix.speed != null && fix.speed > 0 ? fix.speed : 0;
 
-    // Marker + accuracy halo
     if (!meMarker.current) {
       renderedRef.current = raw;
       camRef.current = raw;
@@ -586,155 +557,80 @@ export function MapView({
     }
     accuracyCircle.current.setVisible(fix.accuracy > 25);
 
-    // Local snap to the active route - no network, no lag.
-    // Hysteresis: lock on only when clearly on the line, release only when
-    // clearly off it, so parallel streets don't make the arrow ping-pong.
-    const idx = pathIdxRef.current;
-    let target = raw;
-    let heading = fix.heading ?? null;
-    if (navigating && idx) {
-      const proj = projectOnPath(raw, idx, projRef.current?.along, 600);
-      if (proj) {
-        projRef.current = proj;
-        const lockOn = proj.offset < 20;
-        const lockOff = proj.offset > 35;
-        if (lockOn) routeLockRef.current = true;
-        else if (lockOff) routeLockRef.current = false;
-        if (routeLockRef.current) {
-          target = proj.point;
-          if (heading == null || speedRef.current > 1.5) heading = proj.bearing;
-        }
-      }
-    } else {
-      routeLockRef.current = false;
-    }
-    targetRef.current = target;
-    if (heading != null) targetHeadingRef.current = heading;
+    // Tween from wherever the marker is now to the reported position.
+    tweenFromRef.current = renderedRef.current ?? raw;
+    tweenToRef.current = raw;
+    tweenStartRef.current = now;
+    tweenMsRef.current = Math.min(MAX_TWEEN_MS, Math.max(250, now - (prevFixAtRef.current || now)));
+    prevFixAtRef.current = now;
 
-    // Off-route (or no route yet): fall back to the Roads API, throttled hard.
-    // Only at low/medium speed, and the answer is dropped if a newer fix landed
-    // meanwhile - a late snap would otherwise teleport the arrow backwards.
-    if (!navigating || !idx) {
-      const ms = Date.now();
-      const speed = speedRef.current;
-      if (!snapInFlightRef.current && ms - lastSnapAtRef.current > 8000 && speed > 2 && speed < 14) {
-        snapInFlightRef.current = true;
-        lastSnapAtRef.current = ms;
-        const seq = fixSeqRef.current;
-        snapToRoad({ data: { lat: raw.lat, lng: raw.lng } })
-          .then((s) => {
-            if (seq !== fixSeqRef.current) return; // stale answer
-            const cur = targetRef.current ?? raw;
-            const snapped = { lat: s.lat, lng: s.lng };
-            if (distanceMeters(cur, snapped) > 40) return; // implausible correction
-            // Blend rather than overwrite so the arrow never hops.
-            targetRef.current = {
-              lat: cur.lat + (snapped.lat - cur.lat) * 0.6,
-              lng: cur.lng + (snapped.lng - cur.lng) * 0.6,
-            };
-          })
-          .catch(() => {})
-          .finally(() => {
-            snapInFlightRef.current = false;
-          });
-      }
+    // Keep route progress in sync with the reported position only.
+    const idx = pathIdxRef.current;
+    if (idx) {
+      const proj = projectOnPath(raw, idx, projRef.current?.along, 600);
+      if (proj) projRef.current = proj;
+    } else {
+      projRef.current = null;
     }
+    if (fix.heading != null) targetHeadingRef.current = fix.heading;
   }, [fix, navigating, mapReady]);
 
-
-  // ---- single persistent animation loop ----------------------------------
+  // ---- animation loop: tween between real fixes only ---------------------
   useEffect(() => {
     const step = (now: number) => {
       rafRef.current = requestAnimationFrame(step);
       const map = mapRef.current;
       const g = (window as any).google;
-      const dt = Math.min(0.1, (now - (lastFrameRef.current || now)) / 1000);
-      lastFrameRef.current = now;
-      if (!map || !g || !targetRef.current || !meMarker.current) return;
+      if (!map || !g || !meMarker.current) return;
 
-      // Dead reckoning: keep the car moving between fixes using the last speed
-      // along the route, capped so a lost signal can't run away with it.
-      let target = targetRef.current;
-      const idx = pathIdxRef.current;
-      const proj = projRef.current;
-      const sinceFix = (now - lastFixAtRef.current) / 1000;
-      if (
-        navigatingRef.current &&
-        idx &&
-        proj &&
-        routeLockRef.current &&
-        speedRef.current > 1.5 &&
-        sinceFix > 0 &&
-        sinceFix < MAX_DEAD_RECKON_S
-      ) {
-        const predicted = proj.along + speedRef.current * sinceFix;
-        target = pointAtAlong(idx, predicted);
-      }
-      // Signal has gone quiet: stop pretending we know where the car is.
-      const stale = lastFixAtRef.current > 0 && sinceFix > MAX_DEAD_RECKON_S + 2;
-      if (stale !== weakGpsRef.current) {
-        weakGpsRef.current = stale;
-        setWeakGps(stale);
-      }
-      // Project the animated/dead-reckoned point too, so ETA and the travelled
-      // route advance continuously instead of waiting for the next GPS fix.
-      const liveProj = navigatingRef.current && idx
-        ? projectOnPath(target, idx, proj?.along, 600) ?? proj
-        : proj;
+      const from = tweenFromRef.current;
+      const to = tweenToRef.current;
+      if (!to) return;
 
-      // Exponential smoothing toward the target - frame-rate independent and
-      // speed-aware: snappier at speed so the arrow doesn't trail the car.
-      const rendered = renderedRef.current ?? target;
-      const a = 1 - Math.exp(-dt / tauFor(speedRef.current, POS_TAU_SLOW, POS_TAU_FAST));
-      const lat = rendered.lat + (target.lat - rendered.lat) * a;
-      const lng = rendered.lng + (target.lng - rendered.lng) * a;
+      const t = tweenMsRef.current > 0
+        ? Math.min(1, (now - tweenStartRef.current) / tweenMsRef.current)
+        : 1;
+      const lat = from ? from.lat + (to.lat - from.lat) * t : to.lat;
+      const lng = from ? from.lng + (to.lng - from.lng) * t : to.lng;
       renderedRef.current = { lat, lng };
       meMarker.current.setPosition({ lat, lng });
       accuracyCircle.current?.setCenter({ lat, lng });
 
-      // Heading
-      if (targetHeadingRef.current != null) {
-        const d = shortestDelta(renderedHeadingRef.current, targetHeadingRef.current);
-        renderedHeadingRef.current = (renderedHeadingRef.current + d * a + 360) % 360;
+      // Heading follows the reported course.
+      const th = targetHeadingRef.current;
+      if (th != null) {
+        const d = shortestDelta(renderedHeadingRef.current, th);
+        renderedHeadingRef.current = (renderedHeadingRef.current + d * 0.2 + 360) % 360;
         if (Math.abs(shortestDelta(iconHeadingRef.current, renderedHeadingRef.current)) > 3) {
           iconHeadingRef.current = renderedHeadingRef.current;
           meMarker.current.setIcon(carIcon(g, renderedHeadingRef.current));
         }
       }
 
-      // Camera: eased follow with a look-ahead offset while driving.
-      if (followRef.current) {
-        let camTarget = { lat, lng };
-        if (navigatingRef.current && idx && liveProj && speedRef.current > 2) {
-          camTarget = pointAtAlong(idx, liveProj.along + speedRef.current * LOOKAHEAD_S);
-        }
-        const cam = camRef.current ?? camTarget;
-        const ca = 1 - Math.exp(-dt / tauFor(speedRef.current, CAM_TAU_SLOW, CAM_TAU_FAST));
-
-        const clat = cam.lat + (camTarget.lat - cam.lat) * ca;
-        const clng = cam.lng + (camTarget.lng - cam.lng) * ca;
-        camRef.current = { lat: clat, lng: clng };
-        if (now - lastCamSetRef.current > 40) {
-          lastCamSetRef.current = now;
-          programmaticMoveRef.current = true;
-          map.setCenter({ lat: clat, lng: clng });
-          programmaticMoveRef.current = false;
-        }
+      // Camera: plain Google follow, like the Maps app.
+      if (followRef.current && now - lastCamSetRef.current > 60) {
+        lastCamSetRef.current = now;
+        camRef.current = { lat, lng };
+        programmaticMoveRef.current = true;
+        map.setCenter({ lat, lng });
+        programmaticMoveRef.current = false;
       }
 
-      // Consume the travelled part of the route (twice a second is plenty).
-      if (navigatingRef.current && idx && liveProj && routeLine.current && now - lastLineUpdateRef.current > 500) {
+      const idx = pathIdxRef.current;
+      const proj = projRef.current;
+      // Consume the travelled part of the route.
+      if (navigatingRef.current && idx && proj && routeLine.current && now - lastLineUpdateRef.current > 700) {
         lastLineUpdateRef.current = now;
-        routeLine.current.setPath(remainingPath(idx, liveProj));
+        routeLine.current.setPath(remainingPath(idx, proj));
       }
 
       // Live remaining distance for the ETA readouts.
-      if (idx && liveProj && now - lastProgressAtRef.current > 900) {
+      if (idx && proj && now - lastProgressAtRef.current > 900) {
         lastProgressAtRef.current = now;
         onProgressRef.current?.({
-          remainingMeters: remainingMeters(idx, liveProj),
-          along: liveProj.along,
-          offset: liveProj.offset,
+          remainingMeters: remainingMeters(idx, proj),
+          along: proj.along,
+          offset: proj.offset,
         });
       }
     };
@@ -787,13 +683,6 @@ export function MapView({
         </div>
       )}
 
-      {weakGps && !rerouting && (
-        <div className="pointer-events-none absolute inset-x-0 top-24 z-30 flex justify-center">
-          <div className="rounded-full bg-amber-500/95 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white shadow-lg">
-            GPS signal weak
-          </div>
-        </div>
-      )}
 
 
 

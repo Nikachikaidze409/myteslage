@@ -51,6 +51,14 @@ function AuthPage() {
     setInfo(null);
     setBusy(true);
     try {
+      if (mode === "forgot") {
+        const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (resetErr) throw new Error(resetErr.message);
+        setInfo("Reset link sent! Check your email. · აღდგენის ბმული გამოგზავნილია ელფოსტაზე.");
+        return;
+      }
       if (mode === "signup") {
         await signupWithCode({ data: { email, password, fullName, phone } });
         setInfo("Account created. Signing you in…");

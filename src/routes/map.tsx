@@ -27,7 +27,6 @@ import {
 } from "@/lib/favorites";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
 import { isPlausibleFix, resolveHeading } from "@/lib/fix-filter";
-import { geoTracker } from "@/lib/maps/geoTracker";
 import type { LiveProgress } from "@/components/MapView";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
 import { AuthGate, signOutAndReturn } from "@/components/AuthGate";
@@ -491,14 +490,6 @@ function Index() {
             onPairedFix={(p) => {
               setError(null);
               setWatching(true);
-              geoTracker.push({
-                lat: p.lat,
-                lng: p.lng,
-                accuracy: p.accuracy,
-                heading: p.heading ?? null,
-                speed: p.speed ?? null,
-                timestamp: p.timestamp,
-              });
               setFix({
                 lat: p.lat,
                 lng: p.lng,
@@ -570,14 +561,6 @@ function Index() {
               onPairedFix={(p) => {
                 setError(null);
                 setWatching(true);
-                geoTracker.push({
-                  lat: p.lat,
-                  lng: p.lng,
-                  accuracy: p.accuracy,
-                  heading: p.heading ?? null,
-                  speed: p.speed ?? null,
-                  timestamp: p.timestamp,
-                });
                 setFix({
                   lat: p.lat,
                   lng: p.lng,

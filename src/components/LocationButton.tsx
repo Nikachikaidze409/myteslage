@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import type { Fix } from "./StatusPanel";
-import { geoTracker } from "@/lib/maps/geoTracker";
 
 interface Props {
   onFix: (f: Fix) => void;
@@ -9,71 +8,95 @@ interface Props {
   onActiveChange: (v: boolean) => void;
 }
 
-/**
- * Owns nothing but the on/off switch: the actual watcher lives in geoTracker
- * so exactly one exists for the whole app. The UI here only receives a
- * throttled reading for the status panel and route logic.
- */
 export function LocationButton({ onFix, onError, active, onActiveChange }: Props) {
-  const releaseRef = useRef<(() => void) | null>(null);
+  const watchId = useRef<number | null>(null);
   const [pending, setPending] = useState(false);
 
-  const onFixRef = useRef(onFix);
-  onFixRef.current = onFix;
-  const onErrorRef = useRef(onError);
-  onErrorRef.current = onError;
-  const onActiveRef = useRef(onActiveChange);
-  onActiveRef.current = onActiveChange;
-
   useEffect(() => {
-    if (!active) {
-      releaseRef.current?.();
-      releaseRef.current = null;
+    return () => {
+      if (watchId.current != null && typeof navigator !== "undefined") {
+        navigator.geolocation.clearWatch(watchId.current);
+      }
+    };
+  }, []);
+
+  // Auto-start when parent flips `active` on (e.g. session restore after Tesla reverse).
+  useEffect(() => {
+    if (active && watchId.current == null) start();
+    if (!active && watchId.current != null) {
+      navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
       setPending(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
+  const stop = () => {
+    if (watchId.current != null) {
+      navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
+    }
+    setPending(false);
+    onActiveChange(false);
+  };
+
+  const start = () => {
+    if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
+      onError("This browser does not expose the Geolocation API.");
       return;
     }
-
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      onError("Geolocation needs a secure (HTTPS) context. This page is not secure.");
+      return;
+    }
+    if (watchId.current != null) {
+      navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
+    }
     setPending(true);
-    const stopWatch = geoTracker.start();
-    // ~1 Hz is plenty for ETA, distance and the status panel.
-    const offFix = geoTracker.subscribe(
-      (f) => {
+    onActiveChange(true);
+
+    watchId.current = navigator.geolocation.watchPosition(
+      (pos) => {
         setPending(false);
-        onFixRef.current({
-          lat: f.lat,
-          lng: f.lng,
-          accuracy: f.accuracy,
-          heading: f.heading,
-          speed: f.speed,
-          timestamp: f.timestamp,
-          source: f.source === "phone" ? "phone" : "geolocation",
+        onFix({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          heading: pos.coords.heading,
+          speed: pos.coords.speed,
+          timestamp: pos.timestamp,
+          source: "geolocation",
         });
       },
-      { minIntervalMs: 1000 },
+      (err) => {
+        if (err.code !== err.TIMEOUT) setPending(false);
+        if (err.code === err.PERMISSION_DENIED) onActiveChange(false);
+        onError(describeError(err));
+      },
+      { enableHighAccuracy: true, maximumAge: 0 },
     );
-    const offErr = geoTracker.onError((msg, code) => {
-      if (code !== 3) setPending(false);
-      if (code === 1) onActiveRef.current(false);
-      onErrorRef.current(msg);
-    });
-
-    releaseRef.current = () => {
-      offFix();
-      offErr();
-      stopWatch();
-    };
-    return () => {
-      releaseRef.current?.();
-      releaseRef.current = null;
-    };
-  }, [active]);
+  };
 
   return (
     <button
-      onClick={() => onActiveChange(!active)}
+      onClick={active ? stop : start}
       className="font-display h-14 w-full rounded-2xl bg-primary px-8 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 active:scale-[0.98]"
     >
       {pending ? "Searching for live GPS…" : active ? "Tracking on" : "Start tracking"}
     </button>
   );
+}
+
+function describeError(err: GeolocationPositionError): string {
+  switch (err.code) {
+    case err.PERMISSION_DENIED:
+      return "Permission denied. Enable location access in the Tesla browser settings.";
+    case err.POSITION_UNAVAILABLE:
+      return "Position unavailable. The browser could not determine a location - Wi-Fi/cell signals may be insufficient.";
+    case err.TIMEOUT:
+      return "Still searching for a live GPS fix. Keep this page open and pair your phone if the Tesla browser stops updating.";
+    default:
+      return err.message || "Unknown geolocation error.";
+  }
 }

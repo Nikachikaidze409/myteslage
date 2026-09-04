@@ -10,12 +10,10 @@
 import { projectOnPath, pointAtAlong, remainingMeters, bearingBetween, type Projection } from "@/lib/route-progress";
 import { CameraEngine } from "./cameraEngine";
 import { GpsEngine, type GpsState, type RawFix } from "./gpsEngine";
-import { HeadingEngine, type HeadingDebug } from "./headingEngine";
-import { geoTracker } from "./geoTracker";
 import { RoadsMatcher } from "./roadsService";
 import { RouteRenderer } from "./routeRenderer";
 import { VehicleRenderer } from "./vehicleRenderer";
-import { dampFactor, haversine, lerp, type LatLng } from "./math";
+import { dampFactor, haversine, lerp, lerpAngle, type LatLng } from "./math";
 
 export type NavState =
   | "IDLE"
@@ -41,20 +39,6 @@ export interface NavSnapshot {
   speed: number;
   /** true while GPS has gone quiet */
   weakSignal: boolean;
-  /** development diagnostics; never used for rendering */
-  debug: NavDebug;
-}
-
-export interface NavDebug extends HeadingDebug {
-  accuracy: number;
-  gpsAge: number;
-  gpsSpeed: number;
-  offsetFromRoute: number;
-  fps: number;
-  gpsHz: number;
-  lastFixAt: number;
-  rejected: number;
-  lastReject: string | null;
 }
 
 type Listener = (s: NavSnapshot) => void;
@@ -68,7 +52,6 @@ const MAX_PREDICT_S = 5;
 
 export class NavigationEngine {
   readonly gps = new GpsEngine();
-  readonly heading = new HeadingEngine();
   private roads = new RoadsMatcher();
   private camera: CameraEngine;
   private vehicle: VehicleRenderer;
@@ -82,8 +65,6 @@ export class NavigationEngine {
 
   private rendered: LatLng | null = null;
   private renderedHeading = 0;
-  private fps = 60;
-  private lastFixWallClock = 0;
   private proj: Projection | null = null;
   private predictedAlong = 0;
 
@@ -104,7 +85,6 @@ export class NavigationEngine {
     this.camera = new CameraEngine(map, google, { vector, headingUp: true });
     this.vehicle = new VehicleRenderer(map, google, vector);
     this.route = new RouteRenderer(map, google);
-    this.heading.attach();
     this.raf = requestAnimationFrame(this.step);
   }
 
@@ -116,12 +96,9 @@ export class NavigationEngine {
     const s = this.gps.state(now);
     if (!s) return;
 
-    this.lastFixWallClock = fix.timestamp;
-    // Physical heading is decided by its own engine, never by the route.
-    this.heading.setGps(s.heading, s.speed, s.accuracy);
-
     if (!this.rendered) {
       this.rendered = { lat: s.lat, lng: s.lng };
+      this.renderedHeading = s.heading ?? 0;
       this.camera.reset(this.rendered);
     }
 
@@ -154,17 +131,6 @@ export class NavigationEngine {
         if (snapped && !this.navigating) this.gps.override(snapped);
       });
     }
-
-    // Route bearing is a navigation reference only.
-    const pidx = this.route.pathIndex;
-    if (pidx && this.proj) {
-      const a = pointAtAlong(pidx, this.proj.along);
-      const b = pointAtAlong(pidx, Math.min(pidx.total, this.proj.along + 15));
-      this.heading.setRouteBearing(haversine(a, b) > 1 ? bearingBetween(a, b) : null);
-    } else {
-      this.heading.setRouteBearing(null);
-    }
-    this.heading.select(now);
   }
 
   setRoute(encoded: string | null): void {
@@ -230,7 +196,6 @@ export class NavigationEngine {
     if (this.raf != null) cancelAnimationFrame(this.raf);
     this.raf = null;
     this.listeners.clear();
-    this.heading.destroy();
     this.vehicle.destroy();
     this.route.destroy();
   }
@@ -241,7 +206,6 @@ export class NavigationEngine {
     this.raf = requestAnimationFrame(this.step);
     const dt = this.lastFrame ? Math.min(0.1, (now - this.lastFrame) / 1000) : 0.016;
     this.lastFrame = now;
-    if (dt > 0) this.fps = this.fps * 0.9 + (1 / dt) * 0.1;
 
     const s = this.gps.state(now);
     if (!s || !this.rendered) return;
@@ -254,7 +218,7 @@ export class NavigationEngine {
       lat: lerp(this.rendered.lat, target.point.lat, k),
       lng: lerp(this.rendered.lng, target.point.lng, k),
     };
-    this.renderedHeading = this.heading.render(dt);
+    this.renderedHeading = lerpAngle(this.renderedHeading, target.heading, dampFactor(0.35, dt));
 
     this.vehicle.setPose(this.rendered.lat, this.rendered.lng, this.renderedHeading);
     this.vehicle.setAccuracy(this.rendered, s.accuracy, s.accuracy > 40);
@@ -289,7 +253,9 @@ export class NavigationEngine {
       const capped = Math.min(idx.total, this.proj.along + s.speed * since);
       const along = Math.min(this.predictedAlong, capped);
       const point = pointAtAlong(idx, along);
-      return { point, heading: this.renderedHeading };
+      const nextPoint = pointAtAlong(idx, Math.min(idx.total, along + 12));
+      const heading = haversine(point, nextPoint) > 1 ? bearingBetween(point, nextPoint) : this.renderedHeading;
+      return { point, heading };
     }
 
     const heading = s.heading ?? this.renderedHeading;
@@ -328,18 +294,6 @@ export class NavigationEngine {
       heading: this.renderedHeading,
       speed: s.speed,
       weakSignal: s.stale,
-      debug: {
-        ...this.heading.debug(),
-        accuracy: s.accuracy,
-        gpsAge: s.age,
-        gpsSpeed: s.speed,
-        offsetFromRoute: this.proj?.offset ?? 0,
-        fps: this.fps,
-        gpsHz: geoTracker.hz,
-        lastFixAt: this.lastFixWallClock,
-        rejected: this.gps.rejected,
-        lastReject: this.gps.lastReject,
-      },
     };
     for (const l of this.listeners) l(snap);
   }

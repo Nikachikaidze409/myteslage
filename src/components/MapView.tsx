@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { onMapsAuthFailure, clearMapsAuthFailure, resetMapsLoader } from "@/lib/maps-loader";
 import { createMap } from "@/lib/maps/googleMapsService";
-import { NavigationEngine, type NavSnapshot, type NavDebug } from "@/lib/maps/navigationEngine";
-import { geoTracker } from "@/lib/maps/geoTracker";
-import { NavDebugPanel } from "./NavDebugPanel";
+import { NavigationEngine, type NavSnapshot } from "@/lib/maps/navigationEngine";
 import type { Fix } from "./StatusPanel";
 
 export interface LiveProgress {
@@ -65,7 +63,6 @@ export function MapView({
   const [mapError, setMapError] = useState<string | null>(null);
   const [followUi, setFollowUi] = useState(false);
   const [weakSignal, setWeakSignal] = useState(false);
-  const [debug, setDebug] = useState<NavDebug | null>(null);
 
   const destMarker = useRef<any>(null);
   const previewMarker = useRef<any>(null);
@@ -124,7 +121,6 @@ export function MapView({
           engine.onRerouteNeeded = () => onRerouteRef.current?.();
           engine.subscribe((s: NavSnapshot) => {
             setWeakSignal(s.weakSignal);
-            if (import.meta.env.DEV) setDebug(s.debug);
             onProgressRef.current?.({
               remainingMeters: s.remainingMeters,
               along: s.along,
@@ -235,26 +231,8 @@ export function MapView({
   }, [bootAttempt]);
 
   // ---- engine inputs -----------------------------------------------------
-  // The engine listens to the single geolocation watcher at full rate; React
-  // state is never involved in moving the car.
   useEffect(() => {
-    if (!mapReady) return;
-    return geoTracker.subscribe((f) => {
-      engineRef.current?.pushFix({
-        lat: f.lat,
-        lng: f.lng,
-        accuracy: f.accuracy,
-        heading: f.heading,
-        speed: f.speed,
-        timestamp: f.timestamp,
-        age: f.age,
-      });
-    });
-  }, [mapReady]);
-
-  // A first paint before any live reading (e.g. restored session position).
-  useEffect(() => {
-    if (!mapReady || !fix || geoTracker.last) return;
+    if (!fix) return;
     engineRef.current?.pushFix({
       lat: fix.lat,
       lng: fix.lng,
@@ -262,7 +240,6 @@ export function MapView({
       heading: fix.heading,
       speed: fix.speed,
       timestamp: fix.timestamp,
-      age: 0,
     });
   }, [fix, mapReady]);
 
@@ -424,8 +401,6 @@ export function MapView({
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full rounded-2xl bg-muted" />
-
-      <NavDebugPanel d={debug} />
 
       {retrying && !mapError && (
         <div className="pointer-events-none absolute inset-0 z-40 grid place-items-center rounded-2xl bg-background/80">

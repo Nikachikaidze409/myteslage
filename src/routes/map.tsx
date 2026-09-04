@@ -15,7 +15,6 @@ import { FavoritesPanel } from "@/components/FavoritesPanel";
 import { AlternativesPanel } from "@/components/AlternativesPanel";
 import { BatteryPanel } from "@/components/BatteryPanel";
 import { distanceMeters } from "@/lib/geo";
-import { distanceToPolylineMeters } from "@/lib/off-route";
 import { computeRoute, type RouteResult, type AvoidOption } from "@/lib/routes.functions";
 import {
   pushRecent,
@@ -749,6 +748,7 @@ function Index() {
                 rerouting={rerouting}
                 showTraffic={showTraffic}
                 onProgress={setProgress}
+                onRerouteNeeded={handleRerouteNeeded}
                 waypoints={waypoints}
                 alternates={routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i }))}
                 onSelectAlternate={setSelectedRouteIdx}

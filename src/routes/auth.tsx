@@ -209,7 +209,13 @@ function AuthPage() {
             disabled={busy}
             className="font-display h-12 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-lg shadow-primary/25 hover:brightness-110 disabled:opacity-60"
           >
-            {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+            {busy
+              ? "Please wait…"
+              : mode === "signin"
+                ? "Sign in"
+                : mode === "signup"
+                  ? "Create account"
+                  : "Send reset link · ბმულის გაგზავნა"}
           </button>
         </form>
 
@@ -224,7 +230,7 @@ function AuthPage() {
         >
           {mode === "signin"
             ? "New here? Create an account · დარეგისტრირებისთვის დააჭირე აქ →"
-            : "← Back to sign in"}
+            : "← Back to sign in · დაბრუნება"}
         </button>
       </div>
     </div>

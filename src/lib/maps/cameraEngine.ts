@@ -2,7 +2,7 @@
 // Uses map.moveCamera() on vector maps (smooth heading + tilt) and falls back
 // to setCenter/setZoom on raster maps.
 
-import { angleDelta, dampFactor, lerp, lerpAngle, offsetLatLng, type LatLng } from "./math";
+import { dampFactor, lerp, lerpAngle, offsetLatLng, type LatLng } from "./math";
 
 export interface CameraTarget {
   center: LatLng;
@@ -24,7 +24,6 @@ export class CameraEngine {
   private opts: CameraOptions;
   private cur: { lat: number; lng: number; heading: number; tilt: number; zoom: number } | null = null;
   private lastApplied = 0;
-  private applied: { lat: number; lng: number; heading: number; zoom: number } | null = null;
   private suppressUntil = 0;
   enabled = false;
 
@@ -40,7 +39,6 @@ export class CameraEngine {
 
   /** Called after a programmatic jump so the damping restarts from there. */
   reset(center?: LatLng): void {
-    this.applied = null;
     if (!center) {
       this.cur = null;
       return;
@@ -64,8 +62,7 @@ export class CameraEngine {
     if (!this.enabled || now < this.suppressUntil) return;
 
     const wantHeading = this.opts.vector && this.opts.headingUp && navigating ? t.heading : 0;
-    // Flat 2D map: never tilt.
-    const wantTilt = 0;
+    const wantTilt = this.opts.vector && navigating ? (t.speed > 2 ? 55 : 45) : 0;
     const wantZoom = navigating ? zoomForSpeed(t.speed) : Math.max(this.map.getZoom?.() ?? 16, 16);
 
     // Look ahead so the car sits in the lower third of the screen.
@@ -92,23 +89,11 @@ export class CameraEngine {
     this.cur.tilt = lerp(this.cur.tilt, wantTilt, kAng);
     this.cur.zoom = lerp(this.cur.zoom, wantZoom, kZoom);
 
-    // Cap camera work to ~30 fps.
+    // Skip work when nothing meaningfully changed (parked at a light).
     if (now - this.lastApplied < 33) return;
+    this.lastApplied = now;
 
     const center = { lat: this.cur.lat, lng: this.cur.lng };
-    // Skip entirely when nothing meaningfully moved (parked at a light).
-    const last = this.applied;
-    if (
-      last &&
-      Math.abs(last.lat - center.lat) < 2e-6 &&
-      Math.abs(last.lng - center.lng) < 2e-6 &&
-      Math.abs(last.zoom - this.cur.zoom) < 0.01 &&
-      Math.abs(angleDelta(last.heading, this.cur.heading)) < 0.3
-    ) {
-      return;
-    }
-    this.lastApplied = now;
-    this.applied = { lat: center.lat, lng: center.lng, heading: this.cur.heading, zoom: this.cur.zoom };
     if (this.opts.vector && typeof this.map.moveCamera === "function") {
       this.map.moveCamera({
         center,

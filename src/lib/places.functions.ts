@@ -76,11 +76,8 @@ export const searchNearby = createServerFn({ method: "POST" })
       body: JSON.stringify(body),
     });
 
-    if (!res.ok) {
-      const t = await res.text();
-      console.error(`Places API failed [${res.status}]: ${t}`);
-      throw new Error(`Places API failed [${res.status}]`);
-    }
+    if (!res.ok) await googleFail(res, "Places API");
+
 
     const json = (await res.json()) as {
       places?: {

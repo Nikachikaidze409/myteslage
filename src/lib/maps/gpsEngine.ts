@@ -30,12 +30,12 @@ export interface GpsState {
   stale: boolean;
 }
 
-/** Nothing worse than this can place a car on a street. */
-const MAX_ACCURACY_M = 250;
+/** Beyond this a fix is meaningless even as a rough hint. */
+const MAX_ACCURACY_M = 2000;
 /** No road vehicle covers this much ground per second. */
 const MAX_SPEED_MPS = 75;
 /** After this long without a fix, the position is treated as stale. */
-const STALE_AFTER_MS = 6000;
+const STALE_AFTER_MS = 14000;
 
 export class GpsEngine {
   private accepted: RawFix | null = null;
@@ -137,5 +137,8 @@ function accuracyWeight(accuracy: number): number {
   if (accuracy <= 10) return 0.85;
   if (accuracy <= 25) return 0.6;
   if (accuracy <= 60) return 0.4;
-  return 0.25;
+  if (accuracy <= 150) return 0.3;
+  // Vague fixes still nudge the position, but only gently.
+  if (accuracy <= 500) return 0.18;
+  return 0.1;
 }

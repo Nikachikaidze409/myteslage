@@ -9,6 +9,7 @@
 
 import { projectOnPath, pointAtAlong, remainingMeters, bearingBetween, type Projection } from "@/lib/route-progress";
 import { CameraEngine } from "./cameraEngine";
+import { rememberCenter } from "./googleMapsService";
 import { GpsEngine, type GpsState, type RawFix } from "./gpsEngine";
 import { RoadsMatcher } from "./roadsService";
 import { RouteRenderer } from "./routeRenderer";
@@ -62,6 +63,7 @@ export class NavigationEngine {
   private lastFrame = 0;
   private listeners = new Set<Listener>();
   private lastEmit = 0;
+  private lastRemember = 0;
 
   private rendered: LatLng | null = null;
   private renderedHeading = 0;
@@ -280,6 +282,10 @@ export class NavigationEngine {
   private emit(now: number, s: GpsState): void {
     if (now - this.lastEmit < 500) return;
     this.lastEmit = now;
+    if (this.rendered && now - this.lastRemember > 15000) {
+      this.lastRemember = now;
+      rememberCenter(this.rendered);
+    }
     const idx = this.route.pathIndex;
     const remaining = idx && this.proj ? remainingMeters(idx, this.proj) : 0;
 

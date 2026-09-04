@@ -11,6 +11,29 @@ export const MAP_ID: string =
 
 export const DEFAULT_CENTER = { lat: 41.7151, lng: 44.8271 };
 
+const LAST_POS_KEY = "tmg:last-map-center";
+
+/** Remember where the driver was so the next launch opens on that area. */
+export function rememberCenter(p: { lat: number; lng: number }): void {
+  try {
+    localStorage.setItem(LAST_POS_KEY, JSON.stringify({ lat: p.lat, lng: p.lng }));
+  } catch {
+    /* storage disabled */
+  }
+}
+
+function lastCenter(): { lat: number; lng: number } | null {
+  try {
+    const raw = localStorage.getItem(LAST_POS_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw);
+    if (typeof v?.lat === "number" && typeof v?.lng === "number") return v;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 export interface CreatedMap {
   google: any;
   map: any;
@@ -21,9 +44,10 @@ export interface CreatedMap {
 export async function createMap(container: HTMLElement): Promise<CreatedMap> {
   const google = await loadGoogleMaps();
 
+  const start = lastCenter();
   const options: Record<string, unknown> = {
-    center: DEFAULT_CENTER,
-    zoom: 7,
+    center: start ?? DEFAULT_CENTER,
+    zoom: start ? 15 : 7,
     disableDefaultUI: true,
     zoomControl: false,
     gestureHandling: "greedy",

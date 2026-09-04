@@ -105,6 +105,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "preconnect", href: "https://maps.googleapis.com" },
+      { rel: "preconnect", href: "https://maps.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "dns-prefetch", href: "https://khms0.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -135,6 +138,20 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Warm the Google Maps script up while the user is still signing in, so the
+  // map screen has nothing left to download when it opens.
+  useEffect(() => {
+    let cancelled = false;
+    const t = window.setTimeout(() => {
+      if (cancelled) return;
+      void import("@/lib/maps-loader").then((m) => m.loadGoogleMaps()).catch(() => {});
+    }, 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -108,7 +108,6 @@ function loadGoogleMapsWithKey(key: string): Promise<any> {
       key,
       v: "weekly",
       loading: "async",
-      libraries: "places,geometry",
       callback: "__initGmaps",
     });
     s.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;

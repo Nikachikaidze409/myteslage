@@ -570,6 +570,14 @@ function Index() {
               onPairedFix={(p) => {
                 setError(null);
                 setWatching(true);
+                geoTracker.push({
+                  lat: p.lat,
+                  lng: p.lng,
+                  accuracy: p.accuracy,
+                  heading: p.heading ?? null,
+                  speed: p.speed ?? null,
+                  timestamp: p.timestamp,
+                });
                 setFix({
                   lat: p.lat,
                   lng: p.lng,

@@ -1,5 +1,5 @@
-// Raw GPS -> accuracy gate -> outlier rejection -> smoothing -> heading
-// smoothing -> last-reliable-position retention.
+// Raw GPS -> age gate -> accuracy gate -> outlier / speed-consistency
+// rejection -> smoothing -> heading -> last-reliable-position retention.
 //
 // This runs outside React: it holds mutable state and is read by the
 // animation loop. It never triggers a render on its own.
@@ -13,6 +13,8 @@ export interface RawFix {
   heading?: number | null;
   speed?: number | null;
   timestamp: number;
+  /** how old the reading was when it arrived, ms (from the tracker) */
+  age?: number;
 }
 
 export interface GpsState {
@@ -28,14 +30,26 @@ export interface GpsState {
   at: number;
   /** true when no usable fix arrived recently (tunnel, garage) */
   stale: boolean;
+  /** age of the last accepted reading when it arrived, ms */
+  age: number;
 }
+
+export type RejectReason =
+  | null
+  | "invalid"
+  | "accuracy"
+  | "stale"
+  | "jump"
+  | "speed";
 
 /** Nothing worse than this can place a car on a street. */
 const MAX_ACCURACY_M = 250;
 /** No road vehicle covers this much ground per second. */
 const MAX_SPEED_MPS = 75;
+/** A reading older than this is not live any more. */
+const MAX_AGE_MS = 4000;
 /** After this long without a fix, the position is treated as stale. */
-const STALE_AFTER_MS = 6000;
+const STALE_AFTER_MS = 4000;
 
 export class GpsEngine {
   private accepted: RawFix | null = null;
@@ -43,29 +57,47 @@ export class GpsEngine {
   private headingSmooth: number | null = null;
   private speedSmooth = 0;
   private acceptedAt = 0;
-  private rejects = 0;
+  private acceptedAge = 0;
+  private suspect: RawFix | null = null;
+
+  /** Why the most recent reading was dropped, for the debug panel. */
+  lastReject: RejectReason = null;
+  rejected = 0;
 
   /** Feed a device / paired-phone fix. Returns false when it was rejected. */
   ingest(fix: RawFix, now = performance.now()): boolean {
-    if (!Number.isFinite(fix.lat) || !Number.isFinite(fix.lng)) return false;
-    if (Math.abs(fix.lat) > 90 || Math.abs(fix.lng) > 180) return false;
-    if (Number.isFinite(fix.accuracy) && fix.accuracy > MAX_ACCURACY_M) return false;
+    if (!Number.isFinite(fix.lat) || !Number.isFinite(fix.lng)) return this.drop("invalid");
+    if (Math.abs(fix.lat) > 90 || Math.abs(fix.lng) > 180) return this.drop("invalid");
+    if (Number.isFinite(fix.accuracy) && fix.accuracy > MAX_ACCURACY_M) return this.drop("accuracy");
+
+    const age = fix.age ?? Math.max(0, Date.now() - fix.timestamp);
+    // A cached reading must never be drawn as if it were live.
+    if (age > MAX_AGE_MS) return this.drop("stale");
 
     const prev = this.accepted;
     if (prev) {
       const dt = Math.max(0.2, (fix.timestamp - prev.timestamp) / 1000);
       const d = haversine(prev, fix);
       const implied = d / dt;
-      // An impossible jump is rejected once; if the next fixes agree with it,
-      // the device really did move (tunnel exit, GPS re-lock) so we accept.
-      if (implied > MAX_SPEED_MPS && this.rejects < 2) {
-        this.rejects++;
-        return false;
+      // Impossible jump, or a jump that contradicts the measured speed:
+      // hold the previous reliable position until a second reading agrees.
+      const reported = fix.speed != null && fix.speed >= 0 ? fix.speed : null;
+      const inconsistent =
+        reported != null && implied > Math.max(8, reported * 3 + 6) && d > 40;
+      if (implied > MAX_SPEED_MPS || inconsistent) {
+        const confirmed =
+          this.suspect != null && haversine(this.suspect, fix) < Math.max(30, d * 0.3);
+        if (!confirmed) {
+          this.suspect = fix;
+          return this.drop(implied > MAX_SPEED_MPS ? "jump" : "speed");
+        }
       }
     }
-    this.rejects = 0;
+    this.suspect = null;
+    this.lastReject = null;
     this.accepted = fix;
     this.acceptedAt = now;
+    this.acceptedAge = age;
 
     // Position smoothing: trust an accurate fix more than a vague one.
     const w = accuracyWeight(fix.accuracy);
@@ -102,6 +134,12 @@ export class GpsEngine {
     return true;
   }
 
+  private drop(reason: RejectReason): false {
+    this.lastReject = reason;
+    this.rejected++;
+    return false;
+  }
+
   /** Last reliable state, or null before the first accepted fix. */
   state(now = performance.now()): GpsState | null {
     const p = this.smooth;
@@ -115,6 +153,7 @@ export class GpsEngine {
       accuracy: raw.accuracy,
       at: this.acceptedAt,
       stale: now - this.acceptedAt > STALE_AFTER_MS,
+      age: this.acceptedAge,
     };
   }
 
@@ -128,7 +167,8 @@ export class GpsEngine {
     this.smooth = null;
     this.headingSmooth = null;
     this.speedSmooth = 0;
-    this.rejects = 0;
+    this.suspect = null;
+    this.lastReject = null;
   }
 }
 

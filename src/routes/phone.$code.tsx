@@ -158,7 +158,7 @@ function PhoneRelay() {
           setError(err.message || "Geolocation error");
         }
       },
-      { enableHighAccuracy: true, maximumAge: 1_000, timeout: 20_000 },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 20_000 },
     );
   };
 

@@ -1,15 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { loadGoogleMaps, onMapsAuthFailure, clearMapsAuthFailure, resetMapsLoader } from "@/lib/maps-loader";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { onMapsAuthFailure, clearMapsAuthFailure, resetMapsLoader } from "@/lib/maps-loader";
+import { createMap } from "@/lib/maps/googleMapsService";
+import { NavigationEngine, type NavSnapshot } from "@/lib/maps/navigationEngine";
 import type { Fix } from "./StatusPanel";
-import { decodePolyline } from "@/lib/geo";
-import {
-  buildPathIndex,
-  projectOnPath,
-  remainingMeters,
-  remainingPath,
-  type PathIndex,
-  type Projection,
-} from "@/lib/route-progress";
 
 export interface LiveProgress {
   /** metres left to the destination along the active route */
@@ -31,6 +24,8 @@ interface Props {
   alternates?: { encodedPolyline: string; index: number }[];
   onSelectAlternate?: (index: number) => void;
   onProgress?: (p: LiveProgress) => void;
+  /** The engine confirmed the car left the route: ask the server for a new one. */
+  onRerouteNeeded?: () => void;
   /** Increment to programmatically trigger recenter-on-me from a parent. */
   recenterSignal?: number;
   /** Previewed search result / tapped place, shown as a pin before routing. */
@@ -40,20 +35,6 @@ interface Props {
   onPickPoi?: (p: { id: string; lat: number; lng: number; name: string; address?: string }) => void;
   /** Tap anywhere on the map (or on a Google POI). */
   onMapClick?: (p: { lat: number; lng: number; placeId?: string }) => void;
-}
-
-
-const DEFAULT_CENTER = { lat: 41.7151, lng: 44.8271 };
-/** Longest tween between two real GPS fixes (ms). Google Maps behaves the same:
- *  it only ever animates between positions the device actually reported. */
-const MAX_TWEEN_MS = 1200;
-
-
-function shortestDelta(from: number, to: number): number {
-  let d = to - from;
-  while (d > 180) d -= 360;
-  while (d < -180) d += 360;
-  return d;
 }
 
 export function MapView({
@@ -67,6 +48,7 @@ export function MapView({
   alternates,
   onSelectAlternate,
   onProgress,
+  onRerouteNeeded,
   recenterSignal,
   preview,
   pois,
@@ -75,100 +57,56 @@ export function MapView({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+  const googleRef = useRef<any>(null);
+  const engineRef = useRef<NavigationEngine | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  const meMarker = useRef<any>(null);
+  const [followUi, setFollowUi] = useState(false);
+  const [weakSignal, setWeakSignal] = useState(false);
+
   const destMarker = useRef<any>(null);
   const previewMarker = useRef<any>(null);
   const poiMarkersRef = useRef<any[]>([]);
   const waypointMarkersRef = useRef<any[]>([]);
   const trafficLayerRef = useRef<any>(null);
-  const accuracyCircle = useRef<any>(null);
-  const routeLine = useRef<any>(null);
-  const altLinesRef = useRef<any[]>([]);
-  const lastPolylineRef = useRef<string | null>(null);
+  const resizeObsRef = useRef<any>(null);
+  const lastCenterRef = useRef<{ lat: number; lng: number } | null>(null);
+  const programmaticRef = useRef(false);
+
+  // Callback refs: the engine and map listeners must never capture stale props.
   const onMapClickRef = useRef(onMapClick);
   onMapClickRef.current = onMapClick;
   const onPickPoiRef = useRef(onPickPoi);
   onPickPoiRef.current = onPickPoi;
-
-
-  // ---- live engine state -------------------------------------------------
-  const pathIdxRef = useRef<PathIndex | null>(null);
-  const projRef = useRef<Projection | null>(null);
-  const tweenFromRef = useRef<{ lat: number; lng: number } | null>(null);
-  const tweenToRef = useRef<{ lat: number; lng: number } | null>(null);
-  const tweenStartRef = useRef<number>(0);
-  const tweenMsRef = useRef<number>(600);
-  const prevFixAtRef = useRef<number>(0);
-  const targetHeadingRef = useRef<number | null>(null);
-  const renderedRef = useRef<{ lat: number; lng: number } | null>(null);
-  const renderedHeadingRef = useRef<number>(0);
-  const iconHeadingRef = useRef<number>(-999);
-  const camRef = useRef<{ lat: number; lng: number } | null>(null);
-  const speedRef = useRef<number>(0);
-  const lastFixAtRef = useRef<number>(0);
-  const rafRef = useRef<number | null>(null);
-  const lastFrameRef = useRef<number>(0);
-  const lastCamSetRef = useRef<number>(0);
-  const lastLineUpdateRef = useRef<number>(0);
-  const lastProgressAtRef = useRef<number>(0);
-
-  const resizeObsRef = useRef<any>(null);
-  const lastCenterRef = useRef<{ lat: number; lng: number } | null>(null);
-  const navigatingRef = useRef<boolean>(false);
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
+  const onRerouteRef = useRef(onRerouteNeeded);
+  onRerouteRef.current = onRerouteNeeded;
+  const onSelectAlternateRef = useRef(onSelectAlternate);
+  onSelectAlternateRef.current = onSelectAlternate;
 
-
-  // Follow-me camera mode. True = camera tracks the car; false = user is panning freely.
-  const followRef = useRef<boolean>(false);
-  const programmaticMoveRef = useRef<boolean>(false);
-  const [followUi, setFollowUi] = useState(false);
-
-  const recenterOnMe = () => {
-    const map = mapRef.current;
-    const pos = renderedRef.current;
-    if (!map || !pos) return;
-    followRef.current = true;
-    setFollowUi(true);
-    camRef.current = pos;
-    programmaticMoveRef.current = true;
-    map.panTo(pos);
-    if (map.getZoom() < 16) map.setZoom(17);
-    setTimeout(() => (programmaticMoveRef.current = false), 300);
-  };
+  const recenterOnMe = useCallback(() => {
+    engineRef.current?.recenter();
+  }, []);
 
   // ---- map bootstrap -----------------------------------------------------
   const [bootAttempt, setBootAttempt] = useState(0);
   const [retrying, setRetrying] = useState(false);
   const authTimerRef = useRef<number | null>(null);
   const authRetriedRef = useRef(false);
+
   useEffect(() => {
     let cancelled = false;
 
     const boot = (tries: number) => {
-      loadGoogleMaps()
-        .then((g) => {
-          if (cancelled || !containerRef.current) return;
-          if (mapRef.current) {
-            setMapError(null);
+      if (!containerRef.current) return;
+      createMap(containerRef.current)
+        .then(({ google, map, vector }) => {
+          if (cancelled) {
             return;
           }
-          mapRef.current = new g.maps.Map(containerRef.current, {
-            center: DEFAULT_CENTER,
-            zoom: 7,
-            disableDefaultUI: true,
-            zoomControl: false,
-            gestureHandling: "greedy",
-            clickableIcons: true,
-            keyboardShortcuts: false,
-            maxZoom: 20,
-            minZoom: 4,
-            isFractionalZoomEnabled: false,
-            styles: LIGHT_STYLE,
-            backgroundColor: "#f1f5f9",
-          });
+          googleRef.current = google;
+          mapRef.current = map;
           clearMapsAuthFailure();
           if (authTimerRef.current != null) {
             window.clearTimeout(authTimerRef.current);
@@ -176,20 +114,27 @@ export function MapView({
           }
           setMapError(null);
           setRetrying(false);
-          setMapReady(true);
 
-          // Any user gesture disables follow-me so the camera doesn't fight the finger.
-          const release = () => {
-            if (programmaticMoveRef.current) return;
-            if (followRef.current) {
-              followRef.current = false;
-              setFollowUi(false);
-            }
-          };
-          mapRef.current.addListener("dragstart", release);
+          const engine = new NavigationEngine(map, google, vector);
+          engineRef.current = engine;
+          engine.onFollowChange = (v) => setFollowUi(v);
+          engine.onRerouteNeeded = () => onRerouteRef.current?.();
+          engine.subscribe((s: NavSnapshot) => {
+            setWeakSignal(s.weakSignal);
+            onProgressRef.current?.({
+              remainingMeters: s.remainingMeters,
+              along: s.along,
+              offset: s.offset,
+            });
+          });
 
-          // Tapping the map (or a Google POI) previews that place.
-          mapRef.current.addListener("click", (ev: any) => {
+          // Any user gesture hands control back to the driver.
+          map.addListener("dragstart", () => {
+            if (programmaticRef.current) return;
+            engine.releaseFollow();
+          });
+
+          map.addListener("click", (ev: any) => {
             const handler = onMapClickRef.current;
             if (!handler || !ev?.latLng) return;
             if (ev.placeId && typeof ev.stop === "function") ev.stop();
@@ -200,42 +145,39 @@ export function MapView({
             });
           });
 
-          // Remember the last settled center so a container resize can restore it.
-          mapRef.current.addListener("idle", () => {
-            const c = mapRef.current?.getCenter?.();
+          map.addListener("idle", () => {
+            const c = map.getCenter?.();
             if (c) lastCenterRef.current = { lat: c.lat(), lng: c.lng() };
           });
 
-          // The container changes size when the side panel is hidden/shown or
-          // HUD mode toggles. Google must re-measure or the map appears frozen.
+          // The container resizes when the side panel is hidden or HUD mode
+          // toggles: Google must re-measure or the map appears frozen.
           if (typeof ResizeObserver !== "undefined" && containerRef.current) {
             let raf = 0;
             resizeObsRef.current = new ResizeObserver(() => {
               if (raf) cancelAnimationFrame(raf);
               raf = requestAnimationFrame(() => {
                 raf = 0;
-                const map = mapRef.current;
-                if (!map) return;
-                const keep = followRef.current
-                  ? renderedRef.current ?? lastCenterRef.current
+                const keep = engine.follow
+                  ? engine.currentPosition() ?? lastCenterRef.current
                   : lastCenterRef.current;
-                g.maps.event.trigger(map, "resize");
+                google.maps.event.trigger(map, "resize");
+                engine.suppressCamera(400);
                 if (keep) {
-                  programmaticMoveRef.current = true;
+                  programmaticRef.current = true;
                   map.setCenter(keep);
-                  window.setTimeout(() => (programmaticMoveRef.current = false), 200);
+                  window.setTimeout(() => (programmaticRef.current = false), 200);
                 }
               });
             });
             resizeObsRef.current.observe(containerRef.current);
           }
+
+          setMapReady(true);
         })
-
-
         .catch((e) => {
           if (cancelled) return;
           console.error(e);
-          // Transient network/timeout failures are common in the car: retry quietly.
           if (tries < 3) {
             setRetrying(true);
             window.setTimeout(() => {
@@ -244,14 +186,14 @@ export function MapView({
             return;
           }
           setRetrying(false);
-          setMapError("Map is taking longer than usual to load. Check the car's internet connection and try again.");
+          setMapError(
+            "Map is taking longer than usual to load. Check the car's internet connection and try again.",
+          );
         });
     };
 
     boot(0);
 
-    // A rejection is only real if the map still hasn't come up a moment later,
-    // and it gets one silent fresh retry before the driver ever sees a banner.
     const offAuth = onMapsAuthFailure((message) => {
       if (cancelled) return;
       if (authTimerRef.current != null) window.clearTimeout(authTimerRef.current);
@@ -269,6 +211,7 @@ export function MapView({
         setMapError(message);
       }, 2000);
     });
+
     return () => {
       cancelled = true;
       offAuth();
@@ -276,61 +219,71 @@ export function MapView({
         window.clearTimeout(authTimerRef.current);
         authTimerRef.current = null;
       }
-      if (resizeObsRef.current) {
-        resizeObsRef.current.disconnect();
-        resizeObsRef.current = null;
-      }
-      if (trafficLayerRef.current) {
-        trafficLayerRef.current.setMap(null);
-        trafficLayerRef.current = null;
-      }
+      resizeObsRef.current?.disconnect();
+      resizeObsRef.current = null;
+      trafficLayerRef.current?.setMap(null);
+      trafficLayerRef.current = null;
+      engineRef.current?.destroy();
+      engineRef.current = null;
+      mapRef.current = null;
+      setMapReady(false);
     };
-
   }, [bootAttempt]);
 
+  // ---- engine inputs -----------------------------------------------------
+  useEffect(() => {
+    if (!fix) return;
+    engineRef.current?.pushFix({
+      lat: fix.lat,
+      lng: fix.lng,
+      accuracy: fix.accuracy,
+      heading: fix.heading,
+      speed: fix.speed,
+      timestamp: fix.timestamp,
+    });
+  }, [fix, mapReady]);
 
   useEffect(() => {
-    navigatingRef.current = !!navigating;
-  }, [navigating]);
+    engineRef.current?.setRoute(encodedPolyline ?? null);
+  }, [encodedPolyline, mapReady]);
 
-  // Turn follow on when navigation starts.
   useEffect(() => {
-    if (!navigating) return;
-    followRef.current = true;
-    setFollowUi(true);
-    const map = mapRef.current;
-    const pos = renderedRef.current;
-    if (map && pos) {
-      programmaticMoveRef.current = true;
-      camRef.current = pos;
-      map.panTo(pos);
-      if (map.getZoom() < 16) map.setZoom(17);
-      setTimeout(() => (programmaticMoveRef.current = false), 300);
-    }
-  }, [navigating]);
+    engineRef.current?.setNavigating(!!navigating);
+  }, [navigating, mapReady]);
+
+  useEffect(() => {
+    if (!rerouting) engineRef.current?.rerouteResolved();
+  }, [rerouting]);
 
   useEffect(() => {
     if (recenterSignal == null) return;
     recenterOnMe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recenterSignal]);
+  }, [recenterSignal, recenterOnMe]);
 
   // ---- traffic overlay ---------------------------------------------------
   useEffect(() => {
-    const g = (window as any).google;
+    const g = googleRef.current;
     const map = mapRef.current;
     if (!g || !map) return;
     if (showTraffic) {
       if (!trafficLayerRef.current) trafficLayerRef.current = new g.maps.TrafficLayer();
       trafficLayerRef.current.setMap(map);
-    } else if (trafficLayerRef.current) {
-      trafficLayerRef.current.setMap(null);
+    } else {
+      trafficLayerRef.current?.setMap(null);
     }
   }, [showTraffic, mapReady]);
 
+  // ---- alternates --------------------------------------------------------
+  useEffect(() => {
+    if (!mapReady) return;
+    engineRef.current?.route.setAlternates(alternates ?? [], (i) =>
+      onSelectAlternateRef.current?.(i),
+    );
+  }, [alternates, encodedPolyline, mapReady]);
+
   // ---- waypoints ---------------------------------------------------------
   useEffect(() => {
-    const g = (window as any).google;
+    const g = googleRef.current;
     const map = mapRef.current;
     if (!g || !map) return;
     for (const m of waypointMarkersRef.current) m.setMap(null);
@@ -348,83 +301,14 @@ export function MapView({
     }
   }, [waypoints, mapReady]);
 
-  // ---- route polyline (reused instance) ----------------------------------
-  useEffect(() => {
-    const g = (window as any).google;
-    const map = mapRef.current;
-    if (!g || !map) return;
-
-    if (!encodedPolyline) {
-      pathIdxRef.current = null;
-      projRef.current = null;
-      lastPolylineRef.current = null;
-      if (routeLine.current) {
-        routeLine.current.setMap(null);
-        routeLine.current = null;
-      }
-      return;
-    }
-
-    const path = decodePolyline(encodedPolyline);
-    pathIdxRef.current = buildPathIndex(path);
-    projRef.current = null;
-
-    if (!routeLine.current) {
-      routeLine.current = new g.maps.Polyline({
-        map,
-        path,
-        strokeColor: "#3b82f6",
-        strokeOpacity: 0.9,
-        strokeWeight: 6,
-        zIndex: 5,
-        clickable: false,
-      });
-    } else {
-      routeLine.current.setPath(path);
-      routeLine.current.setMap(map);
-    }
-
-    if (!navigating && lastPolylineRef.current !== encodedPolyline) {
-      const bounds = new g.maps.LatLngBounds();
-      for (const p of path) bounds.extend(p);
-      map.fitBounds(bounds, 60);
-    }
-    lastPolylineRef.current = encodedPolyline;
-  }, [encodedPolyline, navigating, mapReady]);
-
-  // ---- alternates --------------------------------------------------------
-  useEffect(() => {
-    const g = (window as any).google;
-    const map = mapRef.current;
-    if (!g || !map) return;
-    for (const l of altLinesRef.current) l.setMap(null);
-    altLinesRef.current = [];
-    for (const alt of alternates ?? []) {
-      if (!alt.encodedPolyline || alt.encodedPolyline === encodedPolyline) continue;
-      const line = new g.maps.Polyline({
-        map,
-        path: decodePolyline(alt.encodedPolyline),
-        strokeColor: "#94a3b8",
-        strokeOpacity: 0.75,
-        strokeWeight: 5,
-        zIndex: 1,
-        clickable: true,
-      });
-      line.addListener("click", () => onSelectAlternate?.(alt.index));
-      altLinesRef.current.push(line);
-    }
-  }, [alternates, encodedPolyline, onSelectAlternate, mapReady]);
-
   // ---- destination marker ------------------------------------------------
   useEffect(() => {
-    const g = (window as any).google;
+    const g = googleRef.current;
     const map = mapRef.current;
     if (!g || !map) return;
     if (!destination) {
-      if (destMarker.current) {
-        destMarker.current.setMap(null);
-        destMarker.current = null;
-      }
+      destMarker.current?.setMap(null);
+      destMarker.current = null;
       return;
     }
     if (destMarker.current) {
@@ -441,14 +325,13 @@ export function MapView({
 
   // ---- preview pin (search result / tapped place) ------------------------
   useEffect(() => {
-    const g = (window as any).google;
+    const g = googleRef.current;
     const map = mapRef.current;
-    if (!g || !map) return;
+    const engine = engineRef.current;
+    if (!g || !map || !engine) return;
     if (!preview) {
-      if (previewMarker.current) {
-        previewMarker.current.setMap(null);
-        previewMarker.current = null;
-      }
+      previewMarker.current?.setMap(null);
+      previewMarker.current = null;
       return;
     }
     const pos = { lat: preview.lat, lng: preview.lng };
@@ -471,9 +354,11 @@ export function MapView({
         },
       });
     }
-    // Fit both the car and the place so the driver sees the relationship.
-    const me = renderedRef.current;
-    programmaticMoveRef.current = true;
+    // Show the car and the place together so the driver sees the relationship.
+    const me = engine.currentPosition();
+    engine.releaseFollow();
+    engine.suppressCamera(800);
+    programmaticRef.current = true;
     if (me) {
       const bounds = new g.maps.LatLngBounds();
       bounds.extend(me);
@@ -481,16 +366,14 @@ export function MapView({
       map.fitBounds(bounds, 120);
     } else {
       map.panTo(pos);
-      if (map.getZoom() < 14) map.setZoom(16);
+      if ((map.getZoom?.() ?? 0) < 14) map.setZoom(16);
     }
-    followRef.current = false;
-    setFollowUi(false);
-    setTimeout(() => (programmaticMoveRef.current = false), 400);
+    window.setTimeout(() => (programmaticRef.current = false), 400);
   }, [preview, mapReady]);
 
   // ---- category result pins ----------------------------------------------
   useEffect(() => {
-    const g = (window as any).google;
+    const g = googleRef.current;
     const map = mapRef.current;
     if (!g || !map) return;
     for (const m of poiMarkersRef.current) m.setMap(null);
@@ -514,132 +397,6 @@ export function MapView({
       poiMarkersRef.current.push(marker);
     }
   }, [pois, mapReady]);
-
-
-
-  // ---- new fix -> new target --------------------------------------------
-  useEffect(() => {
-    const g = (window as any).google;
-    const map = mapRef.current;
-    if (!g || !map || !fix) return;
-
-    const raw = { lat: fix.lat, lng: fix.lng };
-    const now = performance.now();
-    lastFixAtRef.current = now;
-    speedRef.current = fix.speed != null && fix.speed > 0 ? fix.speed : 0;
-
-    if (!meMarker.current) {
-      renderedRef.current = raw;
-      camRef.current = raw;
-      meMarker.current = new g.maps.Marker({
-        map,
-        position: raw,
-        title: "You",
-        icon: carIcon(g, fix.heading ?? null),
-        zIndex: 1000,
-        optimized: true,
-      });
-    }
-    if (!accuracyCircle.current) {
-      accuracyCircle.current = new g.maps.Circle({
-        map,
-        center: raw,
-        radius: fix.accuracy,
-        strokeColor: "#3b82f6",
-        strokeOpacity: 0.6,
-        strokeWeight: 1,
-        fillColor: "#3b82f6",
-        fillOpacity: 0.12,
-        clickable: false,
-      });
-    } else {
-      accuracyCircle.current.setRadius(fix.accuracy);
-    }
-    accuracyCircle.current.setVisible(fix.accuracy > 25);
-
-    // Tween from wherever the marker is now to the reported position.
-    tweenFromRef.current = renderedRef.current ?? raw;
-    tweenToRef.current = raw;
-    tweenStartRef.current = now;
-    tweenMsRef.current = Math.min(MAX_TWEEN_MS, Math.max(250, now - (prevFixAtRef.current || now)));
-    prevFixAtRef.current = now;
-
-    // Keep route progress in sync with the reported position only.
-    const idx = pathIdxRef.current;
-    if (idx) {
-      const proj = projectOnPath(raw, idx, projRef.current?.along, 600);
-      if (proj) projRef.current = proj;
-    } else {
-      projRef.current = null;
-    }
-    if (fix.heading != null) targetHeadingRef.current = fix.heading;
-  }, [fix, navigating, mapReady]);
-
-  // ---- animation loop: tween between real fixes only ---------------------
-  useEffect(() => {
-    const step = (now: number) => {
-      rafRef.current = requestAnimationFrame(step);
-      const map = mapRef.current;
-      const g = (window as any).google;
-      if (!map || !g || !meMarker.current) return;
-
-      const from = tweenFromRef.current;
-      const to = tweenToRef.current;
-      if (!to) return;
-
-      const t = tweenMsRef.current > 0
-        ? Math.min(1, (now - tweenStartRef.current) / tweenMsRef.current)
-        : 1;
-      const lat = from ? from.lat + (to.lat - from.lat) * t : to.lat;
-      const lng = from ? from.lng + (to.lng - from.lng) * t : to.lng;
-      renderedRef.current = { lat, lng };
-      meMarker.current.setPosition({ lat, lng });
-      accuracyCircle.current?.setCenter({ lat, lng });
-
-      // Heading follows the reported course.
-      const th = targetHeadingRef.current;
-      if (th != null) {
-        const d = shortestDelta(renderedHeadingRef.current, th);
-        renderedHeadingRef.current = (renderedHeadingRef.current + d * 0.2 + 360) % 360;
-        if (Math.abs(shortestDelta(iconHeadingRef.current, renderedHeadingRef.current)) > 3) {
-          iconHeadingRef.current = renderedHeadingRef.current;
-          meMarker.current.setIcon(carIcon(g, renderedHeadingRef.current));
-        }
-      }
-
-      // Camera: plain Google follow, like the Maps app.
-      if (followRef.current && now - lastCamSetRef.current > 60) {
-        lastCamSetRef.current = now;
-        camRef.current = { lat, lng };
-        programmaticMoveRef.current = true;
-        map.setCenter({ lat, lng });
-        programmaticMoveRef.current = false;
-      }
-
-      const idx = pathIdxRef.current;
-      const proj = projRef.current;
-      // Consume the travelled part of the route.
-      if (navigatingRef.current && idx && proj && routeLine.current && now - lastLineUpdateRef.current > 700) {
-        lastLineUpdateRef.current = now;
-        routeLine.current.setPath(remainingPath(idx, proj));
-      }
-
-      // Live remaining distance for the ETA readouts.
-      if (idx && proj && now - lastProgressAtRef.current > 900) {
-        lastProgressAtRef.current = now;
-        onProgressRef.current?.({
-          remainingMeters: remainingMeters(idx, proj),
-          along: proj.along,
-          offset: proj.offset,
-        });
-      }
-    };
-    rafRef.current = requestAnimationFrame(step);
-    return () => {
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    };
-  }, []);
 
   return (
     <div className="relative h-full w-full">
@@ -673,18 +430,13 @@ export function MapView({
         </div>
       )}
 
-
-
-      {rerouting && (
+      {(rerouting || weakSignal) && (
         <div className="pointer-events-none absolute inset-x-0 top-24 z-30 flex justify-center">
           <div className="animate-pulse rounded-full bg-foreground/85 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-background shadow-lg">
-            Rerouting…
+            {rerouting ? "Rerouting…" : "Weak GPS signal"}
           </div>
         </div>
       )}
-
-
-
 
       <button
         type="button"
@@ -712,9 +464,8 @@ export function MapView({
           onClick={() => {
             const map = mapRef.current;
             if (!map) return;
-            programmaticMoveRef.current = true;
+            engineRef.current?.suppressCamera(600);
             map.setZoom(Math.min(20, (map.getZoom() ?? 15) + 1));
-            setTimeout(() => (programmaticMoveRef.current = false), 200);
           }}
           className="h-12 w-12 text-2xl font-semibold text-foreground hover:bg-muted"
         >
@@ -727,58 +478,14 @@ export function MapView({
           onClick={() => {
             const map = mapRef.current;
             if (!map) return;
-            programmaticMoveRef.current = true;
+            engineRef.current?.suppressCamera(600);
             map.setZoom(Math.max(4, (map.getZoom() ?? 15) - 1));
-            setTimeout(() => (programmaticMoveRef.current = false), 200);
           }}
           className="h-12 w-12 text-2xl font-semibold text-foreground hover:bg-muted"
         >
           −
         </button>
       </div>
-
     </div>
   );
 }
-
-function carIcon(g: any, heading: number | null) {
-  if (heading == null) {
-    return {
-      path: g.maps.SymbolPath.CIRCLE,
-      scale: 9,
-      fillColor: "#3b82f6",
-      fillOpacity: 1,
-      strokeColor: "#ffffff",
-      strokeWeight: 3,
-    };
-  }
-  return {
-    path: g.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-    scale: 6,
-    rotation: heading,
-    fillColor: "#3b82f6",
-    fillOpacity: 1,
-    strokeColor: "#ffffff",
-    strokeWeight: 3,
-  };
-}
-
-const LIGHT_STYLE = [
-  { elementType: "geometry", stylers: [{ color: "#f1f5f9" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#475569" }] },
-  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#cbd5e1" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#e2e8f0" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#334155" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#fef3c7" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#fcd34d" }] },
-  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#dbeafe" }] },
-  { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#eef2f7" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#dcfce7" }] },
-  { featureType: "poi", elementType: "labels.icon", stylers: [{ visibility: "on" }] },
-  { featureType: "poi.business", elementType: "labels.text", stylers: [{ visibility: "simplified" }] },
-
-  { featureType: "transit", stylers: [{ visibility: "off" }] },
-];

@@ -13,9 +13,10 @@ The driving view is rebuilt around a dedicated navigation engine instead of a Re
 - Panning or zooming by hand pauses following; "My location" resumes it and re-locks the camera.
 - Search is faster: typing is debounced, repeated searches are cached, and recent destinations come back instantly.
 
-## One step for you
+## Your Map ID
 
-Create a free **Map ID** in Google Cloud Console (Google Maps Platform > Map Management > Create Map ID, type "JavaScript", raster/vector: **Vector**, enable tilt and rotation). Send it to me and I'll wire it in. Until it exists the app runs on the current flat map, so nothing breaks in the meantime.
+You created Map ID `90416c59a9ac912b9f4cae5a`. I'll wire it in directly, so the tilted, rotating vector map is on from the start. One thing to confirm in Google Cloud Console (Map Management > that Map ID): the type is **Vector** with **tilt** and **rotation** enabled. If it is set to Raster, the app falls back to the current flat map automatically.
+
 
 ## Technical plan
 

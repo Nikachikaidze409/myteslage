@@ -87,11 +87,12 @@ function AuthPage() {
           Tesla · Georgia
         </div>
         <h1 className="font-display mt-1 text-2xl font-bold">
-          {mode === "signin" ? "Sign in" : "Create your account"}
+          {mode === "signin" ? "Sign in" : mode === "signup" ? "Create your account" : "Reset password · პაროლის აღდგენა"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Membership required. One account = one device. Signing in on a new device signs the old one out.
-
+          {mode === "forgot"
+            ? "Enter your email and we'll send you a reset link. · შეიყვანეთ ელფოსტა და გამოგიგზავნით აღდგენის ბმულს."
+            : "Membership required. One account = one device. Signing in on a new device signs the old one out."}
         </p>
 
         {kickedDevice && (
@@ -165,18 +166,33 @@ function AuthPage() {
               className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 text-base"
             />
           </label>
-          <label className="block">
-            <span className="text-xs font-semibold text-muted-foreground">Password</span>
-            <input
-              type="password"
-              required
-              minLength={6}
-              autoComplete={mode === "signin" ? "current-password" : "new-password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 text-base"
-            />
-          </label>
+          {mode !== "forgot" && (
+            <label className="block">
+              <span className="text-xs font-semibold text-muted-foreground">Password</span>
+              <input
+                type="password"
+                required
+                minLength={6}
+                autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 text-base"
+              />
+            </label>
+          )}
+          {mode === "signin" && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode("forgot");
+                setError(null);
+                setInfo(null);
+              }}
+              className="text-sm font-semibold text-primary hover:brightness-110"
+            >
+              Forgot password? · დაგავიწყდა პაროლი?
+            </button>
+          )}
           {error && (
             <div className="rounded-lg border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/5 p-3 text-sm text-[color:var(--bad)]">
               {error}

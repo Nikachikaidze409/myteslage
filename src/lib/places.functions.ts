@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { googleKey, googleFail, PLACES_API } from "@/lib/google-api";
 
 export interface NearbyPlace {
   id: string;
@@ -35,14 +36,10 @@ export const searchNearby = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data }): Promise<{ places: NearbyPlace[] }> => {
-    const lovableKey = process.env.LOVABLE_API_KEY;
-    const connKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (!lovableKey || !connKey) throw new Error("Google Maps connector not configured");
-
     const useText = data.category === "supercharger" || !!data.textQuery;
     const url = useText
-      ? "https://connector-gateway.lovable.dev/google_maps/places/v1/places:searchText"
-      : "https://connector-gateway.lovable.dev/google_maps/places/v1/places:searchNearby";
+      ? `${PLACES_API}/places:searchText`
+      : `${PLACES_API}/places:searchNearby`;
 
     const body = useText
       ? {

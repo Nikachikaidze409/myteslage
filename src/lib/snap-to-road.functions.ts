@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
+import { googleKey, ROADS_API } from "@/lib/google-api";
 
 const InputSchema = z.object({
   lat: z.number(),
@@ -11,19 +11,9 @@ const InputSchema = z.object({
 export const snapToRoad = createServerFn({ method: "POST" })
   .inputValidator((data) => InputSchema.parse(data))
   .handler(async ({ data }) => {
-    const lovableKey = process.env.LOVABLE_API_KEY;
-    const gmKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (!lovableKey || !gmKey) throw new Error("Google Maps connector not configured");
-
     const path = `${data.lat},${data.lng}`;
     const res = await fetch(
-      `${GATEWAY_URL}/roads/v1/nearestRoads?points=${encodeURIComponent(path)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": gmKey,
-        },
-      },
+      `${ROADS_API}/v1/nearestRoads?points=${encodeURIComponent(path)}&key=${encodeURIComponent(googleKey())}`,
     );
     if (!res.ok) {
       const body = await res.text();

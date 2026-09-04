@@ -1,0 +1,141 @@
+// Raw GPS -> accuracy gate -> outlier rejection -> smoothing -> heading
+// smoothing -> last-reliable-position retention.
+//
+// This runs outside React: it holds mutable state and is read by the
+// animation loop. It never triggers a render on its own.
+
+import { angleDelta, bearing, haversine, lerpAngle, type LatLng } from "./math";
+
+export interface RawFix {
+  lat: number;
+  lng: number;
+  accuracy: number;
+  heading?: number | null;
+  speed?: number | null;
+  timestamp: number;
+}
+
+export interface GpsState {
+  /** smoothed position */
+  lat: number;
+  lng: number;
+  /** smoothed heading in degrees, or null while stationary and unknown */
+  heading: number | null;
+  /** metres per second */
+  speed: number;
+  accuracy: number;
+  /** performance.now() of the last accepted fix */
+  at: number;
+  /** true when no usable fix arrived recently (tunnel, garage) */
+  stale: boolean;
+}
+
+/** Nothing worse than this can place a car on a street. */
+const MAX_ACCURACY_M = 250;
+/** No road vehicle covers this much ground per second. */
+const MAX_SPEED_MPS = 75;
+/** After this long without a fix, the position is treated as stale. */
+const STALE_AFTER_MS = 6000;
+
+export class GpsEngine {
+  private accepted: RawFix | null = null;
+  private smooth: LatLng | null = null;
+  private headingSmooth: number | null = null;
+  private speedSmooth = 0;
+  private acceptedAt = 0;
+  private rejects = 0;
+
+  /** Feed a device / paired-phone fix. Returns false when it was rejected. */
+  ingest(fix: RawFix, now = performance.now()): boolean {
+    if (!Number.isFinite(fix.lat) || !Number.isFinite(fix.lng)) return false;
+    if (Math.abs(fix.lat) > 90 || Math.abs(fix.lng) > 180) return false;
+    if (Number.isFinite(fix.accuracy) && fix.accuracy > MAX_ACCURACY_M) return false;
+
+    const prev = this.accepted;
+    if (prev) {
+      const dt = Math.max(0.2, (fix.timestamp - prev.timestamp) / 1000);
+      const d = haversine(prev, fix);
+      const implied = d / dt;
+      // An impossible jump is rejected once; if the next fixes agree with it,
+      // the device really did move (tunnel exit, GPS re-lock) so we accept.
+      if (implied > MAX_SPEED_MPS && this.rejects < 2) {
+        this.rejects++;
+        return false;
+      }
+    }
+    this.rejects = 0;
+    this.accepted = fix;
+    this.acceptedAt = now;
+
+    // Position smoothing: trust an accurate fix more than a vague one.
+    const w = accuracyWeight(fix.accuracy);
+    this.smooth = this.smooth
+      ? {
+          lat: this.smooth.lat + (fix.lat - this.smooth.lat) * w,
+          lng: this.smooth.lng + (fix.lng - this.smooth.lng) * w,
+        }
+      : { lat: fix.lat, lng: fix.lng };
+
+    // Speed: reported when available, otherwise derived from movement.
+    let speed = fix.speed != null && fix.speed >= 0 ? fix.speed : NaN;
+    if (!Number.isFinite(speed) && prev) {
+      const dt = Math.max(0.2, (fix.timestamp - prev.timestamp) / 1000);
+      speed = haversine(prev, fix) / dt;
+    }
+    if (!Number.isFinite(speed)) speed = 0;
+    this.speedSmooth = this.speedSmooth * 0.7 + Math.min(speed, MAX_SPEED_MPS) * 0.3;
+
+    // Heading: device course when moving, otherwise derived from the track.
+    let target: number | null = null;
+    if (fix.heading != null && Number.isFinite(fix.heading) && this.speedSmooth > 1) {
+      target = ((fix.heading % 360) + 360) % 360;
+    } else if (prev && haversine(prev, fix) > 5) {
+      target = bearing(prev, fix);
+    }
+    if (target != null) {
+      this.headingSmooth =
+        this.headingSmooth == null
+          ? target
+          : // Snap through big genuine turns, glide through small jitter.
+            lerpAngle(this.headingSmooth, target, Math.abs(angleDelta(this.headingSmooth, target)) > 60 ? 0.6 : 0.25);
+    }
+    return true;
+  }
+
+  /** Last reliable state, or null before the first accepted fix. */
+  state(now = performance.now()): GpsState | null {
+    const p = this.smooth;
+    const raw = this.accepted;
+    if (!p || !raw) return null;
+    return {
+      lat: p.lat,
+      lng: p.lng,
+      heading: this.headingSmooth,
+      speed: this.speedSmooth,
+      accuracy: raw.accuracy,
+      at: this.acceptedAt,
+      stale: now - this.acceptedAt > STALE_AFTER_MS,
+    };
+  }
+
+  /** Force the smoothed position (used after a Roads API match). */
+  override(p: LatLng): void {
+    this.smooth = p;
+  }
+
+  reset(): void {
+    this.accepted = null;
+    this.smooth = null;
+    this.headingSmooth = null;
+    this.speedSmooth = 0;
+    this.rejects = 0;
+  }
+}
+
+function accuracyWeight(accuracy: number): number {
+  if (!Number.isFinite(accuracy)) return 0.5;
+  if (accuracy <= 10) return 0.85;
+  if (accuracy <= 25) return 0.6;
+  if (accuracy <= 60) return 0.4;
+  return 0.25;
+}

@@ -18,5 +18,19 @@ export const MAPS_API = "https://maps.googleapis.com";
 export async function googleFail(res: Response, what: string): Promise<never> {
   const body = await res.text();
   console.error(`${what} failed [${res.status}]: ${body}`);
+
+  if (res.status === 403 && /has not been used in project|is disabled/i.test(body)) {
+    const api = /Places API \(New\)|Routes API|Roads API|Geocoding API|Maps JavaScript API/i.exec(body)?.[0] ?? "This Google API";
+    throw new Error(
+      `${api} is turned off in your Google Cloud project. Enable it in Google Cloud Console (APIs & Services > Library), then try again in a few minutes.`,
+    );
+  }
+  if (res.status === 403) {
+    throw new Error(
+      `Google refused this request (403). Check your API key's restrictions in Google Cloud Console.`,
+    );
+  }
+
   throw new Error(`${what} failed [${res.status}]: ${body.slice(0, 300)}`);
 }
+

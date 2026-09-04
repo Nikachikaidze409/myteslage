@@ -15,7 +15,7 @@ import { geoTracker } from "./geoTracker";
 import { RoadsMatcher } from "./roadsService";
 import { RouteRenderer } from "./routeRenderer";
 import { VehicleRenderer } from "./vehicleRenderer";
-import { dampFactor, haversine, lerp, lerpAngle, type LatLng } from "./math";
+import { dampFactor, haversine, lerp, type LatLng } from "./math";
 
 export type NavState =
   | "IDLE"

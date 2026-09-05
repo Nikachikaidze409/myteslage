@@ -318,7 +318,7 @@ export class RouteProgressEngine {
     this.lastLogged = line;
     this.log.push(line);
     if (this.log.length > 30) this.log.shift();
-    if (import.meta.env.DEV) console.debug("[nav]", line);
+    if (import.meta.env?.DEV) console.debug("[nav]", line);
   }
 }
 

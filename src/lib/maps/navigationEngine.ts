@@ -74,7 +74,7 @@ type Listener = (s: NavSnapshot) => void;
 /** Dead reckoning never runs longer than this without a real fix. */
 const MAX_PREDICT_S = 5;
 /** Short debounce so GPS noise cannot fire two reroutes back to back. */
-const REROUTE_DEBOUNCE_MS = 4000;
+const REROUTE_DEBOUNCE_MS = 2000;
 /** A maneuver closer than this puts the UI in approach mode. */
 const APPROACH_M = 150;
 

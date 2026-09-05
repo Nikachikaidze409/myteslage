@@ -79,6 +79,10 @@ export function AuthGate({ children }: Props) {
       };
       const heartbeat = async () => {
         if (!alive || document.visibilityState === "hidden") return;
+        // Never call the server without a live session: after a sign-out or an
+        // expired token the request has no bearer header and throws.
+        const { data: current } = await supabase.auth.getSession();
+        if (!current.session) return;
         try {
           const res = await verifyDevice({ data: { deviceId } });
           if (alive && !res.ok) await kickOut();
@@ -86,6 +90,7 @@ export function AuthGate({ children }: Props) {
           /* network hiccup: ignore, try again next tick */
         }
       };
+
       heartbeatTimer = window.setInterval(() => void heartbeat(), 30_000);
       onWake = () => void heartbeat();
       document.addEventListener("visibilitychange", onWake);

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { onMapsAuthFailure, clearMapsAuthFailure, resetMapsLoader } from "@/lib/maps-loader";
 import { createMap } from "@/lib/maps/googleMapsService";
-import { NavigationEngine, type NavSnapshot } from "@/lib/maps/navigationEngine";
+import { NavigationEngine, type NavDebug, type NavSnapshot } from "@/lib/maps/navigationEngine";
+import type { RouteStep } from "@/lib/routes.functions";
 import type { Fix } from "./StatusPanel";
 
 export interface LiveProgress {
@@ -17,6 +18,8 @@ interface Props {
   fix: Fix | null;
   destination: { lat: number; lng: number; name?: string } | null;
   encodedPolyline: string | null;
+  /** Turn-by-turn steps of the active route, used for maneuver awareness. */
+  steps?: RouteStep[];
   navigating?: boolean;
   showTraffic?: boolean;
   rerouting?: boolean;
@@ -24,6 +27,8 @@ interface Props {
   alternates?: { encodedPolyline: string; index: number }[];
   onSelectAlternate?: (index: number) => void;
   onProgress?: (p: LiveProgress) => void;
+  /** Development-only navigation telemetry. */
+  onDebug?: (d: NavDebug | null, state: string) => void;
   /** The engine confirmed the car left the route: ask the server for a new one. */
   onRerouteNeeded?: () => void;
   /** Increment to programmatically trigger recenter-on-me from a parent. */
@@ -41,6 +46,7 @@ export function MapView({
   fix,
   destination,
   encodedPolyline,
+  steps,
   navigating,
   showTraffic,
   rerouting,
@@ -48,6 +54,7 @@ export function MapView({
   alternates,
   onSelectAlternate,
   onProgress,
+  onDebug,
   onRerouteNeeded,
   recenterSignal,
   preview,
@@ -80,6 +87,10 @@ export function MapView({
   onPickPoiRef.current = onPickPoi;
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
+  const onDebugRef = useRef(onDebug);
+  onDebugRef.current = onDebug;
+  const stepsRef = useRef(steps);
+  stepsRef.current = steps;
   const onRerouteRef = useRef(onRerouteNeeded);
   onRerouteRef.current = onRerouteNeeded;
   const onSelectAlternateRef = useRef(onSelectAlternate);
@@ -126,6 +137,7 @@ export function MapView({
               along: s.along,
               offset: s.offset,
             });
+            onDebugRef.current?.(s.debug, s.state);
           });
 
           // Any user gesture hands control back to the driver.
@@ -244,7 +256,7 @@ export function MapView({
   }, [fix, mapReady]);
 
   useEffect(() => {
-    engineRef.current?.setRoute(encodedPolyline ?? null);
+    engineRef.current?.setRoute(encodedPolyline ?? null, stepsRef.current ?? []);
   }, [encodedPolyline, mapReady]);
 
   useEffect(() => {

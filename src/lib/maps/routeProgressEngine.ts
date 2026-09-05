@@ -51,12 +51,12 @@ export interface FixInput {
 
 const MIN_HEADING_SPEED = 1.5;
 /** Never let the threshold drop below this or GPS noise reroutes constantly. */
-const MIN_OFF_ROUTE_M = 12;
+const MIN_OFF_ROUTE_M = 10;
 const MAX_OFF_ROUTE_M = 35;
 /** Consecutive credible readings needed to confirm a deviation. */
 const STRIKES_TO_CONFIRM = 2;
 /** Right after a reroute the car needs a moment to settle on the new line. */
-const STABILISE_MS = 8000;
+const STABILISE_MS = 5000;
 
 export class RouteProgressEngine {
   private index: PathIndex | null = null;
@@ -280,6 +280,8 @@ export class RouteProgressEngine {
     );
     const credible = fix.accuracy < match.offset;
     const growing = match.offset >= this.lastOffset - 2;
+    // Clearly heading away from the line: no need to wait for a second read.
+    const diverging = match.offset > this.lastOffset + 2 && match.headingDiff > 35;
     const stabilising = now - this.routeSetAt < STABILISE_MS;
     const needed = stabilising ? STRIKES_TO_CONFIRM + 1 : STRIKES_TO_CONFIRM;
 
@@ -297,12 +299,16 @@ export class RouteProgressEngine {
     }
     this.lastOffset = match.offset;
 
-    const confirmed = passedManeuver ? this.strikes >= 1 : this.strikes >= needed;
+    const fastConfirm = diverging && credible && !stabilising && match.offset > threshold;
+    const confirmed =
+      passedManeuver || fastConfirm ? this.strikes >= 1 : this.strikes >= needed;
     if (confirmed) {
       this.note(
         passedManeuver
           ? `Maneuver missed at step ${man!.step} — ${Math.round(match.offset)} m off route`
-          : `OFF_ROUTE confirmed — ${this.strikes} readings ≥ ${Math.round(threshold)} m`,
+          : fastConfirm
+            ? `Diverging fast — off route on first credible reading (${Math.round(match.offset)} m)`
+            : `OFF_ROUTE confirmed — ${this.strikes} readings ≥ ${Math.round(threshold)} m`,
       );
     } else if (match.offset > 6) {
       this.note(

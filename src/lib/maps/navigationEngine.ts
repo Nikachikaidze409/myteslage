@@ -1,18 +1,19 @@
 // The single owner of the driving animation.
 //
-//   raw GPS -> gpsEngine -> Roads / route matching -> prediction ->
+//   raw GPS -> gpsEngine -> RouteProgressEngine (decisions) ->
 //   requestAnimationFrame -> vehicle + camera + route trimming
 //
-// Exactly one rAF loop and one camera loop exist while this is attached.
-// React never renders from inside the loop: it subscribes to a throttled
-// snapshot instead.
+// Route matching and off-route decisions happen only when a fix arrives.
+// The rAF loop below renders and interpolates; it never makes decisions.
 
-import { projectOnPath, pointAtAlong, remainingMeters, bearingBetween, type Projection } from "@/lib/route-progress";
+import { pointAtAlong, remainingMeters, bearingBetween, type Projection } from "@/lib/route-progress";
+import type { RouteStep } from "@/lib/routes.functions";
 import { CameraEngine } from "./cameraEngine";
 import { rememberCenter } from "./googleMapsService";
 import { GpsEngine, type GpsState, type RawFix } from "./gpsEngine";
 import { RoadsMatcher } from "./roadsService";
 import { RouteRenderer } from "./routeRenderer";
+import { RouteProgressEngine, type MatchState } from "./routeProgressEngine";
 import { VehicleRenderer } from "./vehicleRenderer";
 import { dampFactor, haversine, lerp, lerpAngle, type LatLng } from "./math";
 
@@ -20,11 +21,36 @@ export type NavState =
   | "IDLE"
   | "ROUTE_PREVIEW"
   | "NAVIGATING"
-  | "APPROACHING_TURN"
-  | "TURNING"
+  | "APPROACHING_MANEUVER"
+  | "MANEUVER_MISSED"
   | "OFF_ROUTE"
   | "REROUTING"
+  | "ROUTE_UPDATED"
   | "ARRIVED";
+
+export interface NavDebug {
+  lat: number;
+  lng: number;
+  accuracy: number;
+  speed: number;
+  gpsHeading: number | null;
+  segment: number;
+  step: number;
+  along: number;
+  prevAlong: number;
+  offset: number;
+  routeBearing: number;
+  headingDiff: number;
+  confidence: number;
+  direction: string;
+  threshold: number;
+  strikes: number;
+  maneuver: string | null;
+  maneuverDistance: number;
+  lastRerouteAt: number | null;
+  rerouteCount: number;
+  log: string[];
+}
 
 export interface NavSnapshot {
   state: NavState;
@@ -40,16 +66,17 @@ export interface NavSnapshot {
   speed: number;
   /** true while GPS has gone quiet */
   weakSignal: boolean;
+  debug: NavDebug | null;
 }
 
 type Listener = (s: NavSnapshot) => void;
 
-/** Confirmed off-route distance, with hysteresis to avoid flapping. */
-const OFF_ROUTE_M = 40;
-const BACK_ON_ROUTE_M = 22;
-const OFF_ROUTE_CONFIRM_MS = 2500;
 /** Dead reckoning never runs longer than this without a real fix. */
 const MAX_PREDICT_S = 5;
+/** Short debounce so GPS noise cannot fire two reroutes back to back. */
+const REROUTE_DEBOUNCE_MS = 4000;
+/** A maneuver closer than this puts the UI in approach mode. */
+const APPROACH_M = 150;
 
 export class NavigationEngine {
   readonly gps = new GpsEngine();
@@ -57,6 +84,7 @@ export class NavigationEngine {
   private camera: CameraEngine;
   private vehicle: VehicleRenderer;
   readonly route: RouteRenderer;
+  private progress = new RouteProgressEngine();
 
   private map: any;
   private raf: number | null = null;
@@ -69,12 +97,14 @@ export class NavigationEngine {
   private renderedHeading = 0;
   private proj: Projection | null = null;
   private predictedAlong = 0;
+  private debug: NavDebug | null = null;
 
   private navigating = false;
   private hasRoute = false;
-  private offRouteSince: number | null = null;
   private state: NavState = "IDLE";
   private rerouting = false;
+  private lastRerouteAt = 0;
+  private rerouteCount = 0;
 
   /** Set by the UI so the engine can ask for a new route exactly once. */
   onRerouteNeeded: (() => void) | null = null;
@@ -104,28 +134,39 @@ export class NavigationEngine {
       this.camera.reset(this.rendered);
     }
 
-    // While navigating, the route is the best road model there is; Roads API
-    // is only used when driving free (no active route).
-    const idx = this.route.pathIndex;
-    if (this.navigating && idx) {
-      const p = projectOnPath({ lat: s.lat, lng: s.lng }, idx, this.proj?.along, 800);
-      if (p) {
-        this.proj = p;
-        this.predictedAlong = p.along;
-        if (p.offset < BACK_ON_ROUTE_M) {
-          // Confidently on the route: render the matched point, like Google.
-          this.gps.override(p.point);
-          this.offRouteSince = null;
-          if (this.state === "OFF_ROUTE") this.setState("NAVIGATING");
-        } else if (p.offset > OFF_ROUTE_M) {
-          if (this.offRouteSince == null) this.offRouteSince = now;
-          if (now - this.offRouteSince > OFF_ROUTE_CONFIRM_MS && !this.rerouting) {
+    if (this.navigating && this.progress.pathIndex) {
+      const res = this.progress.update(
+        { lat: s.lat, lng: s.lng, heading: s.heading, speed: s.speed, accuracy: s.accuracy },
+        now,
+      );
+      if (res) {
+        const { match, verdict } = res;
+        this.proj = this.progress.projection();
+        this.predictedAlong = match.along;
+
+        // Only render the matched point while we are confident it is right;
+        // otherwise the raw position is more honest than a wrong road.
+        if (match.offset < verdict.threshold * 0.7 && match.confidence > 0.4) {
+          this.gps.override(match.point);
+        }
+
+        const man = this.progress.nextManeuver();
+        this.updateDebug(s, match, verdict.threshold, verdict.strikes, man);
+
+        if (verdict.offRoute && !this.rerouting) {
+          if (now - this.lastRerouteAt > REROUTE_DEBOUNCE_MS || this.lastRerouteAt === 0) {
+            this.lastRerouteAt = now;
+            this.rerouteCount++;
             this.rerouting = true;
+            this.setState(verdict.maneuverMissed ? "MANEUVER_MISSED" : "OFF_ROUTE");
             this.setState("REROUTING");
             this.onRerouteNeeded?.();
-          } else if (this.state === "NAVIGATING" || this.state === "APPROACHING_TURN") {
-            this.setState("OFF_ROUTE");
           }
+        } else if (!this.rerouting) {
+          const remaining = this.proj ? remainingMeters(this.progress.pathIndex!, this.proj) : 0;
+          if (remaining < 30) this.setState("ARRIVED");
+          else if (man && man.distance < APPROACH_M) this.setState("APPROACHING_MANEUVER");
+          else this.setState("NAVIGATING");
         }
       }
     } else {
@@ -135,25 +176,23 @@ export class NavigationEngine {
     }
   }
 
-  setRoute(encoded: string | null): void {
+  setRoute(encoded: string | null, steps: RouteStep[] = []): void {
     const changed = this.route.setRoute(encoded);
     this.hasRoute = !!encoded;
-    if (changed) {
-      this.proj = null;
-      this.predictedAlong = 0;
-      this.offRouteSince = null;
-      this.rerouting = false;
-      if (!encoded) this.setState(this.navigating ? "NAVIGATING" : "IDLE");
-      else this.setState(this.navigating ? "NAVIGATING" : "ROUTE_PREVIEW");
-      if (!this.navigating) this.route.fitRoute();
-    }
+    if (!changed) return;
+    const idx = this.route.pathIndex;
+    this.progress.setRoute(idx ? idx.path : null, steps);
+    this.proj = null;
+    this.predictedAlong = 0;
+    if (!encoded) this.setState(this.navigating ? "NAVIGATING" : "IDLE");
+    else this.setState(this.navigating ? "ROUTE_UPDATED" : "ROUTE_PREVIEW");
+    if (!this.navigating) this.route.fitRoute();
   }
 
   setNavigating(on: boolean): void {
     if (this.navigating === on) return;
     this.navigating = on;
     this.rerouting = false;
-    this.offRouteSince = null;
     this.setState(on ? "NAVIGATING" : this.hasRoute ? "ROUTE_PREVIEW" : "IDLE");
     if (on) this.setFollow(true);
     else this.camera.setOptions({ headingUp: true });
@@ -238,15 +277,15 @@ export class NavigationEngine {
   };
 
   /**
-   * Where the car should be right now: along the route when navigating,
-   * otherwise dead reckoning from the last reliable fix. Never extrapolates
-   * for more than a few seconds.
+   * Where the car should be right now: along the route when the match is
+   * trustworthy, otherwise dead reckoning from the last reliable fix.
    */
   private predict(s: GpsState, now: number, dt: number): { point: LatLng; heading: number } {
-    const idx = this.route.pathIndex;
+    const idx = this.progress.pathIndex;
+    const match = this.progress.match;
     const since = Math.min(MAX_PREDICT_S, (now - s.at) / 1000);
 
-    if (this.navigating && idx && this.proj) {
+    if (this.navigating && !this.rerouting && idx && this.proj && match && match.confidence > 0.4) {
       // Advance along the route geometry at the measured speed.
       this.predictedAlong = Math.min(
         idx.total,
@@ -274,11 +313,45 @@ export class NavigationEngine {
 
   private setState(next: NavState): void {
     if (this.state === next) return;
+    // While a new route is being fetched, nothing may claim we are happily
+    // navigating the old one.
+    if (this.rerouting && (next === "NAVIGATING" || next === "APPROACHING_MANEUVER")) return;
     this.state = next;
     this.lastEmit = 0; // push the change out on the next frame
   }
 
-  /** Approaching-turn detection lives here so the UI stays declarative. */
+  private updateDebug(
+    s: GpsState,
+    m: MatchState,
+    threshold: number,
+    strikes: number,
+    man: { instruction: string; distance: number } | null,
+  ): void {
+    this.debug = {
+      lat: s.lat,
+      lng: s.lng,
+      accuracy: s.accuracy,
+      speed: s.speed,
+      gpsHeading: s.heading,
+      segment: m.segment,
+      step: m.step,
+      along: m.along,
+      prevAlong: m.prevAlong,
+      offset: m.offset,
+      routeBearing: m.routeBearing,
+      headingDiff: m.headingDiff,
+      confidence: m.confidence,
+      direction: m.direction,
+      threshold,
+      strikes,
+      maneuver: man?.instruction ?? null,
+      maneuverDistance: man?.distance ?? 0,
+      lastRerouteAt: this.lastRerouteAt || null,
+      rerouteCount: this.rerouteCount,
+      log: this.progress.logLines.slice(-8),
+    };
+  }
+
   private emit(now: number, s: GpsState): void {
     if (now - this.lastEmit < 500) return;
     this.lastEmit = now;
@@ -286,10 +359,8 @@ export class NavigationEngine {
       this.lastRemember = now;
       rememberCenter(this.rendered);
     }
-    const idx = this.route.pathIndex;
+    const idx = this.progress.pathIndex;
     const remaining = idx && this.proj ? remainingMeters(idx, this.proj) : 0;
-
-    if (this.navigating && idx && this.proj && remaining < 30) this.setState("ARRIVED");
 
     const snap: NavSnapshot = {
       state: this.state,
@@ -300,14 +371,16 @@ export class NavigationEngine {
       heading: this.renderedHeading,
       speed: s.speed,
       weakSignal: s.stale,
+      debug: this.debug,
     };
     for (const l of this.listeners) l(snap);
   }
 
   /** Called by the UI once a fresh route has arrived after a reroute. */
   rerouteResolved(): void {
+    if (!this.rerouting) return;
     this.rerouting = false;
-    this.offRouteSince = null;
+    this.progress.markRerouted();
     this.setState(this.navigating ? "NAVIGATING" : "ROUTE_PREVIEW");
   }
 }

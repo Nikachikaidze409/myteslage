@@ -32,6 +32,8 @@ import { saveSession, loadSession, clearSession } from "@/lib/session";
 import { AuthGate, signOutAndReturn } from "@/components/AuthGate";
 import { reverseGeocode, placeDetails } from "@/lib/search.functions";
 import { searchNearby, type NearbyPlace } from "@/lib/places.functions";
+import { NavDebugPanel } from "@/components/NavDebugPanel";
+import type { NavDebug } from "@/lib/maps/navigationEngine";
 
 
 const MapView = lazy(() =>
@@ -103,6 +105,11 @@ function Index() {
   const [recenterSignal, setRecenterSignal] = useState(0);
   // Sidebar collapse so the map can fill the full screen.
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Navigation telemetry: dev builds, or ?navdebug=1 on any build.
+  const [navDebug, setNavDebug] = useState<{ debug: NavDebug | null; state: string } | null>(null);
+  const debugEnabled =
+    typeof window !== "undefined" &&
+    (import.meta.env.DEV || new URLSearchParams(window.location.search).has("navdebug"));
 
   // Session restore state
   const restoredRef = useRef(false);
@@ -333,7 +340,8 @@ function Index() {
 
   const handleRerouteNeeded = useCallback(() => {
     if (!navigating || !destination || !fix) return;
-    if (Date.now() - lastRerouteAtRef.current < 2_500) return;
+    // The engine already debounces; this only stops duplicate calls in-flight.
+    if (Date.now() - lastRerouteAtRef.current < 1_200) return;
     lastRerouteAtRef.current = Date.now();
     offRouteSinceRef.current = Date.now();
     setOffRoute(true);
@@ -744,6 +752,7 @@ function Index() {
                 fix={fix}
                 destination={destination}
                 encodedPolyline={route?.encodedPolyline ?? null}
+                steps={route?.steps ?? []}
                 navigating={navigating}
                 rerouting={rerouting}
                 showTraffic={showTraffic}
@@ -759,7 +768,13 @@ function Index() {
                   setPreview({ lat: p.lat, lng: p.lng, name: p.name, address: p.address })
                 }
                 onMapClick={handleMapClick}
+                onDebug={
+                  debugEnabled ? (debug, state) => setNavDebug({ debug, state }) : undefined
+                }
               />
+              {debugEnabled && navDebug ? (
+                <NavDebugPanel debug={navDebug.debug} state={navDebug.state} />
+              ) : null}
 
             </Suspense>
           </ClientOnly>

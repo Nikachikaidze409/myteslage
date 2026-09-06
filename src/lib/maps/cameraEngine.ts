@@ -38,13 +38,15 @@ export class CameraEngine {
     this.opts = opts;
   }
 
-  /** Reports back when the renderer refuses the requested 3D pitch. */
+  /** Reports back when the renderer really refuses the requested 3D pitch. */
   onTiltUnsupported: (() => void) | null = null;
+  private verifyTimer: number | null = null;
 
   setOptions(next: Partial<CameraOptions>): void {
-    const prevTilt = this.opts.tilt3d;
     this.opts = { ...this.opts, ...next };
-    if (next.tilt3d !== undefined && next.tilt3d !== prevTilt) this.applyDisplayTilt();
+    // The display mode is authoritative: re-assert pitch on every write, even
+    // when the flag did not change, so map and UI can never drift apart.
+    if (next.tilt3d !== undefined || next.vector !== undefined) this.applyDisplayTilt();
   }
 
   /**
@@ -55,6 +57,33 @@ export class CameraEngine {
   applyDisplayTilt(): void {
     const want = this.opts.tilt3d !== false && this.opts.vector ? NAV_TILT : 0;
     if (this.cur) this.cur.tilt = want;
+    this.writeTilt(want);
+
+    if (this.verifyTimer != null) {
+      window.clearTimeout(this.verifyTimer);
+      this.verifyTimer = null;
+    }
+    if (want <= 0) return;
+
+    // Verify late and with a retry: an early readback right after map creation
+    // reports 0 while the renderer is still warming up, which is "unknown",
+    // not "unsupported".
+    this.verifyTimer = window.setTimeout(() => {
+      if (this.opts.tilt3d === false) return;
+      if ((this.map.getTilt?.() ?? 0) >= 1) return;
+      this.writeTilt(want);
+      this.verifyTimer = window.setTimeout(() => {
+        if (this.opts.tilt3d === false) return;
+        if ((this.map.getTilt?.() ?? 0) >= 1) return;
+        this.opts = { ...this.opts, tilt3d: false };
+        if (this.cur) this.cur.tilt = 0;
+        this.writeTilt(0);
+        this.onTiltUnsupported?.();
+      }, 1500);
+    }, 1500);
+  }
+
+  private writeTilt(want: number): void {
     try {
       if (typeof this.map.moveCamera === "function" && this.opts.vector) {
         this.map.moveCamera({ tilt: want });
@@ -64,18 +93,8 @@ export class CameraEngine {
     } catch {
       /* raster maps have no tilt */
     }
-    if (want > 0) {
-      // Verify the renderer actually accepted the pitch; raster fallbacks report 0.
-      window.setTimeout(() => {
-        const actual = this.map.getTilt?.() ?? 0;
-        if (actual < 1) {
-          this.opts = { ...this.opts, tilt3d: false };
-          if (this.cur) this.cur.tilt = 0;
-          this.onTiltUnsupported?.();
-        }
-      }, 350);
-    }
   }
+
 
   /** What the map is actually rendering right now. */
   actualTilt(): number {

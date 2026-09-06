@@ -750,20 +750,23 @@ function Index() {
             >
               {showTraffic ? "Traffic on" : "Traffic off"}
             </button>
-            {vector3dAvailable && (
             <button
               type="button"
-              onClick={() => setTilt3d((v) => !v)}
+              disabled={!vector3dAvailable}
+              onClick={() => vector3dAvailable && setTilt3d((v) => !v)}
               aria-label="Toggle 3D or 2D map view"
+              title={vector3dAvailable ? "Switch between 3D and 2D" : "3D view is not supported on this screen"}
               className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
-                tilt3d
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-white/90 text-foreground hover:bg-white"
+                !vector3dAvailable
+                  ? "cursor-not-allowed border-border bg-white/70 text-muted-foreground"
+                  : tilt3d
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-white/90 text-foreground hover:bg-white"
               }`}
             >
-              {tilt3d ? "3D" : "2D"}
+              {tilt3d && vector3dAvailable ? "3D" : "2D"}
             </button>
-            )}
+
           </div>
           )}
 
@@ -842,15 +845,18 @@ function Index() {
                 navigating={navigating}
                 tilt3d={tilt3d && vector3dAvailable}
                 onCapabilities={({ vector }) => {
+                  // Only a hard "no vector renderer" answer disables 3D; an
+                  // undetermined result leaves the control fully usable.
                   setVector3dAvailable(vector);
                   if (!vector) setTilt3d(false);
                 }}
                 onTilt3dUnsupported={() => {
-                  // The renderer refused the pitch: stay in supported 2D and
-                  // hide the toggle instead of retrying forever.
+                  // The renderer genuinely refused the pitch (verified twice):
+                  // fall back to flat 2D, keep the control visible but inert.
                   setVector3dAvailable(false);
                   setTilt3d(false);
                 }}
+
                 rerouting={rerouting}
                 showTraffic={showTraffic}
                 onProgress={setProgress}

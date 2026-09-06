@@ -35,8 +35,48 @@ export class CameraEngine {
     this.opts = opts;
   }
 
+  /** Reports back when the renderer refuses the requested 3D pitch. */
+  onTiltUnsupported: (() => void) | null = null;
+
   setOptions(next: Partial<CameraOptions>): void {
+    const prevTilt = this.opts.tilt3d;
     this.opts = { ...this.opts, ...next };
+    if (next.tilt3d !== undefined && next.tilt3d !== prevTilt) this.applyDisplayTilt();
+  }
+
+  /**
+   * The display mode is the single owner of pitch. Applied immediately, even
+   * when follow is off or navigation has not started, so the toggle can never
+   * disagree with what is on screen.
+   */
+  applyDisplayTilt(): void {
+    const want = this.opts.tilt3d !== false && this.opts.vector ? NAV_TILT : 0;
+    if (this.cur) this.cur.tilt = want;
+    try {
+      if (typeof this.map.moveCamera === "function" && this.opts.vector) {
+        this.map.moveCamera({ tilt: want });
+      } else {
+        this.map.setTilt?.(want);
+      }
+    } catch {
+      /* raster maps have no tilt */
+    }
+    if (want > 0) {
+      // Verify the renderer actually accepted the pitch; raster fallbacks report 0.
+      window.setTimeout(() => {
+        const actual = this.map.getTilt?.() ?? 0;
+        if (actual < 1) {
+          this.opts = { ...this.opts, tilt3d: false };
+          if (this.cur) this.cur.tilt = 0;
+          this.onTiltUnsupported?.();
+        }
+      }, 350);
+    }
+  }
+
+  /** What the map is actually rendering right now. */
+  actualTilt(): number {
+    return this.map.getTilt?.() ?? 0;
   }
 
   /** Called after a programmatic jump so the damping restarts from there. */

@@ -192,6 +192,11 @@ export function MapView({
           engineRef.current = engine;
           engine.onFollowChange = (v) => setFollowUi(v);
           engine.onRerouteNeeded = () => onRerouteRef.current?.();
+          // Carry the follow state across a mode switch so the driver never
+          // has to press "My location" again.
+          if (restoreRef.current?.follow === false) engine.releaseFollow();
+          restoreRef.current = null;
+
           engine.subscribe((s: NavSnapshot) => {
             setWeakSignal(s.weakSignal);
             onProgressRef.current?.({

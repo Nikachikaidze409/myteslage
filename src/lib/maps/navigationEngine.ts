@@ -45,6 +45,8 @@ export interface NavDebug {
   direction: string;
   threshold: number;
   strikes: number;
+  offRoute: boolean;
+  reason: string;
   maneuver: string | null;
   maneuverDistance: number;
   lastRerouteAt: number | null;
@@ -159,7 +161,7 @@ export class NavigationEngine {
         }
 
         const man = this.progress.nextManeuver();
-        this.updateDebug(s, match, verdict.threshold, verdict.strikes, man);
+        this.updateDebug(s, match, verdict, man);
 
         if (verdict.offRoute && !this.rerouting) {
           if (now - this.lastRerouteAt > REROUTE_DEBOUNCE_MS || this.lastRerouteAt === 0) {
@@ -349,8 +351,7 @@ export class NavigationEngine {
   private updateDebug(
     s: GpsState,
     m: MatchState,
-    threshold: number,
-    strikes: number,
+    verdict: { threshold: number; strikes: number; offRoute: boolean; reason: string },
     man: { instruction: string; distance: number } | null,
   ): void {
     this.debug = {
@@ -368,8 +369,10 @@ export class NavigationEngine {
       headingDiff: m.headingDiff,
       confidence: m.confidence,
       direction: m.direction,
-      threshold,
-      strikes,
+      threshold: verdict.threshold,
+      strikes: verdict.strikes,
+      offRoute: verdict.offRoute,
+      reason: verdict.reason,
       maneuver: man?.instruction ?? null,
       maneuverDistance: man?.distance ?? 0,
       lastRerouteAt: this.lastRerouteAt || null,

@@ -119,6 +119,7 @@ export function MapView({
   const [retrying, setRetrying] = useState(false);
   const authTimerRef = useRef<number | null>(null);
   const authRetriedRef = useRef(false);
+  const gestureGuardRef = useRef<null | (() => void)>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,6 +140,42 @@ export function MapView({
           }
           setMapError(null);
           setRetrying(false);
+
+          // Manual zoom is limited to the +/- buttons. Google has no option to
+          // keep one-finger drag while dropping pinch, so multi-touch and
+          // pinch-wheel gestures are swallowed before the map sees them.
+          // Single-touch drag, taps and clicks pass through untouched.
+          const el = containerRef.current;
+          if (el && !gestureGuardRef.current) {
+            const stopMulti = (e: TouchEvent) => {
+              if (e.touches.length > 1) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            };
+            const stopPinchWheel = (e: WheelEvent) => {
+              if (e.ctrlKey) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            };
+            const stopGesture = (e: Event) => {
+              e.preventDefault();
+              e.stopPropagation();
+            };
+            el.addEventListener("touchstart", stopMulti, { capture: true, passive: false });
+            el.addEventListener("touchmove", stopMulti, { capture: true, passive: false });
+            el.addEventListener("wheel", stopPinchWheel, { capture: true, passive: false });
+            el.addEventListener("gesturestart", stopGesture, { capture: true, passive: false } as any);
+            el.addEventListener("gesturechange", stopGesture, { capture: true, passive: false } as any);
+            gestureGuardRef.current = () => {
+              el.removeEventListener("touchstart", stopMulti, true);
+              el.removeEventListener("touchmove", stopMulti, true);
+              el.removeEventListener("wheel", stopPinchWheel, true);
+              el.removeEventListener("gesturestart", stopGesture, true);
+              el.removeEventListener("gesturechange", stopGesture, true);
+            };
+          }
 
           const engine = new NavigationEngine(map, google, vector);
           engine.onTilt3dUnsupported = () => onTiltUnsupportedRef.current?.();

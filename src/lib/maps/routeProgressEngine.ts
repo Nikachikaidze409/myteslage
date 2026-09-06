@@ -299,7 +299,9 @@ export class RouteProgressEngine {
     }
     this.lastOffset = match.offset;
 
-    const fastConfirm = diverging && credible && !stabilising && match.offset > threshold;
+    // Clearly on another road: no point collecting a second reading.
+    const gross = credible && !stabilising && match.offset > Math.max(threshold * 2, 25);
+    const fastConfirm = (diverging || gross) && credible && !stabilising && match.offset > threshold;
     const confirmed =
       passedManeuver || fastConfirm ? this.strikes >= 1 : this.strikes >= needed;
     if (confirmed) {
@@ -307,7 +309,7 @@ export class RouteProgressEngine {
         passedManeuver
           ? `Maneuver missed at step ${man!.step} — ${Math.round(match.offset)} m off route`
           : fastConfirm
-            ? `Diverging fast — off route on first credible reading (${Math.round(match.offset)} m)`
+            ? `Diverging fast — off route on first credible reading (${Math.round(match.offset)} m, acc ${Math.round(fix.accuracy)} m)`
             : `OFF_ROUTE confirmed — ${this.strikes} readings ≥ ${Math.round(threshold)} m`,
       );
     } else if (match.offset > 6) {

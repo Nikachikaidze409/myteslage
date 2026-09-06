@@ -74,7 +74,7 @@ type Listener = (s: NavSnapshot) => void;
 /** Dead reckoning never runs longer than this without a real fix. */
 const MAX_PREDICT_S = 5;
 /** Short debounce so GPS noise cannot fire two reroutes back to back. */
-const REROUTE_DEBOUNCE_MS = 2000;
+const REROUTE_DEBOUNCE_MS = 1200;
 /** A maneuver closer than this puts the UI in approach mode. */
 const APPROACH_M = 150;
 
@@ -111,10 +111,15 @@ export class NavigationEngine {
 
   follow = false;
   onFollowChange: ((v: boolean) => void) | null = null;
+  /** Set once the driver pans/zooms by hand: follow then stays off until recenter. */
+  private userReleased = false;
+  /** Raised when the renderer cannot honour the requested 3D pitch. */
+  onTilt3dUnsupported: (() => void) | null = null;
 
   constructor(map: any, google: any, vector: boolean) {
     this.map = map;
     this.camera = new CameraEngine(map, google, { vector, headingUp: true });
+    this.camera.onTiltUnsupported = () => this.onTilt3dUnsupported?.();
     this.vehicle = new VehicleRenderer(map, google, vector);
     this.route = new RouteRenderer(map, google);
     this.raf = requestAnimationFrame(this.step);
@@ -132,6 +137,9 @@ export class NavigationEngine {
       this.rendered = { lat: s.lat, lng: s.lng };
       this.renderedHeading = s.heading ?? 0;
       this.camera.reset(this.rendered);
+      // Location tracking is always on; follow engages on the first fix unless
+      // the driver has deliberately taken the map over.
+      if (!this.userReleased) this.setFollow(true);
     }
 
     if (this.navigating && this.progress.pathIndex) {
@@ -184,6 +192,10 @@ export class NavigationEngine {
     this.progress.setRoute(idx ? idx.path : null, steps);
     this.proj = null;
     this.predictedAlong = 0;
+    if (this.rerouting) {
+      this.rerouting = false;
+      this.progress.markRerouted();
+    }
     if (!encoded) this.setState(this.navigating ? "NAVIGATING" : "IDLE");
     else this.setState(this.navigating ? "ROUTE_UPDATED" : "ROUTE_PREVIEW");
     if (!this.navigating) this.route.fitRoute();
@@ -207,6 +219,7 @@ export class NavigationEngine {
   }
 
   recenter(): void {
+    this.userReleased = false;
     this.setFollow(true);
     if (this.rendered) {
       this.camera.reset(this.rendered);
@@ -217,20 +230,15 @@ export class NavigationEngine {
 
   /** A user gesture wins over the camera until they recenter. */
   releaseFollow(): void {
+    this.userReleased = true;
     this.setFollow(false);
   }
 
   /** Flat top-down (false) or navigation perspective (true). */
   setTilt3d(on: boolean): void {
+    // The camera engine is the only writer of pitch; it applies the change at
+    // once and reports back if the renderer cannot do 3D.
     this.camera.setOptions({ tilt3d: on });
-    if (!on) {
-      try {
-        this.map.setTilt?.(0);
-      } catch {
-        /* raster maps have no tilt */
-      }
-      this.camera.reset(this.rendered ?? undefined);
-    }
   }
 
   /** Re-centre without handing control back and forth (used after layout changes). */

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { LocationButton } from "@/components/LocationButton";
+import { useLiveLocation } from "@/hooks/useLiveLocation";
 import { StatusPanel, type Fix } from "@/components/StatusPanel";
 import { DestinationSearch, type Destination } from "@/components/DestinationSearch";
 import { RoutePreview } from "@/components/RoutePreview";
@@ -77,7 +78,25 @@ function Index() {
   const [error, setError] = useState<string | null>(null);
   // Start live tracking automatically; no tap required.
   const [watching, setWatching] = useState(true);
+  // One authoritative live-location stream for the whole screen: independent of
+  // the sidebar, HUD mode, 2D/3D switching and route changes.
+  const live = useLiveLocation(
+    useCallback(
+      (f: Fix) => {
+        setError(null);
+        setFix(f);
+      },
+      [setFix],
+    ),
+  );
   const [now, setNow] = useState(() => Date.now());
+
+  // Surface a genuine location failure once; never loop the permission prompt.
+  useEffect(() => {
+    if (live.error && (live.status === "denied" || live.status === "unavailable")) {
+      setError(live.error);
+    }
+  }, [live.error, live.status]);
 
   const [destination, setDestination] = useState<Destination | null>(null);
   // A tapped/searched place shown as a pin with a card, before routing starts.
@@ -114,6 +133,9 @@ function Index() {
   const debugEnabled =
     typeof window !== "undefined" &&
     (import.meta.env.DEV || new URLSearchParams(window.location.search).has("navdebug"));
+  const debugEnabledRef = useRef(debugEnabled);
+  debugEnabledRef.current = debugEnabled;
+
 
   // Session restore state
   const restoredRef = useRef(false);
@@ -206,6 +228,7 @@ function Index() {
       },
     ) => {
       const requestId = ++routeRequestRef.current;
+      const startedAt = Date.now();
       if (!options?.silent) setRouteLoading(true);
       setRouteError(null);
       // Snap destination to nearest drivable road so we don't route down a dirt path
@@ -214,7 +237,10 @@ function Index() {
       const snapPromise: Promise<{ lat: number; lng: number }> =
         snappedDestRef.current?.key === destKey
           ? Promise.resolve({ lat: snappedDestRef.current.lat, lng: snappedDestRef.current.lng })
-          : snapToRoad({ data: { lat: nextDestination.lat, lng: nextDestination.lng } })
+          : // A reroute must not wait on an extra Roads round trip.
+            options?.reroute
+            ? Promise.resolve({ lat: nextDestination.lat, lng: nextDestination.lng })
+            : snapToRoad({ data: { lat: nextDestination.lat, lng: nextDestination.lng } })
               .then((s) => {
                 snappedDestRef.current = { key: destKey, lat: s.lat, lng: s.lng };
                 return { lat: s.lat, lng: s.lng };
@@ -236,6 +262,11 @@ function Index() {
         )
         .then((resp) => {
           if (routeRequestRef.current !== requestId) return;
+           if (debugEnabledRef.current) {
+             console.debug(
+               `[nav] route ${options?.reroute ? "reroute" : "request"} #${requestId} answered in ${Date.now() - startedAt} ms`,
+             );
+           }
            setRoutes(resp.routes);
            setSelectedRouteIdx(0);
            if (options?.reroute) setRerouting(false);
@@ -353,6 +384,7 @@ function Index() {
     if (Date.now() - lastRerouteAtRef.current < 1_200) return;
     lastRerouteAtRef.current = Date.now();
     offRouteSinceRef.current = Date.now();
+    if (debugEnabledRef.current) console.debug("[nav] off-route confirmed → requesting new route");
     setOffRoute(true);
     setRerouting(true);
     requestRoute(fix, destination, { silent: true, reroute: true });
@@ -508,13 +540,9 @@ function Index() {
           <FavoritesPanel currentDestination={destination} onPick={setDestination} />
 
           <LocationButton
-            onFix={(f) => {
-              setError(null);
-              setFix(f);
-            }}
-            onError={(msg) => setError(msg)}
-            active={watching}
-            onActiveChange={setWatching}
+            status={live.status}
+            onStart={live.start}
+            onStop={live.stop}
           />
 
           <PairPhonePanel
@@ -783,6 +811,12 @@ function Index() {
                 onCapabilities={({ vector }) => {
                   setVector3dAvailable(vector);
                   if (!vector) setTilt3d(false);
+                }}
+                onTilt3dUnsupported={() => {
+                  // The renderer refused the pitch: stay in supported 2D and
+                  // hide the toggle instead of retrying forever.
+                  setVector3dAvailable(false);
+                  setTilt3d(false);
                 }}
                 rerouting={rerouting}
                 showTraffic={showTraffic}

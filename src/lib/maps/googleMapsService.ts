@@ -51,6 +51,9 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
     disableDefaultUI: true,
     zoomControl: false,
     gestureHandling: "greedy",
+    // Wheel / trackpad zoom is disabled on purpose: drivers use the large
+    // +/- buttons, and stray scroll gestures must not change the view.
+    scrollwheel: false,
     clickableIcons: true,
     keyboardShortcuts: false,
     maxZoom: 20,

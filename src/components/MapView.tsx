@@ -348,6 +348,16 @@ export function MapView({
         window.clearTimeout(authTimerRef.current);
         authTimerRef.current = null;
       }
+      // Remember exactly where we are looking, so a 2D/3D switch is seamless.
+      const old = mapRef.current;
+      if (old) {
+        const c = old.getCenter?.();
+        restoreRef.current = {
+          center: c ? { lat: c.lat(), lng: c.lng() } : (lastCenterRef.current ?? undefined),
+          zoom: old.getZoom?.(),
+          follow: engineRef.current?.follow,
+        };
+      }
       gestureGuardRef.current?.();
       gestureGuardRef.current = null;
       resizeObsRef.current?.disconnect();
@@ -357,12 +367,24 @@ export function MapView({
       resizeCleanupRef.current = null;
       trafficLayerRef.current?.setMap(null);
       trafficLayerRef.current = null;
+      // Every overlay belongs to the map being disposed of.
+      destMarker.current?.setMap(null);
+      destMarker.current = null;
+      previewMarker.current?.setMap(null);
+      previewMarker.current = null;
+      for (const m of poiMarkersRef.current) m.setMap(null);
+      poiMarkersRef.current = [];
+      for (const m of waypointMarkersRef.current) m.setMap(null);
+      waypointMarkersRef.current = [];
       engineRef.current?.destroy();
       engineRef.current = null;
+      googleRef.current?.maps?.event?.clearInstanceListeners?.(old);
       mapRef.current = null;
+      if (containerRef.current) containerRef.current.innerHTML = "";
       setMapReady(false);
     };
-  }, [bootAttempt]);
+  }, [bootAttempt, mode]);
+
 
   // ---- engine inputs -----------------------------------------------------
   useEffect(() => {

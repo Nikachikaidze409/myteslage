@@ -147,6 +147,14 @@ function Index() {
   const lastLiveRouteAtRef = useRef(0);
   const offRouteSinceRef = useRef<number | null>(null);
   const lastRerouteAtRef = useRef(0);
+  const [rerouteTiming, setRerouteTiming] = useState({
+    detectedAt: null as number | null,
+    requestedAt: null as number | null,
+    responseMs: null as number | null,
+    activatedAt: null as number | null,
+    totalMs: null as number | null,
+    staleRejected: 0,
+  });
   // Cache snapped destinations so we don't hit Roads API on every reroute.
   const snappedDestRef = useRef<{ key: string; lat: number; lng: number } | null>(null);
 
@@ -261,7 +269,11 @@ function Index() {
           }),
         )
         .then((resp) => {
-          if (routeRequestRef.current !== requestId) return;
+          if (routeRequestRef.current !== requestId) {
+            if (debugEnabledRef.current)
+              setRerouteTiming((t) => ({ ...t, staleRejected: t.staleRejected + 1 }));
+            return;
+          }
            if (debugEnabledRef.current) {
              console.debug(
                `[nav] route ${options?.reroute ? "reroute" : "request"} #${requestId} answered in ${Date.now() - startedAt} ms`,
@@ -269,7 +281,18 @@ function Index() {
            }
            setRoutes(resp.routes);
            setSelectedRouteIdx(0);
-           if (options?.reroute) setRerouting(false);
+           if (options?.reroute) {
+             setRerouting(false);
+             if (debugEnabledRef.current) {
+               const now = Date.now();
+               setRerouteTiming((t) => ({
+                 ...t,
+                 responseMs: now - startedAt,
+                 activatedAt: now,
+                 totalMs: t.detectedAt ? now - t.detectedAt : null,
+               }));
+             }
+           }
           lastRouteOriginRef.current = originFix;
           setOffRoute(false);
           offRouteSinceRef.current = null;
@@ -382,8 +405,18 @@ function Index() {
     if (!navigating || !destination || !fix) return;
     // The engine already debounces; this only stops duplicate calls in-flight.
     if (Date.now() - lastRerouteAtRef.current < 1_200) return;
-    lastRerouteAtRef.current = Date.now();
-    offRouteSinceRef.current = Date.now();
+    const detectedAt = Date.now();
+    lastRerouteAtRef.current = detectedAt;
+    offRouteSinceRef.current = detectedAt;
+    if (debugEnabledRef.current)
+      setRerouteTiming((t) => ({
+        ...t,
+        detectedAt,
+        requestedAt: detectedAt,
+        responseMs: null,
+        activatedAt: null,
+        totalMs: null,
+      }));
     if (debugEnabledRef.current) console.debug("[nav] off-route confirmed → requesting new route");
     setOffRoute(true);
     setRerouting(true);
@@ -837,7 +870,7 @@ function Index() {
                 }
               />
               {debugEnabled && navDebug ? (
-                <NavDebugPanel debug={navDebug.debug} state={navDebug.state} />
+                <NavDebugPanel debug={navDebug.debug} state={navDebug.state} timing={rerouteTiming} />
               ) : null}
 
             </Suspense>

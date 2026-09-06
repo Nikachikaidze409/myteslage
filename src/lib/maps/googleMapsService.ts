@@ -54,6 +54,8 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
     // Wheel / trackpad zoom is disabled on purpose: drivers use the large
     // +/- buttons, and stray scroll gestures must not change the view.
     scrollwheel: false,
+    // Double-tap / double-click zoom is a gesture too: only +/- may zoom.
+    disableDoubleClickZoom: true,
     clickableIcons: true,
     keyboardShortcuts: false,
     maxZoom: 20,
@@ -64,8 +66,10 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
   };
   if (google.maps.RenderingType?.VECTOR) {
     options.renderingType = google.maps.RenderingType.VECTOR;
-    options.tiltInteractionEnabled = true;
-    options.headingInteractionEnabled = true;
+    // Gesture-driven tilt / rotate are off: display mode owns pitch and the
+    // navigation camera owns heading.
+    options.tiltInteractionEnabled = false;
+    options.headingInteractionEnabled = false;
   }
 
   let map: any;

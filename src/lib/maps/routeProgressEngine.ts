@@ -39,6 +39,8 @@ export interface OffRouteVerdict {
   maneuverMissed: boolean;
   threshold: number;
   strikes: number;
+  /** Why the verdict came out this way — development telemetry only. */
+  reason: string;
 }
 
 export interface FixInput {
@@ -57,6 +59,8 @@ const MAX_OFF_ROUTE_M = 35;
 const STRIKES_TO_CONFIRM = 2;
 /** Right after a reroute the car needs a moment to settle on the new line. */
 const STABILISE_MS = 5000;
+/** The deviation must exceed the reported accuracy by this factor to count. */
+const ACCURACY_MARGIN = 1.1;
 
 export class RouteProgressEngine {
   private index: PathIndex | null = null;
@@ -278,7 +282,9 @@ export class RouteProgressEngine {
       MAX_OFF_ROUTE_M,
       Math.max(MIN_OFF_ROUTE_M, fix.accuracy * 1.2, fix.speed * 0.6),
     );
-    const credible = fix.accuracy < match.offset;
+    // An error ellipse that already covers the route line cannot prove a
+    // deviation: a 50 m accuracy fix 25 m off the line is just drift.
+    const credible = match.offset > fix.accuracy * ACCURACY_MARGIN;
     const growing = match.offset >= this.lastOffset - 2;
     // Clearly heading away from the line: no need to wait for a second read.
     const diverging = match.offset > this.lastOffset + 2 && match.headingDiff > 35;
@@ -318,7 +324,28 @@ export class RouteProgressEngine {
       );
     }
 
-    return { offRoute: confirmed, maneuverMissed: passedManeuver, threshold, strikes: this.strikes };
+    const reason = confirmed
+      ? passedManeuver
+        ? "maneuver-missed"
+        : gross
+          ? "gross-deviation"
+          : diverging
+            ? "diverging"
+            : "strikes"
+      : !credible
+        ? "low-accuracy"
+        : stabilising
+          ? "stabilising"
+          : match.offset > threshold
+            ? "pending-confirmation"
+            : "on-route";
+    return {
+      offRoute: confirmed,
+      maneuverMissed: passedManeuver,
+      threshold,
+      strikes: this.strikes,
+      reason,
+    };
   }
 
   private note(line: string): void {

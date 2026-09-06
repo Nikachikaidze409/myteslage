@@ -120,17 +120,27 @@ export function MapView({
   const authTimerRef = useRef<number | null>(null);
   const authRetriedRef = useRef(false);
   const gestureGuardRef = useRef<null | (() => void)>(null);
+  // Buildings are drawn by the basemap, so 3D vs flat footprints is decided
+  // when the map is created. Switching mode rebuilds exactly one map instance
+  // and hands the preserved camera + navigation state straight back.
+  const mode: "2d" | "3d" = tilt3d ? "3d" : "2d";
+  const restoreRef = useRef<{
+    center?: { lat: number; lng: number };
+    zoom?: number;
+    follow?: boolean;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     const boot = (tries: number) => {
       if (!containerRef.current) return;
-      createMap(containerRef.current)
+      createMap(containerRef.current, { mode, initial: restoreRef.current })
         .then(({ google, map, vector }) => {
           if (cancelled) {
             return;
           }
+
           googleRef.current = google;
           mapRef.current = map;
           clearMapsAuthFailure();
@@ -182,6 +192,11 @@ export function MapView({
           engineRef.current = engine;
           engine.onFollowChange = (v) => setFollowUi(v);
           engine.onRerouteNeeded = () => onRerouteRef.current?.();
+          // Carry the follow state across a mode switch so the driver never
+          // has to press "My location" again.
+          if (restoreRef.current?.follow === false) engine.releaseFollow();
+          restoreRef.current = null;
+
           engine.subscribe((s: NavSnapshot) => {
             setWeakSignal(s.weakSignal);
             onProgressRef.current?.({
@@ -333,6 +348,16 @@ export function MapView({
         window.clearTimeout(authTimerRef.current);
         authTimerRef.current = null;
       }
+      // Remember exactly where we are looking, so a 2D/3D switch is seamless.
+      const old = mapRef.current;
+      if (old) {
+        const c = old.getCenter?.();
+        restoreRef.current = {
+          center: c ? { lat: c.lat(), lng: c.lng() } : (lastCenterRef.current ?? undefined),
+          zoom: old.getZoom?.(),
+          follow: engineRef.current?.follow,
+        };
+      }
       gestureGuardRef.current?.();
       gestureGuardRef.current = null;
       resizeObsRef.current?.disconnect();
@@ -342,12 +367,24 @@ export function MapView({
       resizeCleanupRef.current = null;
       trafficLayerRef.current?.setMap(null);
       trafficLayerRef.current = null;
+      // Every overlay belongs to the map being disposed of.
+      destMarker.current?.setMap(null);
+      destMarker.current = null;
+      previewMarker.current?.setMap(null);
+      previewMarker.current = null;
+      for (const m of poiMarkersRef.current) m.setMap(null);
+      poiMarkersRef.current = [];
+      for (const m of waypointMarkersRef.current) m.setMap(null);
+      waypointMarkersRef.current = [];
       engineRef.current?.destroy();
       engineRef.current = null;
+      googleRef.current?.maps?.event?.clearInstanceListeners?.(old);
       mapRef.current = null;
+      if (containerRef.current) containerRef.current.innerHTML = "";
       setMapReady(false);
     };
-  }, [bootAttempt]);
+  }, [bootAttempt, mode]);
+
 
   // ---- engine inputs -----------------------------------------------------
   useEffect(() => {

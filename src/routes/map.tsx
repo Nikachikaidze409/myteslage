@@ -845,15 +845,18 @@ function Index() {
                 navigating={navigating}
                 tilt3d={tilt3d && vector3dAvailable}
                 onCapabilities={({ vector }) => {
+                  // Only a hard "no vector renderer" answer disables 3D; an
+                  // undetermined result leaves the control fully usable.
                   setVector3dAvailable(vector);
                   if (!vector) setTilt3d(false);
                 }}
                 onTilt3dUnsupported={() => {
-                  // The renderer refused the pitch: stay in supported 2D and
-                  // hide the toggle instead of retrying forever.
+                  // The renderer genuinely refused the pitch (verified twice):
+                  // fall back to flat 2D, keep the control visible but inert.
                   setVector3dAvailable(false);
                   setTilt3d(false);
                 }}
+
                 rerouting={rerouting}
                 showTraffic={showTraffic}
                 onProgress={setProgress}

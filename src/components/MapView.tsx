@@ -120,17 +120,27 @@ export function MapView({
   const authTimerRef = useRef<number | null>(null);
   const authRetriedRef = useRef(false);
   const gestureGuardRef = useRef<null | (() => void)>(null);
+  // Buildings are drawn by the basemap, so 3D vs flat footprints is decided
+  // when the map is created. Switching mode rebuilds exactly one map instance
+  // and hands the preserved camera + navigation state straight back.
+  const mode: "2d" | "3d" = tilt3d ? "3d" : "2d";
+  const restoreRef = useRef<{
+    center?: { lat: number; lng: number };
+    zoom?: number;
+    follow?: boolean;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     const boot = (tries: number) => {
       if (!containerRef.current) return;
-      createMap(containerRef.current)
+      createMap(containerRef.current, { mode, initial: restoreRef.current })
         .then(({ google, map, vector }) => {
           if (cancelled) {
             return;
           }
+
           googleRef.current = google;
           mapRef.current = map;
           clearMapsAuthFailure();

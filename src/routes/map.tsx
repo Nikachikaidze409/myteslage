@@ -91,6 +91,13 @@ function Index() {
   );
   const [now, setNow] = useState(() => Date.now());
 
+  // Surface a genuine location failure once; never loop the permission prompt.
+  useEffect(() => {
+    if (live.error && (live.status === "denied" || live.status === "unavailable")) {
+      setError(live.error);
+    }
+  }, [live.error, live.status]);
+
   const [destination, setDestination] = useState<Destination | null>(null);
   // A tapped/searched place shown as a pin with a card, before routing starts.
   const [preview, setPreview] = useState<Destination | null>(null);
@@ -804,6 +811,12 @@ function Index() {
                 onCapabilities={({ vector }) => {
                   setVector3dAvailable(vector);
                   if (!vector) setTilt3d(false);
+                }}
+                onTilt3dUnsupported={() => {
+                  // The renderer refused the pitch: stay in supported 2D and
+                  // hide the toggle instead of retrying forever.
+                  setVector3dAvailable(false);
+                  setTilt3d(false);
                 }}
                 rerouting={rerouting}
                 showTraffic={showTraffic}

@@ -20,6 +20,9 @@ export interface CameraOptions {
   tilt3d?: boolean;
 }
 
+/** Navigation pitch used whenever 3D display mode is active. */
+const NAV_TILT = 50;
+
 export class CameraEngine {
   private map: any;
   private google: any;
@@ -105,7 +108,8 @@ export class CameraEngine {
 
     const wantHeading = this.opts.vector && this.opts.headingUp && navigating ? t.heading : 0;
     const tilt3d = this.opts.tilt3d !== false;
-    const wantTilt = tilt3d && this.opts.vector && navigating ? (t.speed > 2 ? 55 : 45) : 0;
+    // Display mode owns pitch: navigation only nudges it with speed.
+    const wantTilt = tilt3d && this.opts.vector ? (navigating && t.speed > 2 ? NAV_TILT + 5 : NAV_TILT) : 0;
     const wantZoom = navigating ? zoomForSpeed(t.speed) : Math.max(this.map.getZoom?.() ?? 16, 16);
 
     // Look ahead so the car sits in the lower third of the screen.

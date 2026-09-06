@@ -845,11 +845,13 @@ function Index() {
                 navigating={navigating}
                 tilt3d={tilt3d && vector3dAvailable}
                 onCapabilities={({ vector }) => {
-                  // Only a hard "no vector renderer" answer disables 3D; an
-                  // undetermined result leaves the control fully usable.
+                  // In 2D the flat roadmap is raster on purpose, so that
+                  // answer says nothing about 3D support.
+                  if (!tilt3d) return;
                   setVector3dAvailable(vector);
                   if (!vector) setTilt3d(false);
                 }}
+
                 onTilt3dUnsupported={() => {
                   // The renderer genuinely refused the pitch (verified twice):
                   // fall back to flat 2D, keep the control visible but inert.

@@ -162,28 +162,56 @@ export function MapView({
             if (c) lastCenterRef.current = { lat: c.lat(), lng: c.lng() };
           });
 
+          // Wheel / trackpad zoom is disabled: swallow the gesture before the
+          // map sees it, so only the +/- buttons and navigation change zoom.
+          const el = containerRef.current;
+          if (el) {
+            const swallow = (e: WheelEvent) => {
+              e.preventDefault();
+              e.stopPropagation();
+            };
+            el.addEventListener("wheel", swallow, { passive: false, capture: true });
+            wheelCleanupRef.current = () =>
+              el.removeEventListener("wheel", swallow, { capture: true } as any);
+          }
+
           // The container resizes when the side panel is hidden or HUD mode
-          // toggles: Google must re-measure or the map appears frozen.
+          // toggles. Google re-measures itself, but the visible centre shifts,
+          // so restore it once the new size has settled: one settled step
+          // instead of work on every intermediate frame.
           if (typeof ResizeObserver !== "undefined" && containerRef.current) {
-            let raf = 0;
-            resizeObsRef.current = new ResizeObserver(() => {
-              if (raf) cancelAnimationFrame(raf);
-              raf = requestAnimationFrame(() => {
-                raf = 0;
-                const keep = engine.follow
-                  ? engine.currentPosition() ?? lastCenterRef.current
-                  : lastCenterRef.current;
-                google.maps.event.trigger(map, "resize");
-                engine.suppressCamera(400);
+            let timer = 0;
+            let lastW = 0;
+            let lastH = 0;
+            resizeObsRef.current = new ResizeObserver((entries) => {
+              const r = entries[0]?.contentRect;
+              if (!r) return;
+              const w = Math.round(r.width);
+              const h = Math.round(r.height);
+              if (w === lastW && h === lastH) return;
+              lastW = w;
+              lastH = h;
+              if (timer) window.clearTimeout(timer);
+              timer = window.setTimeout(() => {
+                timer = 0;
+                if (engine.follow) {
+                  // Following: keep the camera locked on the car, no suppression
+                  // (suppressing here is what used to stall the follow).
+                  const me = engine.currentPosition();
+                  if (me) engine.keepCentered(me);
+                  return;
+                }
+                const keep = lastCenterRef.current;
                 if (keep) {
                   programmaticRef.current = true;
                   map.setCenter(keep);
-                  window.setTimeout(() => (programmaticRef.current = false), 200);
+                  window.setTimeout(() => (programmaticRef.current = false), 150);
                 }
-              });
+              }, 160);
             });
             resizeObsRef.current.observe(containerRef.current);
           }
+
 
           setMapReady(true);
         })

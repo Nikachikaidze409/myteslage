@@ -44,6 +44,8 @@ interface Props {
   onMapClick?: (p: { lat: number; lng: number; placeId?: string }) => void;
   /** Reports what the renderer can do (vector = tilt/heading/3D available). */
   onCapabilities?: (c: { vector: boolean }) => void;
+  /** Fired when the renderer refuses the requested 3D pitch. */
+  onTilt3dUnsupported?: () => void;
 }
 
 export function MapView({
@@ -67,6 +69,7 @@ export function MapView({
   onPickPoi,
   onMapClick,
   onCapabilities,
+  onTilt3dUnsupported,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -104,6 +107,8 @@ export function MapView({
   onSelectAlternateRef.current = onSelectAlternate;
   const onCapabilitiesRef = useRef(onCapabilities);
   onCapabilitiesRef.current = onCapabilities;
+  const onTiltUnsupportedRef = useRef(onTilt3dUnsupported);
+  onTiltUnsupportedRef.current = onTilt3dUnsupported;
 
   const recenterOnMe = useCallback(() => {
     engineRef.current?.recenter();
@@ -136,6 +141,7 @@ export function MapView({
           setRetrying(false);
 
           const engine = new NavigationEngine(map, google, vector);
+          engine.onTilt3dUnsupported = () => onTiltUnsupportedRef.current?.();
           engineRef.current = engine;
           engine.onFollowChange = (v) => setFollowUi(v);
           engine.onRerouteNeeded = () => onRerouteRef.current?.();

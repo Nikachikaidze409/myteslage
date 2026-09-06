@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { LocationButton } from "@/components/LocationButton";
+import { useLiveLocation } from "@/hooks/useLiveLocation";
 import { StatusPanel, type Fix } from "@/components/StatusPanel";
 import { DestinationSearch, type Destination } from "@/components/DestinationSearch";
 import { RoutePreview } from "@/components/RoutePreview";
@@ -77,6 +78,17 @@ function Index() {
   const [error, setError] = useState<string | null>(null);
   // Start live tracking automatically; no tap required.
   const [watching, setWatching] = useState(true);
+  // One authoritative live-location stream for the whole screen: independent of
+  // the sidebar, HUD mode, 2D/3D switching and route changes.
+  const live = useLiveLocation(
+    useCallback(
+      (f: Fix) => {
+        setError(null);
+        setFix(f);
+      },
+      [setFix],
+    ),
+  );
   const [now, setNow] = useState(() => Date.now());
 
   const [destination, setDestination] = useState<Destination | null>(null);
@@ -521,13 +533,9 @@ function Index() {
           <FavoritesPanel currentDestination={destination} onPick={setDestination} />
 
           <LocationButton
-            onFix={(f) => {
-              setError(null);
-              setFix(f);
-            }}
-            onError={(msg) => setError(msg)}
-            active={watching}
-            onActiveChange={setWatching}
+            status={live.status}
+            onStart={live.start}
+            onStop={live.stop}
           />
 
           <PairPhonePanel

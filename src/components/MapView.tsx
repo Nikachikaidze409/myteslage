@@ -42,6 +42,8 @@ interface Props {
   onPickPoi?: (p: { id: string; lat: number; lng: number; name: string; address?: string }) => void;
   /** Tap anywhere on the map (or on a Google POI). */
   onMapClick?: (p: { lat: number; lng: number; placeId?: string }) => void;
+  /** Reports what the renderer can do (vector = tilt/heading/3D available). */
+  onCapabilities?: (c: { vector: boolean }) => void;
 }
 
 export function MapView({
@@ -64,6 +66,7 @@ export function MapView({
   pois,
   onPickPoi,
   onMapClick,
+  onCapabilities,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -80,7 +83,7 @@ export function MapView({
   const waypointMarkersRef = useRef<any[]>([]);
   const trafficLayerRef = useRef<any>(null);
   const resizeObsRef = useRef<any>(null);
-  const wheelCleanupRef = useRef<(() => void) | null>(null);
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
   const lastCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   const programmaticRef = useRef(false);
 
@@ -99,6 +102,8 @@ export function MapView({
   onRerouteRef.current = onRerouteNeeded;
   const onSelectAlternateRef = useRef(onSelectAlternate);
   onSelectAlternateRef.current = onSelectAlternate;
+  const onCapabilitiesRef = useRef(onCapabilities);
+  onCapabilitiesRef.current = onCapabilities;
 
   const recenterOnMe = useCallback(() => {
     engineRef.current?.recenter();
@@ -287,8 +292,8 @@ export function MapView({
       }
       resizeObsRef.current?.disconnect();
       resizeObsRef.current = null;
-      wheelCleanupRef.current?.();
-      wheelCleanupRef.current = null;
+      resizeCleanupRef.current?.();
+      resizeCleanupRef.current = null;
       trafficLayerRef.current?.setMap(null);
       trafficLayerRef.current = null;
       engineRef.current?.destroy();

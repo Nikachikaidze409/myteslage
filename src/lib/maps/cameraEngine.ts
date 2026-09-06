@@ -16,6 +16,8 @@ export interface CameraOptions {
   vector: boolean;
   /** heading-up (true) or north-up (false) */
   headingUp: boolean;
+  /** false = flat top-down 2D view (pitch 0) */
+  tilt3d?: boolean;
 }
 
 export class CameraEngine {
@@ -62,7 +64,8 @@ export class CameraEngine {
     if (!this.enabled || now < this.suppressUntil) return;
 
     const wantHeading = this.opts.vector && this.opts.headingUp && navigating ? t.heading : 0;
-    const wantTilt = this.opts.vector && navigating ? (t.speed > 2 ? 55 : 45) : 0;
+    const tilt3d = this.opts.tilt3d !== false;
+    const wantTilt = tilt3d && this.opts.vector && navigating ? (t.speed > 2 ? 55 : 45) : 0;
     const wantZoom = navigating ? zoomForSpeed(t.speed) : Math.max(this.map.getZoom?.() ?? 16, 16);
 
     // Look ahead so the car sits in the lower third of the screen.

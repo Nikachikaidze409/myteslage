@@ -96,6 +96,7 @@ function Index() {
   const [navigating, setNavigating] = useState(false);
   const [offRoute, setOffRoute] = useState(false);
   const [showTraffic, setShowTraffic] = useState(true);
+  const [tilt3d, setTilt3d] = useState(true);
   const [offlineCache, setOfflineCache] = useState(false);
   const online = useNetworkStatus();
 
@@ -448,8 +449,10 @@ function Index() {
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
         {/* Sidebar - hidden in HUD mode (phone is the brain) or when minimized */}
-        {!hudMode && sidebarOpen && (
-        <aside className="flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto rounded-3xl border border-border bg-card/60 p-3">
+        {!hudMode && (
+        <aside
+          className={`${sidebarOpen ? "flex" : "hidden"} w-[340px] shrink-0 flex-col gap-3 overflow-y-auto rounded-3xl border border-border bg-card/60 p-3`}
+        >
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
               Tesla · Georgia
@@ -483,6 +486,18 @@ function Index() {
               </div>
             )}
           </header>
+
+          {routes.length > 1 && (
+            <AlternativesPanel
+              routes={routes}
+              selectedIndex={selectedRouteIdx}
+              onSelect={setSelectedRouteIdx}
+              prefs={prefs}
+              onPrefsChange={setPrefs}
+            />
+          )}
+
+          <FavoritesPanel currentDestination={destination} onPick={setDestination} />
 
           <LocationButton
             onFix={(f) => {
@@ -524,19 +539,7 @@ function Index() {
 
           {fix && <StatusPanel fix={fix} now={now} />}
 
-          <FavoritesPanel currentDestination={destination} onPick={setDestination} />
-
           <NearbyChips origin={fix} onPick={setDestination} />
-
-          {routes.length > 1 && (
-            <AlternativesPanel
-              routes={routes}
-              selectedIndex={selectedRouteIdx}
-              onSelect={setSelectedRouteIdx}
-              prefs={prefs}
-              onPrefsChange={setPrefs}
-            />
-          )}
 
           {route && (
             <BatteryPanel
@@ -678,6 +681,18 @@ function Index() {
             >
               {showTraffic ? "Traffic on" : "Traffic off"}
             </button>
+            <button
+              type="button"
+              onClick={() => setTilt3d((v) => !v)}
+              aria-label="Toggle 3D or 2D map view"
+              className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
+                tilt3d
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-white/90 text-foreground hover:bg-white"
+              }`}
+            >
+              {tilt3d ? "3D" : "2D"}
+            </button>
           </div>
           )}
 
@@ -754,6 +769,7 @@ function Index() {
                 encodedPolyline={route?.encodedPolyline ?? null}
                 steps={route?.steps ?? []}
                 navigating={navigating}
+                tilt3d={tilt3d}
                 rerouting={rerouting}
                 showTraffic={showTraffic}
                 onProgress={setProgress}

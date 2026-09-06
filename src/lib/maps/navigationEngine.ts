@@ -220,6 +220,24 @@ export class NavigationEngine {
     this.setFollow(false);
   }
 
+  /** Flat top-down (false) or navigation perspective (true). */
+  setTilt3d(on: boolean): void {
+    this.camera.setOptions({ tilt3d: on });
+    if (!on) {
+      try {
+        this.map.setTilt?.(0);
+      } catch {
+        /* raster maps have no tilt */
+      }
+      this.camera.reset(this.rendered ?? undefined);
+    }
+  }
+
+  /** Re-centre without handing control back and forth (used after layout changes). */
+  keepCentered(center: LatLng): void {
+    this.camera.reset(center);
+  }
+
   suppressCamera(ms: number): void {
     this.camera.suppress(ms);
   }

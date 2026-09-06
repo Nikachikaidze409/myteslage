@@ -41,29 +41,13 @@ export interface CreatedMap {
   vector: boolean;
 }
 
-export interface CreateMapOptions {
-  /**
-   * "3d" = vector basemap with the Cloud Map ID (extruded buildings, tilt,
-   * rotation). "2d" = the classic raster roadmap: flat building footprints,
-   * no perspective, exactly what plain Google Maps looks like.
-   * Building rendering is a basemap-level feature, so it cannot be changed on
-   * a live map instance — the mode is chosen at creation time.
-   */
-  mode?: "2d" | "3d";
-  /** Camera to open on, so a mode switch is seamless. */
-  initial?: { center?: { lat: number; lng: number }; zoom?: number } | null;
-}
-
-export async function createMap(
-  container: HTMLElement,
-  { mode = "3d", initial }: CreateMapOptions = {},
-): Promise<CreatedMap> {
+export async function createMap(container: HTMLElement): Promise<CreatedMap> {
   const google = await loadGoogleMaps();
 
-  const start = initial?.center ?? lastCenter();
+  const start = lastCenter();
   const options: Record<string, unknown> = {
     center: start ?? DEFAULT_CENTER,
-    zoom: initial?.zoom ?? (start ? 15 : 7),
+    zoom: start ? 15 : 7,
     disableDefaultUI: true,
     zoomControl: false,
     gestureHandling: "greedy",
@@ -78,26 +62,14 @@ export async function createMap(
     minZoom: 4,
     isFractionalZoomEnabled: true,
     backgroundColor: "#f1f5f9",
+    mapId: MAP_ID,
   };
-
-  if (mode === "3d") {
-    options.mapId = MAP_ID;
-    if (google.maps.RenderingType?.VECTOR) {
-      options.renderingType = google.maps.RenderingType.VECTOR;
-      // Gesture-driven tilt / rotate are off: display mode owns pitch and the
-      // navigation camera owns heading.
-      options.tiltInteractionEnabled = false;
-      options.headingInteractionEnabled = false;
-    }
-  } else {
-    // True flat 2D: raster roadmap, no Map ID, no vector scene. Buildings are
-    // drawn as plain footprints by Google itself.
-    if (google.maps.RenderingType?.RASTER) {
-      options.renderingType = google.maps.RenderingType.RASTER;
-    }
-    options.mapTypeId = google.maps.MapTypeId?.ROADMAP ?? "roadmap";
-    options.tilt = 0;
-    options.heading = 0;
+  if (google.maps.RenderingType?.VECTOR) {
+    options.renderingType = google.maps.RenderingType.VECTOR;
+    // Gesture-driven tilt / rotate are off: display mode owns pitch and the
+    // navigation camera owns heading.
+    options.tiltInteractionEnabled = false;
+    options.headingInteractionEnabled = false;
   }
 
   let map: any;
@@ -110,10 +82,9 @@ export async function createMap(
     map = new google.maps.Map(container, { ...options, styles: LIGHT_STYLE });
   }
 
-  const vector = mode === "3d" && detectVector(google, map);
+  const vector = detectVector(google, map);
   return { google, map, vector };
 }
-
 
 function detectVector(google: any, map: any): boolean {
   try {

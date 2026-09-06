@@ -750,20 +750,23 @@ function Index() {
             >
               {showTraffic ? "Traffic on" : "Traffic off"}
             </button>
-            {vector3dAvailable && (
             <button
               type="button"
-              onClick={() => setTilt3d((v) => !v)}
+              disabled={!vector3dAvailable}
+              onClick={() => vector3dAvailable && setTilt3d((v) => !v)}
               aria-label="Toggle 3D or 2D map view"
+              title={vector3dAvailable ? "Switch between 3D and 2D" : "3D view is not supported on this screen"}
               className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
-                tilt3d
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-white/90 text-foreground hover:bg-white"
+                !vector3dAvailable
+                  ? "cursor-not-allowed border-border bg-white/70 text-muted-foreground"
+                  : tilt3d
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-white/90 text-foreground hover:bg-white"
               }`}
             >
-              {tilt3d ? "3D" : "2D"}
+              {tilt3d && vector3dAvailable ? "3D" : "2D"}
             </button>
-            )}
+
           </div>
           )}
 

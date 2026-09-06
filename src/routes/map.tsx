@@ -97,6 +97,9 @@ function Index() {
   const [offRoute, setOffRoute] = useState(false);
   const [showTraffic, setShowTraffic] = useState(true);
   const [tilt3d, setTilt3d] = useState(true);
+  // 3D perspective needs vector (WebGL) rendering. Older in-car GPUs fall back
+  // to raster: the toggle is then hidden and the map stays flat 2D.
+  const [vector3dAvailable, setVector3dAvailable] = useState(true);
   const [offlineCache, setOfflineCache] = useState(false);
   const online = useNetworkStatus();
 
@@ -136,10 +139,15 @@ function Index() {
     setAvoid(next);
   }, [prefs]);
 
+  // The clock only feeds the visible status card: no ticking (and no re-render)
+  // while the panel is hidden or the car is in HUD mode.
+  const clockNeeded = !!fix && sidebarOpen && !hudMode;
   useEffect(() => {
+    if (!clockNeeded) return;
+    setNow(Date.now());
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [clockNeeded]);
 
   // On mount: restore last active nav session (e.g. after Tesla exited reverse and browser reopened).
   useEffect(() => {
@@ -681,6 +689,7 @@ function Index() {
             >
               {showTraffic ? "Traffic on" : "Traffic off"}
             </button>
+            {vector3dAvailable && (
             <button
               type="button"
               onClick={() => setTilt3d((v) => !v)}
@@ -693,6 +702,7 @@ function Index() {
             >
               {tilt3d ? "3D" : "2D"}
             </button>
+            )}
           </div>
           )}
 
@@ -769,7 +779,11 @@ function Index() {
                 encodedPolyline={route?.encodedPolyline ?? null}
                 steps={route?.steps ?? []}
                 navigating={navigating}
-                tilt3d={tilt3d}
+                tilt3d={tilt3d && vector3dAvailable}
+                onCapabilities={({ vector }) => {
+                  setVector3dAvailable(vector);
+                  if (!vector) setTilt3d(false);
+                }}
                 rerouting={rerouting}
                 showTraffic={showTraffic}
                 onProgress={setProgress}

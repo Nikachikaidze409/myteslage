@@ -42,6 +42,8 @@ interface Props {
   onPickPoi?: (p: { id: string; lat: number; lng: number; name: string; address?: string }) => void;
   /** Tap anywhere on the map (or on a Google POI). */
   onMapClick?: (p: { lat: number; lng: number; placeId?: string }) => void;
+  /** Reports what the renderer can do (vector = tilt/heading/3D available). */
+  onCapabilities?: (c: { vector: boolean }) => void;
 }
 
 export function MapView({
@@ -64,6 +66,7 @@ export function MapView({
   pois,
   onPickPoi,
   onMapClick,
+  onCapabilities,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -80,7 +83,7 @@ export function MapView({
   const waypointMarkersRef = useRef<any[]>([]);
   const trafficLayerRef = useRef<any>(null);
   const resizeObsRef = useRef<any>(null);
-  const wheelCleanupRef = useRef<(() => void) | null>(null);
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
   const lastCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   const programmaticRef = useRef(false);
 
@@ -99,6 +102,8 @@ export function MapView({
   onRerouteRef.current = onRerouteNeeded;
   const onSelectAlternateRef = useRef(onSelectAlternate);
   onSelectAlternateRef.current = onSelectAlternate;
+  const onCapabilitiesRef = useRef(onCapabilities);
+  onCapabilitiesRef.current = onCapabilities;
 
   const recenterOnMe = useCallback(() => {
     engineRef.current?.recenter();
@@ -166,55 +171,77 @@ export function MapView({
             if (c) lastCenterRef.current = { lat: c.lat(), lng: c.lng() };
           });
 
-          // Wheel / trackpad zoom is disabled: swallow the gesture before the
-          // map sees it, so only the +/- buttons and navigation change zoom.
-          const el = containerRef.current;
-          if (el) {
-            const swallow = (e: WheelEvent) => {
-              e.preventDefault();
-              e.stopPropagation();
-            };
-            el.addEventListener("wheel", swallow, { passive: false, capture: true });
-            wheelCleanupRef.current = () =>
-              el.removeEventListener("wheel", swallow, { capture: true } as any);
-          }
+          onCapabilitiesRef.current?.({ vector });
 
           // The container resizes when the side panel is hidden or HUD mode
           // toggles. Google re-measures itself, but the visible centre shifts,
-          // so restore it once the new size has settled: one settled step
-          // instead of work on every intermediate frame.
+          // so restore it once the layout has actually finished changing.
+          // Deterministic signal: the observed size stops changing between
+          // animation frames (and any CSS transition on an ancestor has ended).
+          // No magic millisecond value is used as the primary trigger.
           if (typeof ResizeObserver !== "undefined" && containerRef.current) {
-            let timer = 0;
+            let raf = 0;
+            let stableFrames = 0;
+            let pendingW = 0;
+            let pendingH = 0;
             let lastW = 0;
             let lastH = 0;
-            resizeObsRef.current = new ResizeObserver((entries) => {
-              const r = entries[0]?.contentRect;
-              if (!r) return;
-              const w = Math.round(r.width);
-              const h = Math.round(r.height);
+
+            const settle = () => {
+              const el = containerRef.current;
+              if (!el) return;
+              const w = Math.round(el.clientWidth);
+              const h = Math.round(el.clientHeight);
+              if (w !== pendingW || h !== pendingH) {
+                pendingW = w;
+                pendingH = h;
+                stableFrames = 0;
+              } else {
+                stableFrames++;
+              }
+              // Two identical frames in a row: layout has finished.
+              if (stableFrames < 2) {
+                raf = requestAnimationFrame(settle);
+                return;
+              }
+              raf = 0;
               if (w === lastW && h === lastH) return;
               lastW = w;
               lastH = h;
-              if (timer) window.clearTimeout(timer);
-              timer = window.setTimeout(() => {
-                timer = 0;
-                if (engine.follow) {
-                  // Following: keep the camera locked on the car, no suppression
-                  // (suppressing here is what used to stall the follow).
-                  const me = engine.currentPosition();
-                  if (me) engine.keepCentered(me);
-                  return;
-                }
-                const keep = lastCenterRef.current;
-                if (keep) {
-                  programmaticRef.current = true;
-                  map.setCenter(keep);
-                  window.setTimeout(() => (programmaticRef.current = false), 150);
-                }
-              }, 160);
-            });
+              if (engine.follow) {
+                // Following: keep the camera locked on the car, no suppression
+                // (suppressing here is what used to stall the follow).
+                const me = engine.currentPosition();
+                if (me) engine.keepCentered(me);
+                return;
+              }
+              const keep = lastCenterRef.current;
+              if (keep) {
+                programmaticRef.current = true;
+                map.setCenter(keep);
+                window.setTimeout(() => (programmaticRef.current = false), 150);
+              }
+            };
+
+            const schedule = () => {
+              stableFrames = 0;
+              if (!raf) raf = requestAnimationFrame(settle);
+            };
+
+            resizeObsRef.current = new ResizeObserver(schedule);
             resizeObsRef.current.observe(containerRef.current);
+
+            // If a layout transition is ever added around the map, its end is
+            // the authoritative completion signal; harmless when absent.
+            const onTransitionEnd = () => schedule();
+            const parent = containerRef.current.parentElement?.parentElement ?? null;
+            parent?.addEventListener("transitionend", onTransitionEnd);
+            resizeCleanupRef.current = () => {
+              if (raf) cancelAnimationFrame(raf);
+              parent?.removeEventListener("transitionend", onTransitionEnd);
+            };
           }
+
 
 
           setMapReady(true);
@@ -265,8 +292,8 @@ export function MapView({
       }
       resizeObsRef.current?.disconnect();
       resizeObsRef.current = null;
-      wheelCleanupRef.current?.();
-      wheelCleanupRef.current = null;
+      resizeCleanupRef.current?.();
+      resizeCleanupRef.current = null;
       trafficLayerRef.current?.setMap(null);
       trafficLayerRef.current = null;
       engineRef.current?.destroy();

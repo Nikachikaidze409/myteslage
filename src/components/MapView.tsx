@@ -333,8 +333,11 @@ export function MapView({
         window.clearTimeout(authTimerRef.current);
         authTimerRef.current = null;
       }
+      gestureGuardRef.current?.();
+      gestureGuardRef.current = null;
       resizeObsRef.current?.disconnect();
       resizeObsRef.current = null;
+
       resizeCleanupRef.current?.();
       resizeCleanupRef.current = null;
       trafficLayerRef.current?.setMap(null);

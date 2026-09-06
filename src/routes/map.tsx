@@ -206,6 +206,7 @@ function Index() {
       },
     ) => {
       const requestId = ++routeRequestRef.current;
+      const startedAt = Date.now();
       if (!options?.silent) setRouteLoading(true);
       setRouteError(null);
       // Snap destination to nearest drivable road so we don't route down a dirt path
@@ -214,7 +215,10 @@ function Index() {
       const snapPromise: Promise<{ lat: number; lng: number }> =
         snappedDestRef.current?.key === destKey
           ? Promise.resolve({ lat: snappedDestRef.current.lat, lng: snappedDestRef.current.lng })
-          : snapToRoad({ data: { lat: nextDestination.lat, lng: nextDestination.lng } })
+          : // A reroute must not wait on an extra Roads round trip.
+            options?.reroute
+            ? Promise.resolve({ lat: nextDestination.lat, lng: nextDestination.lng })
+            : snapToRoad({ data: { lat: nextDestination.lat, lng: nextDestination.lng } })
               .then((s) => {
                 snappedDestRef.current = { key: destKey, lat: s.lat, lng: s.lng };
                 return { lat: s.lat, lng: s.lng };

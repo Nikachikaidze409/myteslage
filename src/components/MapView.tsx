@@ -21,6 +21,8 @@ interface Props {
   /** Turn-by-turn steps of the active route, used for maneuver awareness. */
   steps?: RouteStep[];
   navigating?: boolean;
+  /** true = navigation perspective (tilted), false = flat top-down 2D */
+  tilt3d?: boolean;
   showTraffic?: boolean;
   rerouting?: boolean;
   waypoints?: { lat: number; lng: number; name?: string }[];
@@ -48,6 +50,7 @@ export function MapView({
   encodedPolyline,
   steps,
   navigating,
+  tilt3d = true,
   showTraffic,
   rerouting,
   waypoints,
@@ -77,6 +80,7 @@ export function MapView({
   const waypointMarkersRef = useRef<any[]>([]);
   const trafficLayerRef = useRef<any>(null);
   const resizeObsRef = useRef<any>(null);
+  const wheelCleanupRef = useRef<(() => void) | null>(null);
   const lastCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   const programmaticRef = useRef(false);
 
@@ -261,6 +265,8 @@ export function MapView({
       }
       resizeObsRef.current?.disconnect();
       resizeObsRef.current = null;
+      wheelCleanupRef.current?.();
+      wheelCleanupRef.current = null;
       trafficLayerRef.current?.setMap(null);
       trafficLayerRef.current = null;
       engineRef.current?.destroy();
@@ -290,6 +296,10 @@ export function MapView({
   useEffect(() => {
     engineRef.current?.setNavigating(!!navigating);
   }, [navigating, mapReady]);
+
+  useEffect(() => {
+    engineRef.current?.setTilt3d(tilt3d);
+  }, [tilt3d, mapReady]);
 
   useEffect(() => {
     if (!rerouting) engineRef.current?.rerouteResolved();

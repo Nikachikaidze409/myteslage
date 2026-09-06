@@ -114,6 +114,9 @@ function Index() {
   const debugEnabled =
     typeof window !== "undefined" &&
     (import.meta.env.DEV || new URLSearchParams(window.location.search).has("navdebug"));
+  const debugEnabledRef = useRef(debugEnabled);
+  debugEnabledRef.current = debugEnabled;
+
 
   // Session restore state
   const restoredRef = useRef(false);

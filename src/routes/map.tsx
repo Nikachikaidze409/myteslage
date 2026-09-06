@@ -240,6 +240,11 @@ function Index() {
         )
         .then((resp) => {
           if (routeRequestRef.current !== requestId) return;
+           if (debugEnabledRef.current) {
+             console.debug(
+               `[nav] route ${options?.reroute ? "reroute" : "request"} #${requestId} answered in ${Date.now() - startedAt} ms`,
+             );
+           }
            setRoutes(resp.routes);
            setSelectedRouteIdx(0);
            if (options?.reroute) setRerouting(false);
@@ -357,6 +362,7 @@ function Index() {
     if (Date.now() - lastRerouteAtRef.current < 1_200) return;
     lastRerouteAtRef.current = Date.now();
     offRouteSinceRef.current = Date.now();
+    if (debugEnabledRef.current) console.debug("[nav] off-route confirmed → requesting new route");
     setOffRoute(true);
     setRerouting(true);
     requestRoute(fix, destination, { silent: true, reroute: true });

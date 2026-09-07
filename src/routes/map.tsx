@@ -452,9 +452,9 @@ function Index() {
     const lastRouteOrigin = lastRouteOriginRef.current;
     if (!lastRouteOrigin) return;
     // Close to the destination the ETA no longer moves: stop paying for it.
-    if (distanceMeters(fix, destination) < 3_000) return;
+    if (distanceMeters(routeFix, destination) < 3_000) return;
 
-    const moved = distanceMeters(fix, lastRouteOrigin);
+    const moved = distanceMeters(routeFix, lastRouteOrigin);
     const elapsed = Date.now() - lastLiveRouteAtRef.current;
     if (moved >= 2_000 && elapsed >= 240_000) {
       lastLiveRouteAtRef.current = Date.now();
@@ -497,7 +497,7 @@ function Index() {
     if (debugEnabledRef.current) console.debug("[nav] off-route confirmed → requesting new route");
     setOffRoute(true);
     setRerouting(true);
-    requestRoute(fix, destination, { silent: true, reroute: true });
+    requestRoute(routeFix, destination, { silent: true, reroute: true });
   }, [destination, fix, hudMode, navigating, requestRoute]);
 
   useEffect(() => {

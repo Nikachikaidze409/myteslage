@@ -3,9 +3,14 @@
 
 import { snapToRoad } from "@/lib/snap-to-road.functions";
 import { haversine, type LatLng } from "./math";
+import { countApi } from "./apiUsage";
 
-const MIN_INTERVAL_MS = 3000;
-const MIN_MOVE_M = 25;
+/** Roads calls are billed per request: once every 10 s of real movement is
+ *  plenty for the free-drive marker, and it is never used while navigating. */
+const MIN_INTERVAL_MS = 10_000;
+const MIN_MOVE_M = 60;
+/** A match that comes back after the car has moved on is worthless. */
+const MAX_AGE_MS = 3000;
 /** Ignore a match that pulls the car further than this: it is a wrong road. */
 const MAX_CORRECTION_M = 60;
 
@@ -27,7 +32,10 @@ export class RoadsMatcher {
     this.lastAt = now;
     this.lastPoint = p;
     try {
+      countApi("roads.snap");
+      const sentAt = performance.now();
       const r = await snapToRoad({ data: { lat: p.lat, lng: p.lng } });
+      if (performance.now() - sentAt > MAX_AGE_MS) return null;
       if (!r.snapped) return null;
       const snapped = { lat: r.lat, lng: r.lng };
       if (haversine(p, snapped) > MAX_CORRECTION_M) return null;

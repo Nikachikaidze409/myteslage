@@ -179,15 +179,10 @@ function Index() {
     setAvoid(next);
   }, [prefs]);
 
-  // The clock only feeds the visible status card: no ticking (and no re-render)
-  // while the panel is hidden or the car is in HUD mode.
-  const clockNeeded = !!fix && sidebarOpen && !hudMode;
-  useEffect(() => {
-    if (!clockNeeded) return;
-    setNow(Date.now());
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, [clockNeeded]);
+  // The status card owns its own 1s clock while it is mounted, so the map
+  // screen no longer re-renders every second.
+
+
 
   // On mount: restore last active nav session (e.g. after Tesla exited reverse and browser reopened).
   useEffect(() => {

@@ -50,7 +50,8 @@ export const StatusPanel = memo(function StatusPanel({ fix }: { fix: Fix }) {
       </p>
     </div>
   );
-}
+});
+
 
 function Field({ label, value }: { label: string; value: string }) {
   return (

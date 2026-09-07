@@ -157,9 +157,27 @@ export class CameraEngine {
 
     // Skip work when nothing meaningfully changed (parked at a light).
     if (now - this.lastApplied < 33) return;
-    this.lastApplied = now;
 
     const center = { lat: this.cur.lat, lng: this.cur.lng };
+    const prev = this.applied;
+    const still =
+      prev &&
+      Math.abs(prev.lat - center.lat) < 1.5e-6 &&
+      Math.abs(prev.lng - center.lng) < 1.5e-6 &&
+      Math.abs(prev.heading - this.cur.heading) < 0.05 &&
+      Math.abs(prev.tilt - this.cur.tilt) < 0.05 &&
+      Math.abs(prev.zoom - this.cur.zoom) < 0.002;
+    if (still) return;
+
+    this.lastApplied = now;
+    this.applied = {
+      lat: center.lat,
+      lng: center.lng,
+      heading: this.cur.heading,
+      tilt: this.cur.tilt,
+      zoom: this.cur.zoom,
+    };
+
     if (this.opts.vector && typeof this.map.moveCamera === "function") {
       this.map.moveCamera({
         center,

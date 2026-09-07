@@ -179,11 +179,10 @@ export class NavigationEngine {
           else this.setState("NAVIGATING");
         }
       }
-    } else {
-      void this.roads.maybeSnap({ lat: s.lat, lng: s.lng }, now).then((snapped) => {
-        if (snapped && !this.navigating) this.gps.override(snapped);
-      });
     }
+    // Free-drive (no active route): rely on local GPS smoothing only. Calling
+    // Roads continuously while merely browsing is billed and buys nothing.
+
   }
 
   setRoute(encoded: string | null, steps: RouteStep[] = []): void {

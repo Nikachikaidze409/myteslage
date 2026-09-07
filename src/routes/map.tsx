@@ -290,13 +290,15 @@ function Index() {
             data: {
               origin: { lat: originFix.lat, lng: originFix.lng },
               destination: snappedDest,
-              alternatives: true,
+              purpose,
+              alternatives: purpose === "user",
               avoid: effAvoid,
               avoidUnpaved: prefs.avoidUnpaved ? true : undefined,
               waypoints: effWaypoints.map((w) => ({ lat: w.lat, lng: w.lng })),
             },
             signal: ticket.signal,
           }),
+
         )
         .then((resp) => {
           if (!routeCtl.current.isCurrent(requestId)) {
@@ -455,6 +457,8 @@ function Index() {
   }, []);
 
   const handleRerouteNeeded = useCallback(() => {
+    // HUD mode: the phone is the only routing brain. Tesla never routes.
+    if (hudMode) return;
     if (!navigating || !destination || !fix) return;
     // The engine already debounces; this only stops duplicate calls in-flight.
     if (Date.now() - lastRerouteAtRef.current < 1_200) return;

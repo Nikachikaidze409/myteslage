@@ -27,6 +27,12 @@ import {
   type RoutePrefs,
 } from "@/lib/favorites";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
+import {
+  RouteRequestController,
+  routeFingerprint,
+  type RoutePurpose,
+} from "@/lib/maps/routeRequestController";
+import { countApi } from "@/lib/maps/apiUsage";
 import { isPlausibleFix, resolveHeading } from "@/lib/fix-filter";
 import type { LiveProgress } from "@/components/MapView";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
@@ -142,7 +148,7 @@ function Index() {
   const pendingResumeRef = useRef(false);
   const [resumedName, setResumedName] = useState<string | null>(null);
 
-  const routeRequestRef = useRef(0);
+  const routeCtl = useRef(new RouteRequestController());
   const lastRouteOriginRef = useRef<Fix | null>(null);
   const lastLiveRouteAtRef = useRef(0);
   const offRouteSinceRef = useRef<number | null>(null);

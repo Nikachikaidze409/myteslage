@@ -177,8 +177,9 @@ function PhoneRelay() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [upperCode]);
 
-  // Compute route whenever destination + first fix are ready. Also re-compute
-  // periodically as the phone moves so the Tesla always has a current polyline.
+  // Compute the route once a destination + first fix exist. Refresh only when
+  // it can actually change anything: a few minutes apart, after real movement,
+  // never near the destination, and never while a request is in flight.
   useEffect(() => {
     if (!destination) {
       setRoute(null);
@@ -192,20 +193,43 @@ function PhoneRelay() {
     let cancelled = false;
     let interval: number | null = null;
     let lastComputeAt = 0;
+    let inFlight = false;
+    let lastOrigin: { lat: number; lng: number } | null = null;
+    // Snap the destination once per destination, then reuse it.
+    let snappedDest: { lat: number; lng: number } | null = null;
+
+    const MIN_REFRESH_MS = 240_000;
+    const MIN_MOVE_M = 2_000;
+    const NEAR_DEST_M = 3_000;
+
+    const metersBetween = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+      const R = 6371000;
+      const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+      const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+      const lat1 = (a.lat * Math.PI) / 180;
+      const lat2 = (b.lat * Math.PI) / 180;
+      const h =
+        Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+      return 2 * R * Math.asin(Math.sqrt(h));
+    };
 
     const compute = async (silent: boolean) => {
       const fix = lastFixRef.current;
-      if (!fix) return;
+      if (!fix || inFlight) return;
+      inFlight = true;
       if (!silent) setRouteBusy(true);
       setRouteError(null);
       try {
-        const snapped = await snapToRoad({ data: { lat: destination.lat, lng: destination.lng } })
-          .then((s) => ({ lat: s.lat, lng: s.lng }))
-          .catch(() => ({ lat: destination.lat, lng: destination.lng }));
+        if (!snappedDest) {
+          snappedDest = await snapToRoad({ data: { lat: destination.lat, lng: destination.lng } })
+            .then((s) => ({ lat: s.lat, lng: s.lng }))
+            .catch(() => ({ lat: destination.lat, lng: destination.lng }));
+        }
         const resp = await computeRoute({
           data: {
             origin: { lat: fix.lat, lng: fix.lng },
-            destination: snapped,
+            destination: snappedDest,
+            purpose: silent ? "traffic" : "user",
             alternatives: false,
           },
         });
@@ -214,6 +238,7 @@ function PhoneRelay() {
         if (!primary) throw new Error("No route");
         setRoute(primary);
         lastComputeAt = Date.now();
+        lastOrigin = { lat: fix.lat, lng: fix.lng };
         broadcast("nav", {
           destination: { lat: destination.lat, lng: destination.lng, name: destination.name },
           encodedPolyline: primary.encodedPolyline,
@@ -226,8 +251,18 @@ function PhoneRelay() {
       } catch (e) {
         if (!cancelled) setRouteError(e instanceof Error ? e.message : "Route failed");
       } finally {
+        inFlight = false;
         if (!cancelled && !silent) setRouteBusy(false);
       }
+    };
+
+    const maybeRefresh = () => {
+      const fix = lastFixRef.current;
+      if (!fix || inFlight || cancelled) return;
+      if (Date.now() - lastComputeAt < MIN_REFRESH_MS) return;
+      if (lastOrigin && metersBetween(lastOrigin, fix) < MIN_MOVE_M) return;
+      if (metersBetween(fix, destination) < NEAR_DEST_M) return;
+      void compute(true);
     };
 
     // Wait for a first fix if none yet.
@@ -238,15 +273,14 @@ function PhoneRelay() {
           void compute(false);
         }
       }, 500);
-      return () => window.clearInterval(wait);
+      return () => {
+        cancelled = true;
+        window.clearInterval(wait);
+      };
     }
 
     void compute(false);
-    // Silent refresh every 30s to keep polyline traffic-aware.
-    interval = window.setInterval(() => {
-      if (Date.now() - lastComputeAt < 20_000) return;
-      void compute(true);
-    }, 30_000);
+    interval = window.setInterval(maybeRefresh, 60_000);
 
     return () => {
       cancelled = true;
@@ -254,6 +288,7 @@ function PhoneRelay() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destination]);
+
 
   const cancelTrip = () => {
     setDestination(null);

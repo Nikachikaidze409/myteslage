@@ -231,11 +231,34 @@ function Index() {
       options?: {
         silent?: boolean;
         reroute?: boolean;
+        traffic?: boolean;
         avoid?: AvoidOption[];
         waypoints?: { lat: number; lng: number; name: string }[];
       },
     ) => {
-      const requestId = ++routeRequestRef.current;
+      const purpose: RoutePurpose = options?.reroute
+        ? "reroute"
+        : options?.traffic
+          ? "traffic"
+          : "user";
+      const effAvoid = options?.avoid ?? avoid;
+      const effWaypoints = options?.waypoints ?? waypoints;
+      const ticket = routeCtl.current.begin(
+        purpose,
+        routeFingerprint({
+          purpose,
+          origin: originFix,
+          destination: nextDestination,
+          waypoints: effWaypoints,
+          avoid: effAvoid,
+          avoidUnpaved: prefs.avoidUnpaved,
+        }),
+      );
+      // Duplicate, or outranked by a request already running (a traffic
+      // refresh can never disturb an active reroute).
+      if (!ticket) return;
+
+      const requestId = ticket.id;
       const startedAt = Date.now();
       if (!options?.silent) setRouteLoading(true);
       setRouteError(null);
@@ -245,8 +268,8 @@ function Index() {
       const snapPromise: Promise<{ lat: number; lng: number }> =
         snappedDestRef.current?.key === destKey
           ? Promise.resolve({ lat: snappedDestRef.current.lat, lng: snappedDestRef.current.lng })
-          : // A reroute must not wait on an extra Roads round trip.
-            options?.reroute
+          : // A reroute or a traffic refresh must not wait on an extra Roads round trip.
+            purpose !== "user"
             ? Promise.resolve({ lat: nextDestination.lat, lng: nextDestination.lng })
             : snapToRoad({ data: { lat: nextDestination.lat, lng: nextDestination.lng } })
               .then((s) => {
@@ -262,25 +285,28 @@ function Index() {
               origin: { lat: originFix.lat, lng: originFix.lng },
               destination: snappedDest,
               alternatives: true,
-              avoid: options?.avoid ?? avoid,
+              avoid: effAvoid,
               avoidUnpaved: prefs.avoidUnpaved ? true : undefined,
-              waypoints: (options?.waypoints ?? waypoints).map((w) => ({ lat: w.lat, lng: w.lng })),
+              waypoints: effWaypoints.map((w) => ({ lat: w.lat, lng: w.lng })),
             },
+            signal: ticket.signal,
           }),
         )
         .then((resp) => {
-          if (routeRequestRef.current !== requestId) {
+          if (!routeCtl.current.isCurrent(requestId)) {
+            countApi("route.stale");
             if (debugEnabledRef.current)
               setRerouteTiming((t) => ({ ...t, staleRejected: t.staleRejected + 1 }));
             return;
           }
            if (debugEnabledRef.current) {
              console.debug(
-               `[nav] route ${options?.reroute ? "reroute" : "request"} #${requestId} answered in ${Date.now() - startedAt} ms`,
+               `[nav] route ${purpose} #${requestId} answered in ${Date.now() - startedAt} ms`,
              );
            }
            setRoutes(resp.routes);
            setSelectedRouteIdx(0);
+           lastLiveRouteAtRef.current = Date.now();
            if (options?.reroute) {
              setRerouting(false);
              if (debugEnabledRef.current) {
@@ -314,8 +340,9 @@ function Index() {
           setNavigating(true);
         })
         .catch((e: unknown) => {
-          if (routeRequestRef.current !== requestId) return;
+          if (!routeCtl.current.isCurrent(requestId)) return;
            setRouteError(e instanceof Error ? e.message : "Route failed");
+           // A failed reroute must never leave the screen stuck on "Rerouting".
            if (options?.reroute) setRerouting(false);
            const cached = loadCachedRoute();
           if (
@@ -337,7 +364,9 @@ function Index() {
           }
         })
         .finally(() => {
-          if (routeRequestRef.current === requestId && !options?.silent) setRouteLoading(false);
+          const current = routeCtl.current.isCurrent(requestId);
+          routeCtl.current.finish(requestId);
+          if (current && !options?.silent) setRouteLoading(false);
         });
     },
     [avoid, waypoints, prefs.avoidUnpaved],

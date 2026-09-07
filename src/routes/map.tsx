@@ -478,7 +478,7 @@ function Index() {
     setOffRoute(true);
     setRerouting(true);
     requestRoute(fix, destination, { silent: true, reroute: true });
-  }, [destination, fix, navigating, requestRoute]);
+  }, [destination, fix, hudMode, navigating, requestRoute]);
 
   useEffect(() => {
     if (!rerouting && offRoute) setOffRoute(false);

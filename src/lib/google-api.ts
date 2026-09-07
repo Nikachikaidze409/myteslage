@@ -1,11 +1,17 @@
-// Direct Google Maps Platform access using the project's own API key.
+// Direct Google Maps Platform access using the project's own SERVER API key.
 // No proxy or gateway sits in between: every server-side Maps call
 // (Places, Routes, Roads, Geocoding) goes straight to Google.
+//
+// This key is server-only and must never be sent to the browser. The browser
+// map uses a separate, referrer-restricted key (see src/lib/maps.functions.ts).
 
-/** The project-owned Google Maps key. Read inside handlers only. */
+/** The project-owned Google Maps SERVER key. Read inside handlers only. */
 export function googleKey(): string {
-  const k = process.env["GOOGLE_API_KEY"] ?? process.env["GOOGLE_MAPS_SERVER_KEY"];
-  if (!k || !k.trim()) throw new Error("Google Maps API key is not configured");
+  const k =
+    process.env["GOOGLE_MAPS_SERVER_KEY"] ??
+    // Legacy single-key setup, kept so existing deployments keep working.
+    process.env["GOOGLE_API_KEY"];
+  if (!k || !k.trim()) throw new Error("Google Maps server API key is not configured");
   return k.trim();
 }
 
@@ -33,4 +39,3 @@ export async function googleFail(res: Response, what: string): Promise<never> {
 
   throw new Error(`${what} failed [${res.status}]: ${body.slice(0, 300)}`);
 }
-

@@ -33,7 +33,6 @@ import {
   type RoutePurpose,
 } from "@/lib/maps/routeRequestController";
 import { countApi } from "@/lib/maps/apiUsage";
-import { isPlausibleFix, resolveHeading } from "@/lib/fix-filter";
 import type { LiveProgress } from "@/components/MapView";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
 import { AuthGate, signOutAndReturn } from "@/components/AuthGate";

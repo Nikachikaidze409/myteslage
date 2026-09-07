@@ -666,7 +666,7 @@ function Index() {
             </div>
           )}
 
-          {fix && <StatusPanel fix={fix} now={now} />}
+          {fix && <StatusPanel fix={fix} />}
 
           <NearbyChips origin={fix} onPick={setDestination} />
 

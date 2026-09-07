@@ -1,3 +1,4 @@
+import { memo, useEffect, useState } from "react";
 import { scorePrecision, formatCoord } from "@/lib/precision";
 
 export interface Fix {
@@ -10,9 +11,16 @@ export interface Fix {
   source: "geolocation" | "sample" | "phone";
 }
 
-export function StatusPanel({ fix, now }: { fix: Fix; now: number }) {
+/** The card owns its own clock: it only ticks while it is actually mounted. */
+export const StatusPanel = memo(function StatusPanel({ fix }: { fix: Fix }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
   const age = now - fix.timestamp;
   const precision = scorePrecision(fix.accuracy, age);
+
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5">

@@ -29,6 +29,9 @@ export class CameraEngine {
   private opts: CameraOptions;
   private cur: { lat: number; lng: number; heading: number; tilt: number; zoom: number } | null = null;
   private lastApplied = 0;
+  /** Last camera state actually written to Google, for dirty checking. */
+  private applied: { lat: number; lng: number; heading: number; tilt: number; zoom: number } | null =
+    null;
   private suppressUntil = 0;
   enabled = false;
 
@@ -103,6 +106,7 @@ export class CameraEngine {
 
   /** Called after a programmatic jump so the damping restarts from there. */
   reset(center?: LatLng): void {
+    this.applied = null;
     if (!center) {
       this.cur = null;
       return;

@@ -580,9 +580,9 @@ function Index() {
     setRerouting(!!n.isRerouting);
   }, []);
 
-  const addWaypoint = (stop: { lat: number; lng: number; name: string }) => {
+  const addWaypoint = useCallback((stop: { lat: number; lng: number; name: string }) => {
     setWaypoints((cur) => [...cur, stop]);
-  };
+  }, []);
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">

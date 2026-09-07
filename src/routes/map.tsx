@@ -69,20 +69,18 @@ function IndexGated() {
 
 function Index() {
   const [fix, setFixRaw] = useState<Fix | null>(null);
-  const prevFixRef = useRef<Fix | null>(null);
   // While a paired phone is streaming, it is the authoritative position source.
   const lastPhoneFixAtRef = useRef(0);
   const PHONE_FIX_TTL_MS = 9_000;
-  // Discard impossible jumps / junk accuracy and derive heading from motion.
+  // GpsEngine is the single navigation processor: it owns accuracy gating,
+  // outlier rejection, smoothing and heading derivation. Here we only do the
+  // cheap sanity check the UI itself needs.
   const setFix = useCallback((next: Fix) => {
     if (next.source === "phone") lastPhoneFixAtRef.current = Date.now();
     else if (Date.now() - lastPhoneFixAtRef.current < PHONE_FIX_TTL_MS) return;
-    const prev = prevFixRef.current;
-    if (!isPlausibleFix(prev, next)) return;
-    const heading = resolveHeading(prev, next) ?? next.heading ?? null;
-    const cleaned: Fix = { ...next, heading };
-    prevFixRef.current = cleaned;
-    setFixRaw(cleaned);
+    if (!Number.isFinite(next.lat) || !Number.isFinite(next.lng)) return;
+    if (Math.abs(next.lat) > 90 || Math.abs(next.lng) > 180) return;
+    setFixRaw(next);
   }, []);
   const [progress, setProgress] = useState<LiveProgress | null>(null);
   const [rerouting, setRerouting] = useState(false);
@@ -101,7 +99,7 @@ function Index() {
     ),
   );
 
-  const [now, setNow] = useState(() => Date.now());
+
 
   // Surface a genuine location failure once; never loop the permission prompt.
   useEffect(() => {

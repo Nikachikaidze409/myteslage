@@ -445,6 +445,9 @@ function PhoneRelay() {
                       {km(route.distanceMeters)} · {min(route.durationSeconds)}
                     </div>
                   )}
+                  {rerouting && (
+                    <div className="mt-1 text-sm text-primary">Rerouting…</div>
+                  )}
                   {routeBusy && !route && (
                     <div className="mt-1 text-sm text-muted-foreground">Computing route…</div>
                   )}

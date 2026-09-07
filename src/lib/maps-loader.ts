@@ -9,7 +9,8 @@ let authFailed = false;
 // The project-owned browser key, fetched once from the server.
 let fetchedKey: string | null | undefined = undefined;
 let fetchKeyPromise: Promise<string | null> | null = null;
-const KEY_CACHE = "tmg:mapkey";
+// Version suffix: bump to drop keys cached by an older build.
+const KEY_CACHE = "tmg:mapkey:v2";
 
 function cachedKey(): string | null {
   try {

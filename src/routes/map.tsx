@@ -70,8 +70,13 @@ function IndexGated() {
 function Index() {
   const [fix, setFixRaw] = useState<Fix | null>(null);
   const prevFixRef = useRef<Fix | null>(null);
+  // While a paired phone is streaming, it is the authoritative position source.
+  const lastPhoneFixAtRef = useRef(0);
+  const PHONE_FIX_TTL_MS = 9_000;
   // Discard impossible jumps / junk accuracy and derive heading from motion.
   const setFix = useCallback((next: Fix) => {
+    if (next.source === "phone") lastPhoneFixAtRef.current = Date.now();
+    else if (Date.now() - lastPhoneFixAtRef.current < PHONE_FIX_TTL_MS) return;
     const prev = prevFixRef.current;
     if (!isPlausibleFix(prev, next)) return;
     const heading = resolveHeading(prev, next) ?? next.heading ?? null;
@@ -95,6 +100,7 @@ function Index() {
       [setFix],
     ),
   );
+
   const [now, setNow] = useState(() => Date.now());
 
   // Surface a genuine location failure once; never loop the permission prompt.

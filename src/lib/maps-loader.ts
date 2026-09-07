@@ -72,7 +72,13 @@ export function clearMapsAuthFailure(): void {
 export function resetMapsLoader(): void {
   loaderPromise = null;
   authFailed = false;
+  fetchedKey = undefined;
   if (typeof window !== "undefined") {
+    try {
+      window.sessionStorage.removeItem(KEY_CACHE);
+    } catch {
+      /* storage disabled */
+    }
     document
       .querySelectorAll('script[src*="maps.googleapis.com/maps/api/js"]')
       .forEach((el) => el.remove());

@@ -89,6 +89,7 @@ export function MapView({
   const resizeCleanupRef = useRef<(() => void) | null>(null);
   const lastCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   const programmaticRef = useRef(false);
+  const mapListenersRef = useRef<any[]>([]);
 
   // Callback refs: the engine and map listeners must never capture stale props.
   const onMapClickRef = useRef(onMapClick);
@@ -209,12 +210,12 @@ export function MapView({
           });
 
           // Any user gesture hands control back to the driver.
-          map.addListener("dragstart", () => {
+          mapListenersRef.current.push(map.addListener("dragstart", () => {
             if (programmaticRef.current) return;
             engine.releaseFollow();
-          });
+          }));
 
-          map.addListener("click", (ev: any) => {
+          mapListenersRef.current.push(map.addListener("click", (ev: any) => {
             const handler = onMapClickRef.current;
             if (!handler || !ev?.latLng) return;
             if (ev.placeId && typeof ev.stop === "function") ev.stop();
@@ -223,12 +224,12 @@ export function MapView({
               lng: ev.latLng.lng(),
               placeId: ev.placeId ?? undefined,
             });
-          });
+          }));
 
-          map.addListener("idle", () => {
+          mapListenersRef.current.push(map.addListener("idle", () => {
             const c = map.getCenter?.();
             if (c) lastCenterRef.current = { lat: c.lat(), lng: c.lng() };
-          });
+          }));
 
           onCapabilitiesRef.current?.({ vector });
 
@@ -356,6 +357,14 @@ export function MapView({
 
       resizeCleanupRef.current?.();
       resizeCleanupRef.current = null;
+      for (const l of mapListenersRef.current) {
+        try {
+          l?.remove?.();
+        } catch {
+          /* listener already gone with the map */
+        }
+      }
+      mapListenersRef.current = [];
       trafficLayerRef.current?.setMap(null);
       trafficLayerRef.current = null;
       engineRef.current?.destroy();

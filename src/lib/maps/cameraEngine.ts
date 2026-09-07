@@ -99,6 +99,18 @@ export class CameraEngine {
   }
 
 
+  /** Release timers and callbacks when the map goes away. */
+  destroy(): void {
+    if (this.verifyTimer != null) {
+      window.clearTimeout(this.verifyTimer);
+      this.verifyTimer = null;
+    }
+    this.onTiltUnsupported = null;
+    this.enabled = false;
+    this.cur = null;
+    this.applied = null;
+  }
+
   /** What the map is actually rendering right now. */
   actualTilt(): number {
     return this.map.getTilt?.() ?? 0;

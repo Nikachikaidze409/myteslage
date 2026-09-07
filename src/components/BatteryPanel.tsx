@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { searchNearby } from "@/lib/places.functions";
 import { decodePolyline } from "@/lib/geo";
 
@@ -12,7 +12,7 @@ interface Props {
   onAddStop: (stop: { lat: number; lng: number; name: string }) => void;
 }
 
-export function BatteryPanel({ routeKm, encodedPolyline, onAddStop }: Props) {
+function BatteryPanelImpl({ routeKm, encodedPolyline, onAddStop }: Props) {
   const [battery, setBattery] = useState(80);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -125,3 +125,5 @@ export function BatteryPanel({ routeKm, encodedPolyline, onAddStop }: Props) {
     </div>
   );
 }
+
+export const BatteryPanel = memo(BatteryPanelImpl);

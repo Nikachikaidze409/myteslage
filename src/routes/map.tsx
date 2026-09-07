@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LocationButton } from "@/components/LocationButton";
 import { useLiveLocation } from "@/hooks/useLiveLocation";
 import { StatusPanel, type Fix } from "@/components/StatusPanel";
@@ -33,7 +33,6 @@ import {
   type RoutePurpose,
 } from "@/lib/maps/routeRequestController";
 import { countApi } from "@/lib/maps/apiUsage";
-import { isPlausibleFix, resolveHeading } from "@/lib/fix-filter";
 import type { LiveProgress } from "@/components/MapView";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
 import { AuthGate, signOutAndReturn } from "@/components/AuthGate";
@@ -69,20 +68,18 @@ function IndexGated() {
 
 function Index() {
   const [fix, setFixRaw] = useState<Fix | null>(null);
-  const prevFixRef = useRef<Fix | null>(null);
   // While a paired phone is streaming, it is the authoritative position source.
   const lastPhoneFixAtRef = useRef(0);
   const PHONE_FIX_TTL_MS = 9_000;
-  // Discard impossible jumps / junk accuracy and derive heading from motion.
+  // GpsEngine is the single navigation processor: it owns accuracy gating,
+  // outlier rejection, smoothing and heading derivation. Here we only do the
+  // cheap sanity check the UI itself needs.
   const setFix = useCallback((next: Fix) => {
     if (next.source === "phone") lastPhoneFixAtRef.current = Date.now();
     else if (Date.now() - lastPhoneFixAtRef.current < PHONE_FIX_TTL_MS) return;
-    const prev = prevFixRef.current;
-    if (!isPlausibleFix(prev, next)) return;
-    const heading = resolveHeading(prev, next) ?? next.heading ?? null;
-    const cleaned: Fix = { ...next, heading };
-    prevFixRef.current = cleaned;
-    setFixRaw(cleaned);
+    if (!Number.isFinite(next.lat) || !Number.isFinite(next.lng)) return;
+    if (Math.abs(next.lat) > 90 || Math.abs(next.lng) > 180) return;
+    setFixRaw(next);
   }, []);
   const [progress, setProgress] = useState<LiveProgress | null>(null);
   const [rerouting, setRerouting] = useState(false);
@@ -101,7 +98,7 @@ function Index() {
     ),
   );
 
-  const [now, setNow] = useState(() => Date.now());
+
 
   // Surface a genuine location failure once; never loop the permission prompt.
   useEffect(() => {
@@ -171,6 +168,12 @@ function Index() {
   const snappedDestRef = useRef<{ key: string; lat: number; lng: number } | null>(null);
 
   const route = routes[selectedRouteIdx] ?? null;
+  // Stable prop identity: rebuilding this array on every GPS fix forced the
+  // map to re-diff the alternate polylines.
+  const alternates = useMemo(
+    () => routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i })),
+    [routes],
+  );
 
   // Sync prefs to avoid[] and persist.
   useEffect(() => {
@@ -181,15 +184,10 @@ function Index() {
     setAvoid(next);
   }, [prefs]);
 
-  // The clock only feeds the visible status card: no ticking (and no re-render)
-  // while the panel is hidden or the car is in HUD mode.
-  const clockNeeded = !!fix && sidebarOpen && !hudMode;
-  useEffect(() => {
-    if (!clockNeeded) return;
-    setNow(Date.now());
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, [clockNeeded]);
+  // The status card owns its own 1s clock while it is mounted, so the map
+  // screen no longer re-renders every second.
+
+
 
   // On mount: restore last active nav session (e.g. after Tesla exited reverse and browser reopened).
   useEffect(() => {
@@ -581,9 +579,9 @@ function Index() {
     setRerouting(!!n.isRerouting);
   }, []);
 
-  const addWaypoint = (stop: { lat: number; lng: number; name: string }) => {
+  const addWaypoint = useCallback((stop: { lat: number; lng: number; name: string }) => {
     setWaypoints((cur) => [...cur, stop]);
-  };
+  }, []);
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
@@ -673,7 +671,7 @@ function Index() {
             </div>
           )}
 
-          {fix && <StatusPanel fix={fix} now={now} />}
+          {fix && <StatusPanel fix={fix} />}
 
           <NearbyChips origin={fix} onPick={setDestination} />
 
@@ -938,7 +936,7 @@ function Index() {
                 onProgress={setProgress}
                 onRerouteNeeded={handleRerouteNeeded}
                 waypoints={waypoints}
-                alternates={routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i }))}
+                alternates={alternates}
                 onSelectAlternate={setSelectedRouteIdx}
                 recenterSignal={recenterSignal}
                 preview={preview}

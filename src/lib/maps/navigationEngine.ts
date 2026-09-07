@@ -92,6 +92,11 @@ export class NavigationEngine {
   private listeners = new Set<Listener>();
   private lastEmit = 0;
   private lastRemember = 0;
+  /** Idle-throttle bookkeeping: skips full frames only while truly parked. */
+  private lastIdleWork = 0;
+  private lastIdleFixAt = -1;
+  private lastIdleState: NavState = "IDLE";
+
 
   private rendered: LatLng | null = null;
   private renderedHeading = 0;
@@ -262,6 +267,10 @@ export class NavigationEngine {
     if (this.raf != null) cancelAnimationFrame(this.raf);
     this.raf = null;
     this.listeners.clear();
+    this.onRerouteNeeded = null;
+    this.onFollowChange = null;
+    this.onTilt3dUnsupported = null;
+    this.camera.destroy();
     this.vehicle.destroy();
     this.route.destroy();
   }
@@ -271,10 +280,29 @@ export class NavigationEngine {
   private step = (now: number) => {
     this.raf = requestAnimationFrame(this.step);
     const dt = this.lastFrame ? Math.min(0.1, (now - this.lastFrame) / 1000) : 0.016;
-    this.lastFrame = now;
 
     const s = this.gps.state(now);
-    if (!s || !this.rendered) return;
+    if (!s || !this.rendered) {
+      this.lastFrame = now;
+      return;
+    }
+
+    // Genuinely parked and everything already settled: the full pipeline
+    // (predict → damp → marker → camera → trim → emit) buys nothing at 60 fps.
+    // We still check ~10x per second so a new fix or state change wakes us up
+    // on the very next frame. Nothing is throttled while moving.
+    const idle =
+      s.speed < 0.4 &&
+      !this.rerouting &&
+      s.at === this.lastIdleFixAt &&
+      this.state === this.lastIdleState &&
+      haversine(this.rendered, { lat: s.lat, lng: s.lng }) < 1.5 &&
+      now - this.lastIdleWork < 100;
+    if (idle) return;
+    this.lastIdleWork = now;
+    this.lastIdleFixAt = s.at;
+    this.lastIdleState = this.state;
+    this.lastFrame = now;
 
     const target = this.predict(s, now, dt);
 
@@ -300,6 +328,7 @@ export class NavigationEngine {
 
     this.emit(now, s);
   };
+
 
   /**
    * Where the car should be right now: along the route when the match is

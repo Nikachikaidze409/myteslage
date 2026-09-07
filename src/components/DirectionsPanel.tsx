@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import type { RouteResult } from "@/lib/routes.functions";
 import type { Fix } from "./StatusPanel";
 import { decodePolyline, distanceMeters } from "@/lib/geo";
@@ -27,20 +28,35 @@ function Arrow({ kind }: { kind: ReturnType<typeof maneuverIcon> }) {
   );
 }
 
-export function DirectionsPanel({ route, fix }: { route: RouteResult; fix?: Fix | null }) {
+export const DirectionsPanel = memo(function DirectionsPanel({
+  route,
+  fix,
+}: {
+  route: RouteResult;
+  fix?: Fix | null;
+}) {
+  // Decode each step's polyline once per route, not on every GPS fix.
+  const stepStarts = useMemo(
+    () => route.steps.map((s) => (s.polyline ? (decodePolyline(s.polyline)[0] ?? null) : null)),
+    [route],
+  );
+  const activeIndex = useMemo(() => {
+    if (!fix) return 0;
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < stepStarts.length; i++) {
+      const start = stepStarts[i];
+      if (!start) continue;
+      const d = distanceMeters(fix, start);
+      if (d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    }
+    return Math.min(best, Math.max(0, route.steps.length - 1));
+  }, [fix, stepStarts, route.steps.length]);
   if (!route.steps.length) return null;
-  const activeIndex = fix
-    ? Math.min(
-        route.steps.reduce((best, step, index) => {
-          const start = step.polyline ? decodePolyline(step.polyline)[0] : null;
-          if (!start) return best;
-          const bestStart = route.steps[best]?.polyline ? decodePolyline(route.steps[best].polyline)[0] : null;
-          if (!bestStart) return index;
-          return distanceMeters(fix, start) < distanceMeters(fix, bestStart) ? index : best;
-        }, 0),
-        route.steps.length - 1,
-      )
-    : 0;
+
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="font-display mb-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -82,4 +98,4 @@ export function DirectionsPanel({ route, fix }: { route: RouteResult; fix?: Fix 
       </ol>
     </div>
   );
-}
+});

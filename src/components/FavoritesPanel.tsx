@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   useHomeWork,
   useRecents,
@@ -13,7 +13,7 @@ interface Props {
   onPick: (d: Destination) => void;
 }
 
-export function FavoritesPanel({ currentDestination, onPick }: Props) {
+function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
   const { home, work } = useHomeWork();
   const recents = useRecents();
   const favs = useFavorites().filter((f) => f.kind !== "home" && f.kind !== "work");
@@ -162,3 +162,5 @@ function FavButton({
     </button>
   );
 }
+
+export const FavoritesPanel = memo(FavoritesPanelImpl);

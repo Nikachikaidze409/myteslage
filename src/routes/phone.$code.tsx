@@ -27,13 +27,19 @@ function PhoneRelay() {
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [routeBusy, setRouteBusy] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
+  const [rerouting, setRerouting] = useState(false);
   const [wakeLockOn, setWakeLockOn] = useState(false);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const channelReadyRef = useRef(false);
   const watchRef = useRef<number | null>(null);
   const lastFixRef = useRef<PairedFix | null>(null);
+  // Set by the routing effect; called on every GPS fix to detect off-route.
+  const onFixRef = useRef<
+    ((fix: { lat: number; lng: number; accuracy: number }) => void) | null
+  >(null);
   const wakeLockRef = useRef<any>(null);
+
   const PHONE_KEY = `tesla-nav.phone-autostart.${upperCode}`;
   const DEST_KEY = `tesla-nav.phone-dest.${upperCode}`;
 

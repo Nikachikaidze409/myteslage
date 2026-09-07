@@ -26,7 +26,7 @@ export interface RoutesResponse {
   routes: RouteResult[];
 }
 
-export type AvoidOption = "tolls" | "highways" | "ferries";
+export type AvoidOption = "highways" | "ferries";
 
 /** Why this route is being asked for. Drives how much Google work we pay for. */
 export type RoutePurposeInput = "user" | "reroute" | "traffic";
@@ -59,7 +59,6 @@ export const computeRoute = createServerFn({ method: "POST" })
     // Mirror Google Maps: only apply modifiers the driver explicitly asked for.
     const modifiers: Record<string, boolean> = {};
     for (const a of data.avoid ?? []) {
-      if (a === "tolls") modifiers.avoidTolls = true;
       if (a === "highways") modifiers.avoidHighways = true;
       if (a === "ferries") modifiers.avoidFerries = true;
     }

@@ -267,6 +267,10 @@ export class NavigationEngine {
     if (this.raf != null) cancelAnimationFrame(this.raf);
     this.raf = null;
     this.listeners.clear();
+    this.onRerouteNeeded = null;
+    this.onFollowChange = null;
+    this.onTilt3dUnsupported = null;
+    this.camera.destroy();
     this.vehicle.destroy();
     this.route.destroy();
   }

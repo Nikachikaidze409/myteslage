@@ -5,6 +5,8 @@ import { pairChannelName, type PairedFix, type PairedNavState } from "@/lib/pair
 import { DestinationSearch, type Destination } from "@/components/DestinationSearch";
 import { computeRoute, type RouteResult } from "@/lib/routes.functions";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
+import { distanceToPolylineMeters } from "@/lib/off-route";
+
 
 export const Route = createFileRoute("/phone/$code")({
   head: () => ({
@@ -25,13 +27,19 @@ function PhoneRelay() {
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [routeBusy, setRouteBusy] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
+  const [rerouting, setRerouting] = useState(false);
   const [wakeLockOn, setWakeLockOn] = useState(false);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const channelReadyRef = useRef(false);
   const watchRef = useRef<number | null>(null);
   const lastFixRef = useRef<PairedFix | null>(null);
+  // Set by the routing effect; called on every GPS fix to detect off-route.
+  const onFixRef = useRef<
+    ((fix: { lat: number; lng: number; accuracy: number }) => void) | null
+  >(null);
   const wakeLockRef = useRef<any>(null);
+
   const PHONE_KEY = `tesla-nav.phone-autostart.${upperCode}`;
   const DEST_KEY = `tesla-nav.phone-dest.${upperCode}`;
 
@@ -144,7 +152,9 @@ function PhoneRelay() {
         } else {
           pending = fix;
         }
+        onFixRef.current?.({ lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy });
       },
+
       (err) => {
         if (typeof window !== "undefined") window.localStorage.removeItem(PHONE_KEY);
         setStatus("error");
@@ -194,13 +204,28 @@ function PhoneRelay() {
     let interval: number | null = null;
     let lastComputeAt = 0;
     let inFlight = false;
+    let inFlightPurpose: "user" | "traffic" | "reroute" | null = null;
+    let requestSeq = 0;
     let lastOrigin: { lat: number; lng: number } | null = null;
     // Snap the destination once per destination, then reuse it.
     let snappedDest: { lat: number; lng: number } | null = null;
+    // Off-route tracking.
+    let activePolyline: string | null = null;
+    let offStrikes = 0;
+    let firstOffAt = 0;
+    let lastOffCheckAt = 0;
+    let lastRerouteAt = 0;
 
     const MIN_REFRESH_MS = 240_000;
     const MIN_MOVE_M = 2_000;
     const NEAR_DEST_M = 3_000;
+    // Off-route: tolerate GPS noise, but confirm a real departure quickly.
+    const OFF_BASE_M = 30;
+    const OFF_MAX_M = 60;
+    const OFF_STRIKES = 3;
+    const OFF_MIN_SPAN_MS = 2_000;
+    const OFF_CHECK_MS = 1_000;
+    const REROUTE_COOLDOWN_MS = 15_000;
 
     const metersBetween = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
       const R = 6371000;
@@ -213,12 +238,35 @@ function PhoneRelay() {
       return 2 * R * Math.asin(Math.sqrt(h));
     };
 
-    const compute = async (silent: boolean) => {
+    const compute = async (purpose: "user" | "traffic" | "reroute") => {
       const fix = lastFixRef.current;
-      if (!fix || inFlight) return;
+      if (!fix) return;
+      if (inFlight) {
+        // A reroute outranks a background refresh: let it start, the older
+        // response is discarded by the sequence check below.
+        if (!(purpose === "reroute" && inFlightPurpose === "traffic")) return;
+      }
+      const seq = ++requestSeq;
       inFlight = true;
-      if (!silent) setRouteBusy(true);
+      inFlightPurpose = purpose;
+      const loud = purpose === "user";
+      if (loud) setRouteBusy(true);
       setRouteError(null);
+      if (purpose === "reroute") {
+        setRerouting(true);
+        lastRerouteAt = Date.now();
+        if (activePolyline) {
+          broadcast("nav", {
+            destination: { lat: destination.lat, lng: destination.lng, name: destination.name },
+            encodedPolyline: activePolyline,
+            distanceMeters: route?.distanceMeters ?? 0,
+            durationSeconds: route?.durationSeconds ?? 0,
+            steps: route?.steps ?? [],
+            isRerouting: true,
+            updatedAt: Date.now(),
+          } satisfies PairedNavState);
+        }
+      }
       try {
         if (!snappedDest) {
           snappedDest = await snapToRoad({ data: { lat: destination.lat, lng: destination.lng } })
@@ -229,14 +277,17 @@ function PhoneRelay() {
           data: {
             origin: { lat: fix.lat, lng: fix.lng },
             destination: snappedDest,
-            purpose: silent ? "traffic" : "user",
+            purpose: purpose === "user" ? "user" : purpose === "reroute" ? "reroute" : "traffic",
             alternatives: false,
           },
         });
-        if (cancelled) return;
+        if (cancelled || seq !== requestSeq) return;
         const primary = resp.routes[0];
         if (!primary) throw new Error("No route");
         setRoute(primary);
+        activePolyline = primary.encodedPolyline;
+        offStrikes = 0;
+        firstOffAt = 0;
         lastComputeAt = Date.now();
         lastOrigin = { lat: fix.lat, lng: fix.lng };
         broadcast("nav", {
@@ -249,12 +300,46 @@ function PhoneRelay() {
           updatedAt: Date.now(),
         } satisfies PairedNavState);
       } catch (e) {
-        if (!cancelled) setRouteError(e instanceof Error ? e.message : "Route failed");
+        if (!cancelled && seq === requestSeq) {
+          setRouteError(e instanceof Error ? e.message : "Route failed");
+        }
       } finally {
-        inFlight = false;
-        if (!cancelled && !silent) setRouteBusy(false);
+        if (seq === requestSeq) {
+          inFlight = false;
+          inFlightPurpose = null;
+          if (!cancelled) {
+            setRerouting(false);
+            if (loud) setRouteBusy(false);
+          }
+        }
       }
     };
+
+    // Called on every GPS fix: decide whether the driver genuinely left the route.
+    const evaluateFix = (fix: { lat: number; lng: number; accuracy: number }) => {
+      if (cancelled || !activePolyline) return;
+      const now = Date.now();
+      if (now - lastOffCheckAt < OFF_CHECK_MS) return;
+      lastOffCheckAt = now;
+      const offset = distanceToPolylineMeters({ lat: fix.lat, lng: fix.lng }, activePolyline);
+      // Scale with reported accuracy so a fuzzy fix never looks like a turn-off.
+      const threshold = Math.min(OFF_MAX_M, Math.max(OFF_BASE_M, fix.accuracy * 1.5));
+      if (offset <= threshold) {
+        offStrikes = 0;
+        firstOffAt = 0;
+        return;
+      }
+      if (offStrikes === 0) firstOffAt = now;
+      offStrikes++;
+      const confirmed = offStrikes >= OFF_STRIKES && now - firstOffAt >= OFF_MIN_SPAN_MS;
+      if (!confirmed) return;
+      if (now - lastRerouteAt < REROUTE_COOLDOWN_MS) return;
+      if (metersBetween(fix, destination) < 60) return;
+      offStrikes = 0;
+      firstOffAt = 0;
+      void compute("reroute");
+    };
+    onFixRef.current = evaluateFix;
 
     const maybeRefresh = () => {
       const fix = lastFixRef.current;
@@ -262,7 +347,7 @@ function PhoneRelay() {
       if (Date.now() - lastComputeAt < MIN_REFRESH_MS) return;
       if (lastOrigin && metersBetween(lastOrigin, fix) < MIN_MOVE_M) return;
       if (metersBetween(fix, destination) < NEAR_DEST_M) return;
-      void compute(true);
+      void compute("traffic");
     };
 
     // Wait for a first fix if none yet.
@@ -270,24 +355,27 @@ function PhoneRelay() {
       const wait = window.setInterval(() => {
         if (lastFixRef.current) {
           window.clearInterval(wait);
-          void compute(false);
+          void compute("user");
         }
       }, 500);
       return () => {
         cancelled = true;
+        onFixRef.current = null;
         window.clearInterval(wait);
       };
     }
 
-    void compute(false);
+    void compute("user");
     interval = window.setInterval(maybeRefresh, 60_000);
 
     return () => {
       cancelled = true;
+      onFixRef.current = null;
       if (interval) window.clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destination]);
+
 
 
   const cancelTrip = () => {
@@ -356,6 +444,9 @@ function PhoneRelay() {
                     <div className="mt-1 text-sm text-muted-foreground">
                       {km(route.distanceMeters)} · {min(route.durationSeconds)}
                     </div>
+                  )}
+                  {rerouting && (
+                    <div className="mt-1 text-sm text-primary">Rerouting…</div>
                   )}
                   {routeBusy && !route && (
                     <div className="mt-1 text-sm text-muted-foreground">Computing route…</div>

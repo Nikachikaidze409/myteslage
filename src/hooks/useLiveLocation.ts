@@ -90,6 +90,7 @@ export function useLiveLocation(onFix: (f: Fix) => void) {
           } else {
             start();
           }
+          permStatus = p;
           p.onchange = () => {
             if (p.state === "granted") start();
             if (p.state === "denied") {
@@ -102,8 +103,10 @@ export function useLiveLocation(onFix: (f: Fix) => void) {
     } else {
       start();
     }
+    let permStatus: PermissionStatus | null = null;
     return () => {
       cancelled = true;
+      if (permStatus) permStatus.onchange = null;
     };
   }, [start, stop]);
 

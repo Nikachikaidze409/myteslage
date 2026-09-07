@@ -11,7 +11,6 @@ import type { RouteStep } from "@/lib/routes.functions";
 import { CameraEngine } from "./cameraEngine";
 import { rememberCenter } from "./googleMapsService";
 import { GpsEngine, type GpsState, type RawFix } from "./gpsEngine";
-import { RoadsMatcher } from "./roadsService";
 import { RouteRenderer } from "./routeRenderer";
 import { RouteProgressEngine, type MatchState } from "./routeProgressEngine";
 import { VehicleRenderer } from "./vehicleRenderer";
@@ -82,7 +81,6 @@ const APPROACH_M = 150;
 
 export class NavigationEngine {
   readonly gps = new GpsEngine();
-  private roads = new RoadsMatcher();
   private camera: CameraEngine;
   private vehicle: VehicleRenderer;
   readonly route: RouteRenderer;

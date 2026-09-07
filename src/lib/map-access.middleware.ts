@@ -103,7 +103,13 @@ export const requireMapAccess = createMiddleware({ type: "function" }).server(
     if (pairCode && /^[A-Z0-9]{6,12}$/i.test(pairCode)) {
       const owner = await pairedOwner(pairCode);
       if (owner) {
-        return next({ context: { userId: owner, via: "pair" as const } });
+        return next({
+          context: {
+            supabase: null as SupabaseClient<Database> | null,
+            userId: owner,
+            via: "pair" as "pair" | "session",
+          },
+        });
       }
     }
 
@@ -123,6 +129,12 @@ export const requireMapAccess = createMiddleware({ type: "function" }).server(
       throw new Error("Your membership is not active.");
     }
 
-    return next({ context: { supabase, userId, via: "session" as const } });
+    return next({
+      context: {
+        supabase: supabase as SupabaseClient<Database> | null,
+        userId,
+        via: "session" as "pair" | "session",
+      },
+    });
   },
 );

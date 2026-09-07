@@ -48,11 +48,6 @@ export function AlternativesPanel({
                 <div>
                   <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                     {r.label ?? (i === 0 ? "Fastest" : `Alternate ${i}`)}
-                    {r.hasTolls && (
-                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-700">
-                        Toll
-                      </span>
-                    )}
                     {hasWarning && (
                       <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-700" title={(r.warnings ?? []).join(" · ")}>
                         ⚠ Rough road

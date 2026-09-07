@@ -70,8 +70,13 @@ function IndexGated() {
 function Index() {
   const [fix, setFixRaw] = useState<Fix | null>(null);
   const prevFixRef = useRef<Fix | null>(null);
+  // While a paired phone is streaming, it is the authoritative position source.
+  const lastPhoneFixAtRef = useRef(0);
+  const PHONE_FIX_TTL_MS = 9_000;
   // Discard impossible jumps / junk accuracy and derive heading from motion.
   const setFix = useCallback((next: Fix) => {
+    if (next.source === "phone") lastPhoneFixAtRef.current = Date.now();
+    else if (Date.now() - lastPhoneFixAtRef.current < PHONE_FIX_TTL_MS) return;
     const prev = prevFixRef.current;
     if (!isPlausibleFix(prev, next)) return;
     const heading = resolveHeading(prev, next) ?? next.heading ?? null;
@@ -95,6 +100,7 @@ function Index() {
       [setFix],
     ),
   );
+
   const [now, setNow] = useState(() => Date.now());
 
   // Surface a genuine location failure once; never loop the permission prompt.
@@ -290,13 +296,15 @@ function Index() {
             data: {
               origin: { lat: originFix.lat, lng: originFix.lng },
               destination: snappedDest,
-              alternatives: true,
+              purpose,
+              alternatives: purpose === "user",
               avoid: effAvoid,
               avoidUnpaved: prefs.avoidUnpaved ? true : undefined,
               waypoints: effWaypoints.map((w) => ({ lat: w.lat, lng: w.lng })),
             },
             signal: ticket.signal,
           }),
+
         )
         .then((resp) => {
           if (!routeCtl.current.isCurrent(requestId)) {
@@ -455,6 +463,8 @@ function Index() {
   }, []);
 
   const handleRerouteNeeded = useCallback(() => {
+    // HUD mode: the phone is the only routing brain. Tesla never routes.
+    if (hudMode) return;
     if (!navigating || !destination || !fix) return;
     // The engine already debounces; this only stops duplicate calls in-flight.
     if (Date.now() - lastRerouteAtRef.current < 1_200) return;
@@ -474,7 +484,7 @@ function Index() {
     setOffRoute(true);
     setRerouting(true);
     requestRoute(fix, destination, { silent: true, reroute: true });
-  }, [destination, fix, navigating, requestRoute]);
+  }, [destination, fix, hudMode, navigating, requestRoute]);
 
   useEffect(() => {
     if (!rerouting && offRoute) setOffRoute(false);

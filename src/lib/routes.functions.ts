@@ -20,7 +20,6 @@ export interface RouteResult {
   steps: RouteStep[];
   label?: string;
   warnings?: string[];
-  hasTolls?: boolean;
 }
 
 export interface RoutesResponse {
@@ -28,6 +27,9 @@ export interface RoutesResponse {
 }
 
 export type AvoidOption = "tolls" | "highways" | "ferries";
+
+/** Why this route is being asked for. Drives how much Google work we pay for. */
+export type RoutePurposeInput = "user" | "reroute" | "traffic";
 
 export const computeRoute = createServerFn({ method: "POST" })
   .middleware([requireMapAccess])
@@ -39,6 +41,7 @@ export const computeRoute = createServerFn({ method: "POST" })
       avoid?: AvoidOption[];
       alternatives?: boolean;
       avoidUnpaved?: boolean;
+      purpose?: RoutePurposeInput;
     }) => {
     if (
       !data ||
@@ -51,6 +54,7 @@ export const computeRoute = createServerFn({ method: "POST" })
     }
     return data;
   })
+
   .handler(async ({ data }): Promise<RoutesResponse> => {
     // Mirror Google Maps: only apply modifiers the driver explicitly asked for.
     const modifiers: Record<string, boolean> = {};
@@ -68,7 +72,7 @@ export const computeRoute = createServerFn({ method: "POST" })
           "X-Goog-Api-Key": googleKey(),
           "Content-Type": "application/json",
           "X-Goog-FieldMask":
-            "routes.distanceMeters,routes.duration,routes.description,routes.routeLabels,routes.warnings,routes.travelAdvisory,routes.polyline.encodedPolyline,routes.legs.steps.distanceMeters,routes.legs.steps.navigationInstruction,routes.legs.steps.polyline.encodedPolyline",
+            "routes.distanceMeters,routes.duration,routes.description,routes.routeLabels,routes.warnings,routes.polyline.encodedPolyline,routes.legs.steps.distanceMeters,routes.legs.steps.navigationInstruction,routes.legs.steps.polyline.encodedPolyline",
         },
         body: JSON.stringify({
           origin: { location: { latLng: { latitude: data.origin.lat, longitude: data.origin.lng } } },
@@ -79,11 +83,15 @@ export const computeRoute = createServerFn({ method: "POST" })
             location: { latLng: { latitude: w.lat, longitude: w.lng } },
           })),
           travelMode: "DRIVE",
-          routingPreference: "TRAFFIC_AWARE_OPTIMAL",
-          computeAlternativeRoutes: !!data.alternatives,
-          extraComputations: ["TOLLS"],
+          // Only the driver's own first/changed route pays for the optimal
+          // traffic model; reroutes and background ETA refreshes use the
+          // cheaper traffic-aware model and never ask for alternatives.
+          routingPreference:
+            (data.purpose ?? "user") === "user" ? "TRAFFIC_AWARE_OPTIMAL" : "TRAFFIC_AWARE",
+          computeAlternativeRoutes: (data.purpose ?? "user") === "user" && !!data.alternatives,
           ...(Object.keys(modifiers).length ? { routeModifiers: modifiers } : {}),
         }),
+
       },
     );
 
@@ -100,7 +108,7 @@ export const computeRoute = createServerFn({ method: "POST" })
         description?: string;
         routeLabels?: string[];
         warnings?: string[];
-        travelAdvisory?: { tollInfo?: unknown };
+        
         polyline?: { encodedPolyline?: string };
         legs?: {
           steps?: {
@@ -139,7 +147,7 @@ export const computeRoute = createServerFn({ method: "POST" })
         steps,
         label,
         warnings: r.warnings ?? [],
-        hasTolls: !!r.travelAdvisory?.tollInfo,
+        
       });
     }
     if (!routes.length) throw new Error("No route found");

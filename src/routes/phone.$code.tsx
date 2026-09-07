@@ -152,7 +152,9 @@ function PhoneRelay() {
         } else {
           pending = fix;
         }
+        onFixRef.current?.({ lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy });
       },
+
       (err) => {
         if (typeof window !== "undefined") window.localStorage.removeItem(PHONE_KEY);
         setStatus("error");

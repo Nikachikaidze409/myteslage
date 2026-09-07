@@ -108,7 +108,7 @@ export const computeRoute = createServerFn({ method: "POST" })
         description?: string;
         routeLabels?: string[];
         warnings?: string[];
-        travelAdvisory?: { tollInfo?: unknown };
+        
         polyline?: { encodedPolyline?: string };
         legs?: {
           steps?: {
@@ -147,7 +147,7 @@ export const computeRoute = createServerFn({ method: "POST" })
         steps,
         label,
         warnings: r.warnings ?? [],
-        hasTolls: !!r.travelAdvisory?.tollInfo,
+        
       });
     }
     if (!routes.length) throw new Error("No route found");

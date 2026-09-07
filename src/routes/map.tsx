@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LocationButton } from "@/components/LocationButton";
 import { useLiveLocation } from "@/hooks/useLiveLocation";
 import { StatusPanel, type Fix } from "@/components/StatusPanel";
@@ -169,6 +169,12 @@ function Index() {
   const snappedDestRef = useRef<{ key: string; lat: number; lng: number } | null>(null);
 
   const route = routes[selectedRouteIdx] ?? null;
+  // Stable prop identity: rebuilding this array on every GPS fix forced the
+  // map to re-diff the alternate polylines.
+  const alternates = useMemo(
+    () => routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i })),
+    [routes],
+  );
 
   // Sync prefs to avoid[] and persist.
   useEffect(() => {
@@ -931,7 +937,7 @@ function Index() {
                 onProgress={setProgress}
                 onRerouteNeeded={handleRerouteNeeded}
                 waypoints={waypoints}
-                alternates={routes.map((r, i) => ({ encodedPolyline: r.encodedPolyline, index: i }))}
+                alternates={alternates}
                 onSelectAlternate={setSelectedRouteIdx}
                 recenterSignal={recenterSignal}
                 preview={preview}

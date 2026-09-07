@@ -52,9 +52,11 @@ export function PairPhonePanel({ onPairedFix, onPairedNav }: Props) {
   }, [code]);
 
   const start = () => {
-    setCode(generatePairCode());
     setConnected(false);
     setChannelStatus("connecting");
+    void createPairSession()
+      .then((s) => setCode(s.code))
+      .catch(() => setChannelStatus("could not start pairing"));
   };
 
   const forget = () => {
@@ -62,6 +64,7 @@ export function PairPhonePanel({ onPairedFix, onPairedNav }: Props) {
     setCode(null);
     setConnected(false);
     setChannelStatus("not paired");
+    void endPairSession().catch(() => {});
   };
 
   const phoneUrl = code ? `${origin}/phone/${code}` : "";

@@ -575,6 +575,9 @@ function Index() {
     setSelectedRouteIdx(0);
     setNavigating(true);
     setRouteError(null);
+    // Mirror the phone brain's rerouting state; cleared when the new route
+    // arrives with isRerouting=false.
+    setRerouting(!!n.isRerouting);
   }, []);
 
   const addWaypoint = (stop: { lat: number; lng: number; name: string }) => {

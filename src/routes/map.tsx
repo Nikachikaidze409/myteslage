@@ -190,7 +190,7 @@ function Index() {
   useEffect(() => {
     saveRoutePrefs(prefs);
     const next: AvoidOption[] = [];
-    if (prefs.avoidTolls) next.push("tolls");
+    
     if (prefs.avoidHighways) next.push("highways");
     setAvoid(next);
   }, [prefs]);

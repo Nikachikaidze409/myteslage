@@ -13,6 +13,7 @@ export class RouteRenderer {
   private encoded: string | null = null;
   private index: PathIndex | null = null;
   private lastTrimAt = 0;
+  private lastTrim: { segment: number; lat: number; lng: number } | null = null;
 
   constructor(map: any, google: any) {
     this.map = map;
@@ -27,6 +28,7 @@ export class RouteRenderer {
   setRoute(encoded: string | null): boolean {
     if (encoded === this.encoded) return false;
     this.encoded = encoded;
+    this.lastTrim = null;
     if (!encoded) {
       this.index = null;
       this.ahead?.setMap(null);
@@ -73,13 +75,27 @@ export class RouteRenderer {
     const idx = this.index;
     if (!idx || !proj || !this.ahead || !this.behind) return;
     if (now - this.lastTrimAt < 500) return;
+    // Standing still (traffic light, parked) must not redraw two polylines.
+    const prev = this.lastTrim;
+    if (
+      prev &&
+      prev.segment === proj.segment &&
+      Math.abs(prev.lat - proj.point.lat) < 2e-5 &&
+      Math.abs(prev.lng - proj.point.lng) < 2e-5
+    ) {
+      return;
+    }
     this.lastTrimAt = now;
+    this.lastTrim = { segment: proj.segment, lat: proj.point.lat, lng: proj.point.lng };
     this.ahead.setPath(remainingPath(idx, proj));
     this.behind.setPath([...idx.path.slice(0, proj.segment + 1), proj.point]);
   }
 
   setAlternates(list: { encodedPolyline: string; index: number }[], onSelect?: (i: number) => void): void {
-    for (const l of this.alternates) l.setMap(null);
+    for (const l of this.alternates) {
+      this.google.maps.event?.clearInstanceListeners?.(l);
+      l.setMap(null);
+    }
     this.alternates = [];
     const g = this.google;
     for (const alt of list) {
@@ -109,8 +125,12 @@ export class RouteRenderer {
   destroy(): void {
     this.ahead?.setMap(null);
     this.behind?.setMap(null);
-    for (const l of this.alternates) l.setMap(null);
+    for (const l of this.alternates) {
+      this.google.maps.event?.clearInstanceListeners?.(l);
+      l.setMap(null);
+    }
     this.alternates = [];
+    this.lastTrim = null;
     this.ahead = null;
     this.behind = null;
     this.index = null;

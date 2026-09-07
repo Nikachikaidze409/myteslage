@@ -13,6 +13,9 @@ export class VehicleRenderer {
   private accuracyCircle: any = null;
   private heading = 0;
   private iconRotation = -999;
+  private pos: LatLng | null = null;
+  private circle: { lat: number; lng: number; r: number } | null = null;
+  private headingListener: any = null;
 
   constructor(map: any, google: any, _vector: boolean) {
     this.map = map;
@@ -26,13 +29,19 @@ export class VehicleRenderer {
       icon: arrowIcon(google, 0),
     });
     // The screen-space rotation depends on the camera, so redraw when it turns.
-    map.addListener?.("heading_changed", () => this.applyRotation());
+    this.headingListener = map.addListener?.("heading_changed", () => this.applyRotation());
   }
 
   setPose(lat: number, lng: number, heading: number): void {
     if (!this.marker) return;
     this.heading = heading;
-    this.marker.setPosition({ lat, lng });
+    // Sub-centimetre moves cost a Maps redraw and change nothing on screen.
+    const moved =
+      !this.pos || Math.abs(this.pos.lat - lat) > 2e-6 || Math.abs(this.pos.lng - lng) > 2e-6;
+    if (moved) {
+      this.pos = { lat, lng };
+      this.marker.setPosition({ lat, lng });
+    }
     this.applyRotation();
   }
 
@@ -51,6 +60,7 @@ export class VehicleRenderer {
     if (!visible) {
       this.accuracyCircle?.setMap(null);
       this.accuracyCircle = null;
+      this.circle = null;
       return;
     }
     if (!this.accuracyCircle) {
@@ -65,11 +75,23 @@ export class VehicleRenderer {
         zIndex: 2,
       });
     }
+    const prev = this.circle;
+    if (
+      prev &&
+      Math.abs(prev.r - metres) < 1 &&
+      Math.abs(prev.lat - center.lat) < 5e-6 &&
+      Math.abs(prev.lng - center.lng) < 5e-6
+    ) {
+      return;
+    }
+    this.circle = { lat: center.lat, lng: center.lng, r: metres };
     this.accuracyCircle.setCenter(center);
     this.accuracyCircle.setRadius(metres);
   }
 
   destroy(): void {
+    this.headingListener?.remove?.();
+    this.headingListener = null;
     this.marker?.setMap(null);
     this.marker = null;
     this.accuracyCircle?.setMap(null);

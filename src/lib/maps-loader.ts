@@ -9,13 +9,36 @@ let authFailed = false;
 // The project-owned browser key, fetched once from the server.
 let fetchedKey: string | null | undefined = undefined;
 let fetchKeyPromise: Promise<string | null> | null = null;
+const KEY_CACHE = "tmg:mapkey";
+
+function cachedKey(): string | null {
+  try {
+    const v = window.sessionStorage.getItem(KEY_CACHE);
+    return v && v.trim() ? v : null;
+  } catch {
+    return null;
+  }
+}
 
 function resolveBrowserKey(): Promise<string | null> {
   if (fetchedKey !== undefined) return Promise.resolve(fetchedKey);
+  // Reusing the key within the tab removes a round trip before the map script.
+  const cached = cachedKey();
+  if (cached) {
+    fetchedKey = cached;
+    return Promise.resolve(cached);
+  }
   if (fetchKeyPromise) return fetchKeyPromise;
   fetchKeyPromise = getMapsBrowserKey()
     .then((res) => {
       fetchedKey = res.key ?? null;
+      if (fetchedKey) {
+        try {
+          window.sessionStorage.setItem(KEY_CACHE, fetchedKey);
+        } catch {
+          /* storage disabled */
+        }
+      }
       return fetchedKey;
     })
     .catch(() => {
@@ -49,7 +72,13 @@ export function clearMapsAuthFailure(): void {
 export function resetMapsLoader(): void {
   loaderPromise = null;
   authFailed = false;
+  fetchedKey = undefined;
   if (typeof window !== "undefined") {
+    try {
+      window.sessionStorage.removeItem(KEY_CACHE);
+    } catch {
+      /* storage disabled */
+    }
     document
       .querySelectorAll('script[src*="maps.googleapis.com/maps/api/js"]')
       .forEach((el) => el.remove());

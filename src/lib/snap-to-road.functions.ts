@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireMapAccess } from "@/lib/map-access.middleware";
 import { z } from "zod";
 
 import { googleKey, ROADS_API } from "@/lib/google-api";
@@ -9,6 +10,7 @@ const InputSchema = z.object({
 });
 
 export const snapToRoad = createServerFn({ method: "POST" })
+  .middleware([requireMapAccess])
   .inputValidator((data) => InputSchema.parse(data))
   .handler(async ({ data }) => {
     const path = `${data.lat},${data.lng}`;

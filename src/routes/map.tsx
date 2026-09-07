@@ -27,6 +27,12 @@ import {
   type RoutePrefs,
 } from "@/lib/favorites";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
+import {
+  RouteRequestController,
+  routeFingerprint,
+  type RoutePurpose,
+} from "@/lib/maps/routeRequestController";
+import { countApi } from "@/lib/maps/apiUsage";
 import { isPlausibleFix, resolveHeading } from "@/lib/fix-filter";
 import type { LiveProgress } from "@/components/MapView";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
@@ -142,7 +148,7 @@ function Index() {
   const pendingResumeRef = useRef(false);
   const [resumedName, setResumedName] = useState<string | null>(null);
 
-  const routeRequestRef = useRef(0);
+  const routeCtl = useRef(new RouteRequestController());
   const lastRouteOriginRef = useRef<Fix | null>(null);
   const lastLiveRouteAtRef = useRef(0);
   const offRouteSinceRef = useRef<number | null>(null);
@@ -231,11 +237,34 @@ function Index() {
       options?: {
         silent?: boolean;
         reroute?: boolean;
+        traffic?: boolean;
         avoid?: AvoidOption[];
         waypoints?: { lat: number; lng: number; name: string }[];
       },
     ) => {
-      const requestId = ++routeRequestRef.current;
+      const purpose: RoutePurpose = options?.reroute
+        ? "reroute"
+        : options?.traffic
+          ? "traffic"
+          : "user";
+      const effAvoid = options?.avoid ?? avoid;
+      const effWaypoints = options?.waypoints ?? waypoints;
+      const ticket = routeCtl.current.begin(
+        purpose,
+        routeFingerprint({
+          purpose,
+          origin: originFix,
+          destination: nextDestination,
+          waypoints: effWaypoints,
+          avoid: effAvoid,
+          avoidUnpaved: prefs.avoidUnpaved,
+        }),
+      );
+      // Duplicate, or outranked by a request already running (a traffic
+      // refresh can never disturb an active reroute).
+      if (!ticket) return;
+
+      const requestId = ticket.id;
       const startedAt = Date.now();
       if (!options?.silent) setRouteLoading(true);
       setRouteError(null);
@@ -245,8 +274,8 @@ function Index() {
       const snapPromise: Promise<{ lat: number; lng: number }> =
         snappedDestRef.current?.key === destKey
           ? Promise.resolve({ lat: snappedDestRef.current.lat, lng: snappedDestRef.current.lng })
-          : // A reroute must not wait on an extra Roads round trip.
-            options?.reroute
+          : // A reroute or a traffic refresh must not wait on an extra Roads round trip.
+            purpose !== "user"
             ? Promise.resolve({ lat: nextDestination.lat, lng: nextDestination.lng })
             : snapToRoad({ data: { lat: nextDestination.lat, lng: nextDestination.lng } })
               .then((s) => {
@@ -262,25 +291,28 @@ function Index() {
               origin: { lat: originFix.lat, lng: originFix.lng },
               destination: snappedDest,
               alternatives: true,
-              avoid: options?.avoid ?? avoid,
+              avoid: effAvoid,
               avoidUnpaved: prefs.avoidUnpaved ? true : undefined,
-              waypoints: (options?.waypoints ?? waypoints).map((w) => ({ lat: w.lat, lng: w.lng })),
+              waypoints: effWaypoints.map((w) => ({ lat: w.lat, lng: w.lng })),
             },
+            signal: ticket.signal,
           }),
         )
         .then((resp) => {
-          if (routeRequestRef.current !== requestId) {
+          if (!routeCtl.current.isCurrent(requestId)) {
+            countApi("route.stale");
             if (debugEnabledRef.current)
               setRerouteTiming((t) => ({ ...t, staleRejected: t.staleRejected + 1 }));
             return;
           }
            if (debugEnabledRef.current) {
              console.debug(
-               `[nav] route ${options?.reroute ? "reroute" : "request"} #${requestId} answered in ${Date.now() - startedAt} ms`,
+               `[nav] route ${purpose} #${requestId} answered in ${Date.now() - startedAt} ms`,
              );
            }
            setRoutes(resp.routes);
            setSelectedRouteIdx(0);
+           lastLiveRouteAtRef.current = Date.now();
            if (options?.reroute) {
              setRerouting(false);
              if (debugEnabledRef.current) {
@@ -314,8 +346,9 @@ function Index() {
           setNavigating(true);
         })
         .catch((e: unknown) => {
-          if (routeRequestRef.current !== requestId) return;
+          if (!routeCtl.current.isCurrent(requestId)) return;
            setRouteError(e instanceof Error ? e.message : "Route failed");
+           // A failed reroute must never leave the screen stuck on "Rerouting".
            if (options?.reroute) setRerouting(false);
            const cached = loadCachedRoute();
           if (
@@ -337,7 +370,9 @@ function Index() {
           }
         })
         .finally(() => {
-          if (routeRequestRef.current === requestId && !options?.silent) setRouteLoading(false);
+          const current = routeCtl.current.isCurrent(requestId);
+          routeCtl.current.finish(requestId);
+          if (current && !options?.silent) setRouteLoading(false);
         });
     },
     [avoid, waypoints, prefs.avoidUnpaved],
@@ -386,20 +421,38 @@ function Index() {
 
   // The map engine owns off-route detection (it matches against the real
   // route geometry every frame and calls onRerouteNeeded). This effect only
-  // handles the periodic traffic-aware refresh of a route we are still on.
+  // handles the occasional traffic-aware refresh of a route we are still on.
+  // Deliberately conservative: refreshing every few seconds burned Routes API
+  // quota without changing the driver's road.
   useEffect(() => {
     if (hudMode) return;
     if (!navigating || !destination || !fix || routeLoading) return;
+    if (rerouting || routeCtl.current.busy) return;
     const lastRouteOrigin = lastRouteOriginRef.current;
     if (!lastRouteOrigin) return;
+    // Close to the destination the ETA no longer moves: stop paying for it.
+    if (distanceMeters(fix, destination) < 3_000) return;
 
     const moved = distanceMeters(fix, lastRouteOrigin);
     const elapsed = Date.now() - lastLiveRouteAtRef.current;
-    if (moved >= 120 && elapsed >= 15_000) {
+    if (moved >= 2_000 && elapsed >= 240_000) {
       lastLiveRouteAtRef.current = Date.now();
-      requestRoute(fix, destination, { silent: true });
+      requestRoute(fix, destination, { silent: true, traffic: true });
     }
-  }, [destination, fix, hudMode, navigating, requestRoute, routeLoading]);
+  }, [destination, fix, hudMode, navigating, rerouting, requestRoute, routeLoading]);
+
+  // Safety net: never leave the driver looking at "Rerouting" forever.
+  useEffect(() => {
+    if (!rerouting) return;
+    const t = window.setTimeout(() => setRerouting(false), 20_000);
+    return () => window.clearTimeout(t);
+  }, [rerouting]);
+
+  // Leaving the map screen must not leave a request running.
+  useEffect(() => {
+    const ctl = routeCtl.current;
+    return () => ctl.cancelAll();
+  }, []);
 
   const handleRerouteNeeded = useCallback(() => {
     if (!navigating || !destination || !fix) return;

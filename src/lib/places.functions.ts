@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireMapAccess } from "@/lib/map-access.middleware";
 import { googleKey, googleFail, PLACES_API } from "@/lib/google-api";
 
 export interface NearbyPlace {
@@ -21,6 +22,7 @@ const TYPE_MAP: Record<string, string[]> = {
 };
 
 export const searchNearby = createServerFn({ method: "POST" })
+  .middleware([requireMapAccess])
   .inputValidator(
     (data: {
       lat: number;

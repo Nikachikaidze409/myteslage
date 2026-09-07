@@ -95,6 +95,11 @@ export function MapView({
   onMapClickRef.current = onMapClick;
   const onPickPoiRef = useRef(onPickPoi);
   onPickPoiRef.current = onPickPoi;
+  const lastProgressRef = useRef<{
+    remainingMeters: number;
+    along: number;
+    offset: number;
+  } | null>(null);
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
   const onDebugRef = useRef(onDebug);
@@ -184,11 +189,22 @@ export function MapView({
           engine.onRerouteNeeded = () => onRerouteRef.current?.();
           engine.subscribe((s: NavSnapshot) => {
             setWeakSignal(s.weakSignal);
-            onProgressRef.current?.({
-              remainingMeters: s.remainingMeters,
-              along: s.along,
-              offset: s.offset,
-            });
+            // The panel shows whole units: pushing centimetre changes into React
+            // re-rendered the whole screen twice a second for nothing.
+            const prev = lastProgressRef.current;
+            const changed =
+              !prev ||
+              Math.abs(prev.remainingMeters - s.remainingMeters) >= 10 ||
+              Math.abs(prev.along - s.along) >= 10 ||
+              Math.abs(prev.offset - s.offset) >= 5;
+            if (changed) {
+              lastProgressRef.current = {
+                remainingMeters: s.remainingMeters,
+                along: s.along,
+                offset: s.offset,
+              };
+              onProgressRef.current?.(lastProgressRef.current);
+            }
             onDebugRef.current?.(s.debug, s.state);
           });
 

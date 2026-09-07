@@ -12,22 +12,37 @@ const SignupSchema = z.object({
 export const signupWithCode = createServerFn({ method: "POST" })
   .inputValidator((d) => SignupSchema.parse(d))
   .handler(async ({ data }) => {
+    const email = data.email.trim().toLowerCase();
+    const { createClient } = await import("@supabase/supabase-js");
+
+    // Account creation goes through the ordinary public sign-up endpoint, so
+    // the platform's own abuse protection and password rules apply. The
+    // service-role key is never used to mint accounts from an open endpoint.
+    const publicClient = createClient(
+      process.env["SUPABASE_URL"]!,
+      process.env["SUPABASE_PUBLISHABLE_KEY"]!,
+      { auth: { persistSession: false } },
+    );
+    const { data: signed, error: signErr } = await publicClient.auth.signUp({
+      email,
+      password: data.password,
+    });
+    if (signErr || !signed.user) {
+      throw new Error(signErr?.message ?? "Could not create account.");
+    }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
-      email_confirm: true,
-    });
-    if (createErr || !created.user) {
-      throw new Error(createErr?.message ?? "Could not create account.");
+    // Keep the existing experience: the driver is signed in straight away.
+    if (!signed.user.email_confirmed_at) {
+      await supabaseAdmin.auth.admin.updateUserById(signed.user.id, { email_confirm: true });
     }
 
     const { error: profileErr } = await supabaseAdmin
       .from("profiles")
       .upsert({
-        id: created.user.id,
-        email: data.email,
+        id: signed.user.id,
+        email,
         full_name: data.fullName,
         phone: data.phone,
       });

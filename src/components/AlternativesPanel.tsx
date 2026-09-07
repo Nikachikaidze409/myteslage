@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { RouteResult } from "@/lib/routes.functions";
 import type { RoutePrefs } from "@/lib/favorites";
 
@@ -9,7 +10,7 @@ interface Props {
   onPrefsChange: (p: RoutePrefs) => void;
 }
 
-export function AlternativesPanel({
+function AlternativesPanelImpl({
   routes,
   selectedIndex,
   onSelect,
@@ -89,3 +90,5 @@ export function AlternativesPanel({
     </div>
   );
 }
+
+export const AlternativesPanel = memo(AlternativesPanelImpl);

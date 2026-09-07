@@ -421,20 +421,38 @@ function Index() {
 
   // The map engine owns off-route detection (it matches against the real
   // route geometry every frame and calls onRerouteNeeded). This effect only
-  // handles the periodic traffic-aware refresh of a route we are still on.
+  // handles the occasional traffic-aware refresh of a route we are still on.
+  // Deliberately conservative: refreshing every few seconds burned Routes API
+  // quota without changing the driver's road.
   useEffect(() => {
     if (hudMode) return;
     if (!navigating || !destination || !fix || routeLoading) return;
+    if (rerouting || routeCtl.current.busy) return;
     const lastRouteOrigin = lastRouteOriginRef.current;
     if (!lastRouteOrigin) return;
+    // Close to the destination the ETA no longer moves: stop paying for it.
+    if (distanceMeters(fix, destination) < 3_000) return;
 
     const moved = distanceMeters(fix, lastRouteOrigin);
     const elapsed = Date.now() - lastLiveRouteAtRef.current;
-    if (moved >= 120 && elapsed >= 15_000) {
+    if (moved >= 2_000 && elapsed >= 240_000) {
       lastLiveRouteAtRef.current = Date.now();
-      requestRoute(fix, destination, { silent: true });
+      requestRoute(fix, destination, { silent: true, traffic: true });
     }
-  }, [destination, fix, hudMode, navigating, requestRoute, routeLoading]);
+  }, [destination, fix, hudMode, navigating, rerouting, requestRoute, routeLoading]);
+
+  // Safety net: never leave the driver looking at "Rerouting" forever.
+  useEffect(() => {
+    if (!rerouting) return;
+    const t = window.setTimeout(() => setRerouting(false), 20_000);
+    return () => window.clearTimeout(t);
+  }, [rerouting]);
+
+  // Leaving the map screen must not leave a request running.
+  useEffect(() => {
+    const ctl = routeCtl.current;
+    return () => ctl.cancelAll();
+  }, []);
 
   const handleRerouteNeeded = useCallback(() => {
     if (!navigating || !destination || !fix) return;

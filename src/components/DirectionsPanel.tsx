@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import type { RouteResult } from "@/lib/routes.functions";
 import type { Fix } from "./StatusPanel";
 import { decodePolyline, distanceMeters } from "@/lib/geo";
@@ -97,4 +98,4 @@ export const DirectionsPanel = memo(function DirectionsPanel({
       </ol>
     </div>
   );
-}
+});

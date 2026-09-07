@@ -80,6 +80,13 @@ function Index() {
     if (!Number.isFinite(next.lat) || !Number.isFinite(next.lng)) return;
     if (Math.abs(next.lat) > 90 || Math.abs(next.lng) > 180) return;
     setFixRaw(next);
+    // Lightweight route-origin guard: remember the most recent fix that is
+    // good enough to ANCHOR a Google route request (finite coords + accuracy
+    // <= 300m). This is NOT navigation filtering — GpsEngine still owns that.
+    // It only stops expensive route calls from starting at an unusable spot.
+    if (Number.isFinite(next.accuracy) && next.accuracy <= 300) {
+      lastRouteUsableFixRef.current = next;
+    }
   }, []);
   const [progress, setProgress] = useState<LiveProgress | null>(null);
   const [rerouting, setRerouting] = useState(false);
@@ -153,6 +160,10 @@ function Index() {
 
   const routeCtl = useRef(new RouteRequestController());
   const lastRouteOriginRef = useRef<Fix | null>(null);
+  // Most recent fix good enough to ANCHOR a Google route request (finite
+  // coords + accuracy <= 300m). Not navigation filtering — GpsEngine owns
+  // that. This only stops expensive route calls starting at an unusable spot.
+  const lastRouteUsableFixRef = useRef<Fix | null>(null);
   const lastLiveRouteAtRef = useRef(0);
   const offRouteSinceRef = useRef<number | null>(null);
   const lastRerouteAtRef = useRef(0);
@@ -401,12 +412,13 @@ function Index() {
       setRouteError(null);
       return;
     }
-    if (!fix) {
+    const routeFix = lastRouteUsableFixRef.current;
+    if (!routeFix) {
       setRouteError("Waiting for a live location fix from the Tesla browser or paired phone.");
       return;
     }
     pushRecent({ lat: destination.lat, lng: destination.lng, name: destination.name });
-    requestRoute(fix, destination);
+    requestRoute(routeFix, destination);
     if (pendingResumeRef.current) pendingResumeRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destination]);
@@ -414,15 +426,17 @@ function Index() {
   // Avoid options or waypoints changed → re-request silently
   useEffect(() => {
     if (hudMode) return;
-    if (!destination || !fix) return;
-    requestRoute(fix, destination, { silent: true, avoid, waypoints });
+    const routeFix = lastRouteUsableFixRef.current;
+    if (!destination || !routeFix) return;
+    requestRoute(routeFix, destination, { silent: true, avoid, waypoints });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avoid, waypoints, prefs.avoidUnpaved]);
 
   useEffect(() => {
     if (hudMode) return;
-    if (!destination || !fix || route || routeLoading) return;
-    requestRoute(fix, destination);
+    const routeFix = lastRouteUsableFixRef.current;
+    if (!destination || !routeFix || route || routeLoading) return;
+    requestRoute(routeFix, destination);
   }, [destination, fix, route, routeLoading, requestRoute]);
 
   // The map engine owns off-route detection (it matches against the real
@@ -432,7 +446,8 @@ function Index() {
   // quota without changing the driver's road.
   useEffect(() => {
     if (hudMode) return;
-    if (!navigating || !destination || !fix || routeLoading) return;
+    const routeFix = lastRouteUsableFixRef.current;
+    if (!navigating || !destination || !routeFix || routeLoading) return;
     if (rerouting || routeCtl.current.busy) return;
     const lastRouteOrigin = lastRouteOriginRef.current;
     if (!lastRouteOrigin) return;
@@ -443,7 +458,7 @@ function Index() {
     const elapsed = Date.now() - lastLiveRouteAtRef.current;
     if (moved >= 2_000 && elapsed >= 240_000) {
       lastLiveRouteAtRef.current = Date.now();
-      requestRoute(fix, destination, { silent: true, traffic: true });
+      requestRoute(routeFix, destination, { silent: true, traffic: true });
     }
   }, [destination, fix, hudMode, navigating, rerouting, requestRoute, routeLoading]);
 
@@ -463,7 +478,8 @@ function Index() {
   const handleRerouteNeeded = useCallback(() => {
     // HUD mode: the phone is the only routing brain. Tesla never routes.
     if (hudMode) return;
-    if (!navigating || !destination || !fix) return;
+    const routeFix = lastRouteUsableFixRef.current;
+    if (!navigating || !destination || !routeFix) return;
     // The engine already debounces; this only stops duplicate calls in-flight.
     if (Date.now() - lastRerouteAtRef.current < 1_200) return;
     const detectedAt = Date.now();

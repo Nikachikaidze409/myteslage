@@ -5,6 +5,8 @@ import { pairChannelName, type PairedFix, type PairedNavState } from "@/lib/pair
 import { DestinationSearch, type Destination } from "@/components/DestinationSearch";
 import { computeRoute, type RouteResult } from "@/lib/routes.functions";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
+import { distanceToPolylineMeters } from "@/lib/off-route";
+
 
 export const Route = createFileRoute("/phone/$code")({
   head: () => ({

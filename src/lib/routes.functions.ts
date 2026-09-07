@@ -72,7 +72,7 @@ export const computeRoute = createServerFn({ method: "POST" })
           "X-Goog-Api-Key": googleKey(),
           "Content-Type": "application/json",
           "X-Goog-FieldMask":
-            "routes.distanceMeters,routes.duration,routes.description,routes.routeLabels,routes.warnings,routes.travelAdvisory,routes.polyline.encodedPolyline,routes.legs.steps.distanceMeters,routes.legs.steps.navigationInstruction,routes.legs.steps.polyline.encodedPolyline",
+            "routes.distanceMeters,routes.duration,routes.description,routes.routeLabels,routes.warnings,routes.polyline.encodedPolyline,routes.legs.steps.distanceMeters,routes.legs.steps.navigationInstruction,routes.legs.steps.polyline.encodedPolyline",
         },
         body: JSON.stringify({
           origin: { location: { latLng: { latitude: data.origin.lat, longitude: data.origin.lng } } },
@@ -83,11 +83,15 @@ export const computeRoute = createServerFn({ method: "POST" })
             location: { latLng: { latitude: w.lat, longitude: w.lng } },
           })),
           travelMode: "DRIVE",
-          routingPreference: "TRAFFIC_AWARE_OPTIMAL",
-          computeAlternativeRoutes: !!data.alternatives,
-          extraComputations: ["TOLLS"],
+          // Only the driver's own first/changed route pays for the optimal
+          // traffic model; reroutes and background ETA refreshes use the
+          // cheaper traffic-aware model and never ask for alternatives.
+          routingPreference:
+            (data.purpose ?? "user") === "user" ? "TRAFFIC_AWARE_OPTIMAL" : "TRAFFIC_AWARE",
+          computeAlternativeRoutes: (data.purpose ?? "user") === "user" && !!data.alternatives,
           ...(Object.keys(modifiers).length ? { routeModifiers: modifiers } : {}),
         }),
+
       },
     );
 

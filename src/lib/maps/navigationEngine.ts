@@ -92,6 +92,11 @@ export class NavigationEngine {
   private listeners = new Set<Listener>();
   private lastEmit = 0;
   private lastRemember = 0;
+  /** Idle-throttle bookkeeping: skips full frames only while truly parked. */
+  private lastIdleWork = 0;
+  private lastIdleFixAt = -1;
+  private lastIdleState: NavState = "IDLE";
+
 
   private rendered: LatLng | null = null;
   private renderedHeading = 0;

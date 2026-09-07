@@ -211,6 +211,8 @@ function PhoneRelay() {
     let snappedDest: { lat: number; lng: number } | null = null;
     // Off-route tracking.
     let activePolyline: string | null = null;
+    // Local copy of the active route (React state inside this closure can be stale).
+    let activeRoute: RouteResult | null = null;
     let offStrikes = 0;
     let firstOffAt = 0;
     let lastOffCheckAt = 0;
@@ -255,13 +257,15 @@ function PhoneRelay() {
       if (purpose === "reroute") {
         setRerouting(true);
         lastRerouteAt = Date.now();
-        if (activePolyline) {
+        if (activeRoute) {
+          // Always rebroadcast the actual active route — never zeros/empty
+          // steps from stale React state.
           broadcast("nav", {
             destination: { lat: destination.lat, lng: destination.lng, name: destination.name },
-            encodedPolyline: activePolyline,
-            distanceMeters: route?.distanceMeters ?? 0,
-            durationSeconds: route?.durationSeconds ?? 0,
-            steps: route?.steps ?? [],
+            encodedPolyline: activeRoute.encodedPolyline,
+            distanceMeters: activeRoute.distanceMeters,
+            durationSeconds: activeRoute.durationSeconds,
+            steps: activeRoute.steps,
             isRerouting: true,
             updatedAt: Date.now(),
           } satisfies PairedNavState);
@@ -285,6 +289,7 @@ function PhoneRelay() {
         const primary = resp.routes[0];
         if (!primary) throw new Error("No route");
         setRoute(primary);
+        activeRoute = primary;
         activePolyline = primary.encodedPolyline;
         offStrikes = 0;
         firstOffAt = 0;

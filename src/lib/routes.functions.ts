@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireMapAccess } from "@/lib/map-access.middleware";
 import { googleKey, ROUTES_API } from "@/lib/google-api";
 
 export interface LatLng {
@@ -29,6 +30,7 @@ export interface RoutesResponse {
 export type AvoidOption = "tolls" | "highways" | "ferries";
 
 export const computeRoute = createServerFn({ method: "POST" })
+  .middleware([requireMapAccess])
   .inputValidator(
     (data: {
       origin: LatLng;

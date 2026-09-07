@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireMapAccess } from "@/lib/map-access.middleware";
 
 import { googleKey, googleFail, PLACES_API, MAPS_API } from "@/lib/google-api";
 
@@ -23,6 +24,7 @@ const fail = googleFail;
 
 /** Type-ahead suggestions for streets, addresses and places (server side). */
 export const autocompletePlaces = createServerFn({ method: "POST" })
+  .middleware([requireMapAccess])
   .inputValidator((data: { query: string; lat?: number; lng?: number }) => {
     if (!data || typeof data.query !== "string") throw new Error("Invalid query");
     return data;
@@ -114,6 +116,7 @@ export const autocompletePlaces = createServerFn({ method: "POST" })
 
 /** Coordinates + address for a chosen suggestion. */
 export const placeDetails = createServerFn({ method: "POST" })
+  .middleware([requireMapAccess])
   .inputValidator((data: { placeId: string }) => {
     if (!data?.placeId) throw new Error("Invalid place");
     return data;
@@ -149,6 +152,7 @@ export const placeDetails = createServerFn({ method: "POST" })
 
 /** Address for an arbitrary point tapped on the map. */
 export const reverseGeocode = createServerFn({ method: "POST" })
+  .middleware([requireMapAccess])
   .inputValidator((data: { lat: number; lng: number }) => {
     if (typeof data?.lat !== "number" || typeof data?.lng !== "number") {
       throw new Error("Invalid coordinates");

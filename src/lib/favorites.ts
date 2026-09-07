@@ -131,12 +131,10 @@ export function useNetworkStatus() {
 // ---- Route preferences (persistent) ----
 const PREFS_KEY = "tsl.routePrefs.v1";
 export interface RoutePrefs {
-  avoidTolls: boolean;
   avoidHighways: boolean;
   avoidUnpaved: boolean;
 }
 const DEFAULT_PREFS: RoutePrefs = {
-  avoidTolls: false,
   avoidHighways: false,
   avoidUnpaved: true,
 };
@@ -144,7 +142,19 @@ export function loadRoutePrefs(): RoutePrefs {
   if (typeof window === "undefined") return DEFAULT_PREFS;
   try {
     const raw = window.localStorage.getItem(PREFS_KEY);
-    return raw ? { ...DEFAULT_PREFS, ...(JSON.parse(raw) as Partial<RoutePrefs>) } : DEFAULT_PREFS;
+    if (!raw) return DEFAULT_PREFS;
+    // Legacy saves may contain removed fields (e.g. avoidTolls) - pick only known keys.
+    const parsed = JSON.parse(raw) as Partial<RoutePrefs> | null;
+    return {
+      avoidHighways:
+        typeof parsed?.avoidHighways === "boolean"
+          ? parsed.avoidHighways
+          : DEFAULT_PREFS.avoidHighways,
+      avoidUnpaved:
+        typeof parsed?.avoidUnpaved === "boolean"
+          ? parsed.avoidUnpaved
+          : DEFAULT_PREFS.avoidUnpaved,
+    };
   } catch {
     return DEFAULT_PREFS;
   }

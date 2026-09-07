@@ -22,7 +22,6 @@ function AlternativesPanelImpl({
   const toggle = (k: keyof RoutePrefs) => onPrefsChange({ ...prefs, [k]: !prefs[k] });
   const toggles: { k: keyof RoutePrefs; label: string }[] = [
     { k: "avoidHighways", label: "Avoid highways" },
-    { k: "avoidTolls", label: "Avoid tolls" },
     { k: "avoidUnpaved", label: "Avoid unpaved" },
   ];
 

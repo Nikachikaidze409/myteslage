@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { generatePairCode, subscribePair, type PairedFix, type PairedNavState } from "@/lib/pair-channel";
+import { subscribePair, type PairedFix, type PairedNavState } from "@/lib/pair-channel";
+import { createPairSession, endPairSession } from "@/lib/pair.functions";
 
 interface Props {
   onPairedFix: (f: PairedFix) => void;

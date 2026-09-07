@@ -20,7 +20,6 @@ export interface RouteResult {
   steps: RouteStep[];
   label?: string;
   warnings?: string[];
-  hasTolls?: boolean;
 }
 
 export interface RoutesResponse {
@@ -28,6 +27,9 @@ export interface RoutesResponse {
 }
 
 export type AvoidOption = "tolls" | "highways" | "ferries";
+
+/** Why this route is being asked for. Drives how much Google work we pay for. */
+export type RoutePurposeInput = "user" | "reroute" | "traffic";
 
 export const computeRoute = createServerFn({ method: "POST" })
   .middleware([requireMapAccess])
@@ -39,6 +41,7 @@ export const computeRoute = createServerFn({ method: "POST" })
       avoid?: AvoidOption[];
       alternatives?: boolean;
       avoidUnpaved?: boolean;
+      purpose?: RoutePurposeInput;
     }) => {
     if (
       !data ||
@@ -51,6 +54,7 @@ export const computeRoute = createServerFn({ method: "POST" })
     }
     return data;
   })
+
   .handler(async ({ data }): Promise<RoutesResponse> => {
     // Mirror Google Maps: only apply modifiers the driver explicitly asked for.
     const modifiers: Record<string, boolean> = {};

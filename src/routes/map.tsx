@@ -561,6 +561,7 @@ function Index() {
       setNavigating(false);
       setDestination(null);
       setRoutes([]);
+      setRerouting(false);
       return;
     }
     setHudMode(true);
@@ -845,6 +846,15 @@ function Index() {
               alongMeters={progress?.along}
 
             />
+          )}
+
+          {hudMode && rerouting && (
+            <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
+              <div className="flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-1.5 text-sm font-medium text-foreground shadow-lg backdrop-blur">
+                <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden />
+                Rerouting…
+              </div>
+            </div>
           )}
 
           {hudMode && route && (

@@ -33,6 +33,8 @@ interface Props {
   onProgress?: (p: LiveProgress) => void;
   /** Development-only navigation telemetry. */
   onDebug?: (d: NavDebug | null, state: string) => void;
+  /** Opt-in GPS pipeline diagnostics (?gpsdebug=1); throttled to ~2 Hz. */
+  onGpsDiag?: (d: ReturnType<NavigationEngine["gpsDiagnostics"]>) => void;
   /** The engine confirmed the car left the route: ask the server for a new one. */
   /** Returns true when a reroute request actually started. */
   onRerouteNeeded?: () => boolean | void;
@@ -66,6 +68,7 @@ export function MapView({
   onSelectAlternate,
   onProgress,
   onDebug,
+  onGpsDiag,
   onRerouteNeeded,
   recenterSignal,
   preview,
@@ -109,6 +112,9 @@ export function MapView({
   onProgressRef.current = onProgress;
   const onDebugRef = useRef(onDebug);
   onDebugRef.current = onDebug;
+  const onGpsDiagRef = useRef(onGpsDiag);
+  onGpsDiagRef.current = onGpsDiag;
+  const lastGpsDiagAtRef = useRef(0);
   const stepsRef = useRef(steps);
   stepsRef.current = steps;
   const onRerouteRef = useRef(onRerouteNeeded);
@@ -211,6 +217,14 @@ export function MapView({
               onProgressRef.current?.(lastProgressRef.current);
             }
             onDebugRef.current?.(s.debug, s.state);
+            const diagCb = onGpsDiagRef.current;
+            if (diagCb) {
+              const t = Date.now();
+              if (t - lastGpsDiagAtRef.current >= 500) {
+                lastGpsDiagAtRef.current = t;
+                diagCb(engine.gpsDiagnostics());
+              }
+            }
           });
 
           // Any user gesture hands control back to the driver.

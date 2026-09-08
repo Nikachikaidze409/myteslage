@@ -16,6 +16,10 @@ import { FavoritesPanel } from "@/components/FavoritesPanel";
 import { AlternativesPanel } from "@/components/AlternativesPanel";
 import { BatteryPanel } from "@/components/BatteryPanel";
 import { distanceMeters } from "@/lib/geo";
+import {
+  LocationSourceSelector,
+  type SelectorSnapshot,
+} from "@/lib/maps/locationSourceSelector";
 import { computeRoute, type RouteResult, type AvoidOption } from "@/lib/routes.functions";
 import {
   pushRecent,
@@ -159,6 +163,16 @@ function Index() {
     (import.meta.env.DEV || new URLSearchParams(window.location.search).has("navdebug"));
   const debugEnabledRef = useRef(debugEnabled);
   debugEnabledRef.current = debugEnabled;
+  // GPS source diagnostics: opt-in via ?gpsdebug=1, client memory only.
+  const gpsDebugEnabled =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("gpsdebug");
+  gpsDebugRef.current = gpsDebugEnabled;
+
+  // HUD mode means the phone is the navigation brain, so it leads there.
+  useEffect(() => {
+    selectorRef.current?.setHudMode(hudMode);
+  }, [hudMode]);
 
 
   // Session restore state

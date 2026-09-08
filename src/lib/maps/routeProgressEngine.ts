@@ -155,7 +155,7 @@ export class RouteProgressEngine {
   /** Rebuild geometry. Always resets progress: a new route is a new world. */
   setRoute(
     path: LatLng[] | null,
-    steps: { instruction: string; distanceMeters: number }[] = [],
+    steps: { instruction: string; distanceMeters: number; polyline?: string }[] = [],
     now = performance.now(),
   ): void {
     this.index = path && path.length > 1 ? buildPathIndex(path) : null;
@@ -173,16 +173,11 @@ export class RouteProgressEngine {
     this.genericArmed = true;
     this.reacquireHits = 0;
     if (this.index && steps.length) {
-      const declared = steps.reduce((s, x) => s + (x.distanceMeters || 0), 0);
-      const scale = declared > 0 ? this.index.total / declared : 0;
-      let acc = 0;
-      steps.forEach((s, i) => {
-        acc += (s.distanceMeters || 0) * scale;
-        this.steps.push({ index: i, instruction: s.instruction, endAlong: acc });
-      });
+      this.steps = buildStepBoundaries(this.index, steps);
     }
     this.note(path ? "Route set — progress reset" : "Route cleared");
   }
+
 
   /** Progress the match with a fresh fix. Returns null without a route. */
   update(fix: FixInput, now = performance.now()): { match: MatchState; verdict: OffRouteVerdict } | null {

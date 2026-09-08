@@ -309,8 +309,9 @@ function Index() {
         }),
       );
       // Duplicate, or outranked by a request already running (a traffic
-      // refresh can never disturb an active reroute).
-      if (!ticket) return;
+      // refresh can never disturb an active reroute). The caller is told so it
+      // can re-arm a confirmed off-route event instead of losing it.
+      if (!ticket) return false;
 
       const requestId = ticket.id;
       const startedAt = Date.now();
@@ -428,6 +429,7 @@ function Index() {
           routeCtl.current.finish(requestId);
           if (current && !options?.silent) setRouteLoading(false);
         });
+      return true;
     },
     [avoid, waypoints, prefs.avoidUnpaved],
   );
@@ -516,13 +518,13 @@ function Index() {
     return () => ctl.cancelAll();
   }, []);
 
-  const handleRerouteNeeded = useCallback(() => {
+  const handleRerouteNeeded = useCallback((): boolean => {
     // HUD mode: the phone is the only routing brain. Tesla never routes.
-    if (hudMode) return;
+    if (hudMode) return false;
     const routeFix = lastRouteUsableFixRef.current;
-    if (!navigating || !destination || !routeFix) return;
-    // The engine already debounces; this only stops duplicate calls in-flight.
-    if (Date.now() - lastRerouteAtRef.current < 1_200) return;
+    // Cannot start a request right now: report NOT STARTED so the engine
+    // re-arms instead of silently swallowing a confirmed deviation.
+    if (!navigating || !destination || !routeFix) return false;
     const detectedAt = Date.now();
     lastRerouteAtRef.current = detectedAt;
     offRouteSinceRef.current = detectedAt;
@@ -537,8 +539,15 @@ function Index() {
       }));
     if (debugEnabledRef.current) console.debug("[nav] off-route confirmed → requesting new route");
     setOffRoute(true);
+    const started = requestRoute(routeFix, destination, { silent: true, reroute: true });
+    if (!started) {
+      // The controller refused (duplicate / outranked). Do not show a stuck
+      // "Rerouting" state and do not keep the engine locked.
+      setOffRoute(false);
+      return false;
+    }
     setRerouting(true);
-    requestRoute(routeFix, destination, { silent: true, reroute: true });
+    return true;
   }, [destination, fix, hudMode, navigating, requestRoute]);
 
   useEffect(() => {

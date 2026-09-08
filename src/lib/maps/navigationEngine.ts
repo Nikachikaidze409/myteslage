@@ -74,14 +74,6 @@ type Listener = (s: NavSnapshot) => void;
 
 /** Dead reckoning never runs longer than this without a real fix. */
 const MAX_PREDICT_S = 5;
-/**
- * Final duplicate-request safety guard only. It is NOT an off-route detection
- * interval: the decision engine evaluates every accepted GPS fix, and the
- * authoritative request lock is `this.rerouting` (in-flight state). This value
- * exists purely so two requests cannot leave in the same instant.
- */
-const REROUTE_DEBOUNCE_MS = 1200;
-
 /** A maneuver closer than this puts the UI in approach mode. */
 const APPROACH_M = 150;
 
@@ -118,7 +110,7 @@ export class NavigationEngine {
   private rerouteCount = 0;
 
   /** Set by the UI so the engine can ask for a new route exactly once. */
-  onRerouteNeeded: (() => void) | null = null;
+  onRerouteNeeded: (() => boolean | void) | null = null;
 
   follow = false;
   onFollowChange: ((v: boolean) => void) | null = null;
@@ -176,14 +168,16 @@ export class NavigationEngine {
         this.updateDebug(s, match, verdict, man);
 
         if (verdict.offRoute && !this.rerouting) {
-          if (now - this.lastRerouteAt > REROUTE_DEBOUNCE_MS || this.lastRerouteAt === 0) {
-            this.lastRerouteAt = now;
-            this.rerouteCount++;
-            this.rerouting = true;
-            this.setState(verdict.maneuverMissed ? "MANEUVER_MISSED" : "OFF_ROUTE");
-            this.setState("REROUTING");
-            this.onRerouteNeeded?.();
-          }
+          // A confirmed verdict is already consumed by the decision engine, so
+          // it must always end in a request, an owning in-flight request, or an
+          // explicit failure that re-arms detection. No silent time debounce.
+          this.lastRerouteAt = now;
+          this.rerouteCount++;
+          this.rerouting = true;
+          this.setState(verdict.maneuverMissed ? "MANEUVER_MISSED" : "OFF_ROUTE");
+          this.setState("REROUTING");
+          const started = this.onRerouteNeeded?.();
+          if (started === false) this.rerouteFailed();
         } else if (!this.rerouting) {
           const remaining = this.proj ? remainingMeters(this.progress.pathIndex!, this.proj) : 0;
           if (remaining < 30) this.setState("ARRIVED");

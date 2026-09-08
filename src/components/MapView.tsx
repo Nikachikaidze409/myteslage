@@ -34,7 +34,8 @@ interface Props {
   /** Development-only navigation telemetry. */
   onDebug?: (d: NavDebug | null, state: string) => void;
   /** The engine confirmed the car left the route: ask the server for a new one. */
-  onRerouteNeeded?: () => void;
+  /** Returns true when a reroute request actually started. */
+  onRerouteNeeded?: () => boolean | void;
   /** Increment to programmatically trigger recenter-on-me from a parent. */
   recenterSignal?: number;
   /** Previewed search result / tapped place, shown as a pin before routing. */

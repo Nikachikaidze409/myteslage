@@ -214,13 +214,10 @@ function PhoneRelay() {
     // detection, adaptive thresholds, fast path and anti-flapping. The phone
     // stays the routing brain; only the algorithm is shared.
     const progress = new RouteProgressEngine();
-    let lastRerouteAt = 0;
 
     const MIN_REFRESH_MS = 240_000;
     const MIN_MOVE_M = 2_000;
     const NEAR_DEST_M = 3_000;
-    /** Final anti-runaway guard on top of the engine's own one-event latch. */
-    const REROUTE_MIN_GAP_MS = 5_000;
 
     const metersBetween = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
       const R = 6371000;
@@ -249,7 +246,6 @@ function PhoneRelay() {
       setRouteError(null);
       if (purpose === "reroute") {
         setRerouting(true);
-        lastRerouteAt = Date.now();
         if (activeRoute) {
           // Always rebroadcast the actual active route — never zeros/empty
           // steps from stale React state.
@@ -330,9 +326,17 @@ function PhoneRelay() {
         performance.now(),
       );
       if (!res?.verdict.offRoute) return;
-      const now = Date.now();
-      if (inFlight || now - lastRerouteAt < REROUTE_MIN_GAP_MS) return;
-      if (metersBetween(fix, destination) < 60) return;
+      // The verdict is consumed: it must start a request, be owned by an
+      // in-flight reroute, or be explicitly returned to the engine.
+      if (inFlight && inFlightPurpose === "reroute") return;
+      if (inFlight && inFlightPurpose === "user") {
+        progress.markRerouteFailed();
+        return;
+      }
+      if (metersBetween(fix, destination) < 60) {
+        progress.markRerouteFailed();
+        return;
+      }
       void compute("reroute");
     };
     onFixRef.current = evaluateFix;

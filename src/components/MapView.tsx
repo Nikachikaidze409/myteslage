@@ -25,6 +25,8 @@ interface Props {
   tilt3d?: boolean;
   showTraffic?: boolean;
   rerouting?: boolean;
+  /** Bumped by the UI when a reroute REQUEST failed or timed out. */
+  rerouteFailedSignal?: number;
   waypoints?: { lat: number; lng: number; name?: string }[];
   alternates?: { encodedPolyline: string; index: number }[];
   onSelectAlternate?: (index: number) => void;
@@ -57,6 +59,7 @@ export function MapView({
   tilt3d = true,
   showTraffic,
   rerouting,
+  rerouteFailedSignal,
   waypoints,
   alternates,
   onSelectAlternate,
@@ -399,9 +402,13 @@ export function MapView({
     engineRef.current?.setTilt3d(tilt3d);
   }, [tilt3d, mapReady]);
 
+  // A reroute is resolved only when new geometry reaches setRoute(). The
+  // `rerouting` flag going false can also mean "the request failed", so it is
+  // never treated as success — failures arrive on their own signal.
   useEffect(() => {
-    if (!rerouting) engineRef.current?.rerouteResolved();
-  }, [rerouting]);
+    if (rerouteFailedSignal == null) return;
+    engineRef.current?.rerouteFailed();
+  }, [rerouteFailedSignal]);
 
   useEffect(() => {
     if (recenterSignal == null) return;

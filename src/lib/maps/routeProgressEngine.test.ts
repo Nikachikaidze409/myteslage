@@ -348,3 +348,105 @@ describe("RouteProgressEngine — shared by the phone/HUD brain", () => {
     expect(off.some((r) => r.offRoute)).toBe(true);
   });
 });
+
+// A confirmed verdict is consumed by the engine, so every caller must convert
+// it into a request, an owning in-flight request, or an explicit failure.
+describe("reroute event consumption", () => {
+  const depart = (t0: number): Drive[] => [
+    { x: 100, y: 0, t: t0, accuracy: 4 },
+    { x: 120, y: 20, t: t0 + 600, accuracy: 4 },
+    { x: 140, y: 30, t: t0 + 1200, accuracy: 4 },
+    { x: 160, y: 40, t: t0 + 1800, accuracy: 4 },
+    { x: 180, y: 50, t: t0 + 2400, accuracy: 4 },
+  ];
+
+  /** Mirrors the caller contract used by phone.$code.tsx and map.tsx. */
+  function consume(e: RouteProgressEngine, fixes: Drive[], canStart: () => boolean) {
+    let requests = 0;
+    for (const r of run(e, fixes)) {
+      if (!r.offRoute) continue;
+      if (canStart()) requests++;
+      else e.markRerouteFailed();
+    }
+    return requests;
+  }
+
+  it("1. a phone deviation soon after the previous reroute is not lost", () => {
+    const e = new RouteProgressEngine();
+    e.setRoute(straight(), [], 0);
+    // Previous reroute succeeded at t=2500, well under the old 5 s cooldown.
+    expect(consume(e, depart(3000), () => true)).toBe(1);
+  });
+
+  it("2. a Tesla verdict shortly after a request is not silently consumed", () => {
+    const e = new RouteProgressEngine();
+    e.setRoute(straight(), [], 0);
+    expect(consume(e, depart(3000), () => true)).toBe(1);
+    // 400 ms later — far inside the old 1200 ms debounce — a failure re-arms
+    // and fresh evidence still produces an event.
+    e.markRerouteFailed(5400);
+    const again = consume(
+      e,
+      [
+        { x: 200, y: 60, t: 8400, accuracy: 4 },
+        { x: 220, y: 70, t: 9000, accuracy: 4 },
+        { x: 240, y: 80, t: 9600, accuracy: 4 },
+      ],
+      () => true,
+    );
+    expect(again).toBe(1);
+  });
+
+  it("3. a refused request leaves the engine able to retry from fresh evidence", () => {
+    const e = new RouteProgressEngine();
+    e.setRoute(straight(), [], 0);
+    let allow = false;
+    // Controller refuses: the event is returned via markRerouteFailed().
+    expect(consume(e, depart(3000), () => allow)).toBe(0);
+    allow = true;
+    const retry = consume(
+      e,
+      [
+        { x: 200, y: 60, t: 9000, accuracy: 4 },
+        { x: 220, y: 70, t: 9600, accuracy: 4 },
+        { x: 240, y: 80, t: 10200, accuracy: 4 },
+      ],
+      () => allow,
+    );
+    expect(retry).toBe(1);
+  });
+
+  it("4. continuous off-route fixes still produce one request per episode", () => {
+    const e = new RouteProgressEngine();
+    e.setRoute(straight(), [], 0);
+    const requests = consume(
+      e,
+      [
+        ...depart(3000),
+        { x: 200, y: 60, t: 6000, accuracy: 4 },
+        { x: 220, y: 70, t: 6600, accuracy: 4 },
+        { x: 240, y: 80, t: 7200, accuracy: 4 },
+        { x: 260, y: 90, t: 7800, accuracy: 4 },
+      ],
+      () => true,
+    );
+    expect(requests).toBe(1);
+  });
+
+  it("5. new geometry still requires reacquisition before another event", () => {
+    const e = new RouteProgressEngine();
+    e.setRoute(straight(), [], 0);
+    expect(consume(e, depart(3000), () => true)).toBe(1);
+    e.markRerouted(6000);
+    const after = consume(
+      e,
+      [
+        { x: 200, y: 60, t: 7000, accuracy: 4 },
+        { x: 220, y: 70, t: 8000, accuracy: 4 },
+        { x: 240, y: 80, t: 9000, accuracy: 4 },
+      ],
+      () => true,
+    );
+    expect(after).toBe(0);
+  });
+});

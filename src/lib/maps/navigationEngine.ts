@@ -155,7 +155,10 @@ export class NavigationEngine {
 
     if (this.navigating && this.progress.pathIndex) {
       const res = this.progress.update(
-        { lat: s.lat, lng: s.lng, heading: s.heading, speed: s.speed, accuracy: s.accuracy },
+        // Decisions use the UNSNAPPED smoothed position. `gps.override()`
+        // below snaps the *rendered* car onto the line; feeding that back in
+        // would measure the route against itself and hide real departures.
+        { lat: s.dLat, lng: s.dLng, heading: s.heading, speed: s.speed, accuracy: s.accuracy },
         now,
       );
       if (res) {
@@ -194,10 +197,22 @@ export class NavigationEngine {
 
   }
 
+  /**
+   * Install route geometry. This is the ONLY success path for a reroute: a
+   * reroute counts as resolved when real new geometry arrives here, never
+   * because a UI flag flipped back to false.
+   */
   setRoute(encoded: string | null, steps: RouteStep[] = []): void {
     const changed = this.route.setRoute(encoded);
     this.hasRoute = !!encoded;
-    if (!changed) return;
+    if (!changed) {
+      // Same geometry came back (Google returned the identical road). The
+      // request still completed, so release the in-flight lock — but nothing
+      // new was installed, so detection is re-armed rather than marked
+      // rerouted.
+      if (this.rerouting) this.rerouteFailed();
+      return;
+    }
     const idx = this.route.pathIndex;
     this.progress.setRoute(idx ? idx.path : null, steps);
     this.proj = null;
@@ -437,11 +452,15 @@ export class NavigationEngine {
     for (const l of this.listeners) l(snap);
   }
 
-  /** Called by the UI once a fresh route has arrived after a reroute. */
-  rerouteResolved(): void {
+  /**
+   * The reroute REQUEST failed or timed out. No geometry arrived, so the car
+   * is still off the old route: clear the in-flight lock, do NOT mark the
+   * route as rerouted, and let fresh persistent evidence ask again.
+   */
+  rerouteFailed(): void {
     if (!this.rerouting) return;
     this.rerouting = false;
-    this.progress.markRerouted();
-    this.setState(this.navigating ? "NAVIGATING" : "ROUTE_PREVIEW");
+    this.progress.markRerouteFailed();
+    this.setState(this.navigating ? "NAVIGATING" : this.hasRoute ? "ROUTE_PREVIEW" : "IDLE");
   }
 }

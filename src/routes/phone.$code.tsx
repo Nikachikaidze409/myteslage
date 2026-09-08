@@ -5,7 +5,8 @@ import { pairChannelName, type PairedFix, type PairedNavState } from "@/lib/pair
 import { DestinationSearch, type Destination } from "@/components/DestinationSearch";
 import { computeRoute, type RouteResult } from "@/lib/routes.functions";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
-import { distanceToPolylineMeters } from "@/lib/off-route";
+import { RouteProgressEngine } from "@/lib/maps/routeProgressEngine";
+import { decodePolyline } from "@/lib/geo";
 
 
 export const Route = createFileRoute("/phone/$code")({
@@ -35,9 +36,7 @@ function PhoneRelay() {
   const watchRef = useRef<number | null>(null);
   const lastFixRef = useRef<PairedFix | null>(null);
   // Set by the routing effect; called on every GPS fix to detect off-route.
-  const onFixRef = useRef<
-    ((fix: { lat: number; lng: number; accuracy: number }) => void) | null
-  >(null);
+  const onFixRef = useRef<((fix: PairedFix) => void) | null>(null);
   const wakeLockRef = useRef<any>(null);
 
   const PHONE_KEY = `tesla-nav.phone-autostart.${upperCode}`;
@@ -152,7 +151,7 @@ function PhoneRelay() {
         } else {
           pending = fix;
         }
-        onFixRef.current?.({ lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy });
+        onFixRef.current?.(fix);
       },
 
       (err) => {
@@ -209,25 +208,19 @@ function PhoneRelay() {
     let lastOrigin: { lat: number; lng: number } | null = null;
     // Snap the destination once per destination, then reuse it.
     let snappedDest: { lat: number; lng: number } | null = null;
-    // Off-route tracking.
-    let activePolyline: string | null = null;
     // Local copy of the active route (React state inside this closure can be stale).
     let activeRoute: RouteResult | null = null;
-    let offStrikes = 0;
-    let firstOffAt = 0;
-    let lastOffCheckAt = 0;
+    // The SAME decision engine the Tesla screen uses: identical maneuver
+    // detection, adaptive thresholds, fast path and anti-flapping. The phone
+    // stays the routing brain; only the algorithm is shared.
+    const progress = new RouteProgressEngine();
     let lastRerouteAt = 0;
 
     const MIN_REFRESH_MS = 240_000;
     const MIN_MOVE_M = 2_000;
     const NEAR_DEST_M = 3_000;
-    // Off-route: tolerate GPS noise, but confirm a real departure quickly.
-    const OFF_BASE_M = 30;
-    const OFF_MAX_M = 60;
-    const OFF_STRIKES = 3;
-    const OFF_MIN_SPAN_MS = 2_000;
-    const OFF_CHECK_MS = 1_000;
-    const REROUTE_COOLDOWN_MS = 15_000;
+    /** Final anti-runaway guard on top of the engine's own one-event latch. */
+    const REROUTE_MIN_GAP_MS = 5_000;
 
     const metersBetween = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
       const R = 6371000;
@@ -290,9 +283,9 @@ function PhoneRelay() {
         if (!primary) throw new Error("No route");
         setRoute(primary);
         activeRoute = primary;
-        activePolyline = primary.encodedPolyline;
-        offStrikes = 0;
-        firstOffAt = 0;
+        // New geometry accepted: this is the only reroute SUCCESS path.
+        progress.setRoute(decodePolyline(primary.encodedPolyline), primary.steps);
+        if (purpose === "reroute") progress.markRerouted();
         lastComputeAt = Date.now();
         lastOrigin = { lat: fix.lat, lng: fix.lng };
         broadcast("nav", {
@@ -308,6 +301,9 @@ function PhoneRelay() {
         if (!cancelled && seq === requestSeq) {
           setRouteError(e instanceof Error ? e.message : "Route failed");
         }
+        // The request failed: no new route exists, so the engine must stay
+        // eligible instead of believing the deviation was resolved.
+        if (purpose === "reroute") progress.markRerouteFailed();
       } finally {
         if (seq === requestSeq) {
           inFlight = false;
@@ -320,28 +316,23 @@ function PhoneRelay() {
       }
     };
 
-    // Called on every GPS fix: decide whether the driver genuinely left the route.
-    const evaluateFix = (fix: { lat: number; lng: number; accuracy: number }) => {
-      if (cancelled || !activePolyline) return;
+    // Called on every GPS fix: the shared engine decides, not this screen.
+    const evaluateFix = (fix: PairedFix) => {
+      if (cancelled || !activeRoute) return;
+      const res = progress.update(
+        {
+          lat: fix.lat,
+          lng: fix.lng,
+          accuracy: fix.accuracy,
+          heading: fix.heading ?? null,
+          speed: fix.speed ?? 0,
+        },
+        performance.now(),
+      );
+      if (!res?.verdict.offRoute) return;
       const now = Date.now();
-      if (now - lastOffCheckAt < OFF_CHECK_MS) return;
-      lastOffCheckAt = now;
-      const offset = distanceToPolylineMeters({ lat: fix.lat, lng: fix.lng }, activePolyline);
-      // Scale with reported accuracy so a fuzzy fix never looks like a turn-off.
-      const threshold = Math.min(OFF_MAX_M, Math.max(OFF_BASE_M, fix.accuracy * 1.5));
-      if (offset <= threshold) {
-        offStrikes = 0;
-        firstOffAt = 0;
-        return;
-      }
-      if (offStrikes === 0) firstOffAt = now;
-      offStrikes++;
-      const confirmed = offStrikes >= OFF_STRIKES && now - firstOffAt >= OFF_MIN_SPAN_MS;
-      if (!confirmed) return;
-      if (now - lastRerouteAt < REROUTE_COOLDOWN_MS) return;
+      if (inFlight || now - lastRerouteAt < REROUTE_MIN_GAP_MS) return;
       if (metersBetween(fix, destination) < 60) return;
-      offStrikes = 0;
-      firstOffAt = 0;
       void compute("reroute");
     };
     onFixRef.current = evaluateFix;

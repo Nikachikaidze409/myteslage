@@ -16,10 +16,18 @@ export interface RawFix {
 }
 
 export interface GpsState {
-  /** smoothed position */
+  /** smoothed position (may be snapped to the route for rendering) */
   lat: number;
-  lng: number;
   /** smoothed heading in degrees, or null while stationary and unknown */
+  lng: number;
+  /**
+   * Smoothed position that is NEVER snapped to a route. Decision logic must
+   * use this: snapping the displayed car to the line and then measuring the
+   * distance from that same line is a feedback loop that hides real
+   * departures.
+   */
+  dLat: number;
+  dLng: number;
   heading: number | null;
   /** metres per second */
   speed: number;
@@ -29,6 +37,7 @@ export interface GpsState {
   /** true when no usable fix arrived recently (tunnel, garage) */
   stale: boolean;
 }
+
 
 /** Beyond this a fix is meaningless even as a rough hint. */
 const MAX_ACCURACY_M = 2000;
@@ -40,6 +49,8 @@ const STALE_AFTER_MS = 14000;
 export class GpsEngine {
   private accepted: RawFix | null = null;
   private smooth: LatLng | null = null;
+  /** Same smoothing, but never overwritten by route snapping. */
+  private decisionSmooth: LatLng | null = null;
   private headingSmooth: number | null = null;
   private speedSmooth = 0;
   private acceptedAt = 0;
@@ -75,6 +86,12 @@ export class GpsEngine {
           lng: this.smooth.lng + (fix.lng - this.smooth.lng) * w,
         }
       : { lat: fix.lat, lng: fix.lng };
+    this.decisionSmooth = this.decisionSmooth
+      ? {
+          lat: this.decisionSmooth.lat + (fix.lat - this.decisionSmooth.lat) * w,
+          lng: this.decisionSmooth.lng + (fix.lng - this.decisionSmooth.lng) * w,
+        }
+      : { lat: fix.lat, lng: fix.lng };
 
     // Speed: reported when available, otherwise derived from movement.
     let speed = fix.speed != null && fix.speed >= 0 ? fix.speed : NaN;
@@ -107,9 +124,12 @@ export class GpsEngine {
     const p = this.smooth;
     const raw = this.accepted;
     if (!p || !raw) return null;
+    const d = this.decisionSmooth ?? p;
     return {
       lat: p.lat,
       lng: p.lng,
+      dLat: d.lat,
+      dLng: d.lng,
       heading: this.headingSmooth,
       speed: this.speedSmooth,
       accuracy: raw.accuracy,
@@ -126,6 +146,7 @@ export class GpsEngine {
   reset(): void {
     this.accepted = null;
     this.smooth = null;
+    this.decisionSmooth = null;
     this.headingSmooth = null;
     this.speedSmooth = 0;
     this.rejects = 0;

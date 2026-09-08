@@ -110,6 +110,9 @@ function Index() {
   }, []);
   const [progress, setProgress] = useState<LiveProgress | null>(null);
   const [rerouting, setRerouting] = useState(false);
+  // Bumped whenever a reroute REQUEST fails or the safety timeout fires, so
+  // the navigation engine can re-arm instead of assuming a new route landed.
+  const [rerouteFailedSignal, setRerouteFailedSignal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   // Start live tracking automatically; no tap required.
   const [watching, setWatching] = useState(true);
@@ -396,7 +399,11 @@ function Index() {
           if (!routeCtl.current.isCurrent(requestId)) return;
            setRouteError(e instanceof Error ? e.message : "Route failed");
            // A failed reroute must never leave the screen stuck on "Rerouting".
-           if (options?.reroute) setRerouting(false);
+           if (options?.reroute) {
+             setRerouting(false);
+             // No geometry arrived: tell the engine this was a FAILURE.
+             setRerouteFailedSignal((n) => n + 1);
+           }
            const cached = loadCachedRoute();
           if (
             cached &&
@@ -495,7 +502,11 @@ function Index() {
   // Safety net: never leave the driver looking at "Rerouting" forever.
   useEffect(() => {
     if (!rerouting) return;
-    const t = window.setTimeout(() => setRerouting(false), 20_000);
+    const t = window.setTimeout(() => {
+      setRerouting(false);
+      // The timeout is a UI safety net, not proof of a new route.
+      setRerouteFailedSignal((n) => n + 1);
+    }, 20_000);
     return () => window.clearTimeout(t);
   }, [rerouting]);
 
@@ -978,6 +989,7 @@ function Index() {
                 }}
 
                 rerouting={rerouting}
+                rerouteFailedSignal={rerouteFailedSignal}
                 showTraffic={showTraffic}
                 onProgress={setProgress}
                 onRerouteNeeded={handleRerouteNeeded}

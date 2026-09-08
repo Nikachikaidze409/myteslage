@@ -16,6 +16,10 @@ import { FavoritesPanel } from "@/components/FavoritesPanel";
 import { AlternativesPanel } from "@/components/AlternativesPanel";
 import { BatteryPanel } from "@/components/BatteryPanel";
 import { distanceMeters } from "@/lib/geo";
+import {
+  LocationSourceSelector,
+  type SelectorSnapshot,
+} from "@/lib/maps/locationSourceSelector";
 import { computeRoute, type RouteResult, type AvoidOption } from "@/lib/routes.functions";
 import {
   pushRecent,
@@ -58,6 +62,14 @@ const MAP_CATEGORIES: { key: string; label: string; emoji: string }[] = [
   { key: "parking", label: "Parking", emoji: "🅿" },
 ];
 
+// Diagnostics formatting only — never renders coordinates.
+function fmtNum(n: number | null): string {
+  return n == null || !Number.isFinite(n) ? "—" : String(Math.round(n));
+}
+function fmtAge(ms: number | null): string {
+  return ms == null ? "—" : `${(ms / 1000).toFixed(1)}s`;
+}
+
 function IndexGated() {
   return (
     <AuthGate>
@@ -68,17 +80,25 @@ function IndexGated() {
 
 function Index() {
   const [fix, setFixRaw] = useState<Fix | null>(null);
-  // While a paired phone is streaming, it is the authoritative position source.
-  const lastPhoneFixAtRef = useRef(0);
-  const PHONE_FIX_TTL_MS = 9_000;
+  // Tesla browser GPS is the preferred primary source; a paired phone is a
+  // quality-based fallback. The selector decides which one drives the pipeline.
+  const selectorRef = useRef<LocationSourceSelector | null>(null);
+  if (!selectorRef.current) selectorRef.current = new LocationSourceSelector();
+  const [gpsDebugState, setGpsDebugState] = useState<SelectorSnapshot | null>(null);
+  const gpsDebugRef = useRef(false);
   // GpsEngine is the single navigation processor: it owns accuracy gating,
   // outlier rejection, smoothing and heading derivation. Here we only do the
   // cheap sanity check the UI itself needs.
   const setFix = useCallback((next: Fix) => {
-    if (next.source === "phone") lastPhoneFixAtRef.current = Date.now();
-    else if (Date.now() - lastPhoneFixAtRef.current < PHONE_FIX_TTL_MS) return;
     if (!Number.isFinite(next.lat) || !Number.isFinite(next.lng)) return;
     if (Math.abs(next.lat) > 90 || Math.abs(next.lng) > 180) return;
+    const now = Date.now();
+    const selector = selectorRef.current!;
+    const selected = selector.offer({ accuracy: next.accuracy, source: next.source }, now);
+    if (gpsDebugRef.current) setGpsDebugState(selector.snapshot(now));
+    // Only the selected source continues into MapView / NavigationEngine, so
+    // the two sources never feed GpsEngine at the same time.
+    if (!selected) return;
     setFixRaw(next);
     // Lightweight route-origin guard: remember the most recent fix that is
     // good enough to ANCHOR a Google route request (finite coords + accuracy
@@ -151,6 +171,16 @@ function Index() {
     (import.meta.env.DEV || new URLSearchParams(window.location.search).has("navdebug"));
   const debugEnabledRef = useRef(debugEnabled);
   debugEnabledRef.current = debugEnabled;
+  // GPS source diagnostics: opt-in via ?gpsdebug=1, client memory only.
+  const gpsDebugEnabled =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("gpsdebug");
+  gpsDebugRef.current = gpsDebugEnabled;
+
+  // HUD mode means the phone is the navigation brain, so it leads there.
+  useEffect(() => {
+    selectorRef.current?.setHudMode(hudMode);
+  }, [hudMode]);
 
 
   // Session restore state
@@ -967,6 +997,25 @@ function Index() {
               />
               {debugEnabled && navDebug ? (
                 <NavDebugPanel debug={navDebug.debug} state={navDebug.state} timing={rerouteTiming} />
+              ) : null}
+              {gpsDebugEnabled && gpsDebugState ? (
+                <div className="pointer-events-none absolute left-3 top-3 z-30 rounded-xl bg-black/75 p-3 font-mono text-[11px] leading-4 text-white">
+                  <div>ACTIVE SOURCE: {gpsDebugState.active === "phone" ? "Phone" : "Tesla"}</div>
+                  <div>
+                    TESLA: acc {fmtNum(gpsDebugState.tesla.accuracy)}m · age{" "}
+                    {fmtAge(gpsDebugState.tesla.ageMs)} · score {gpsDebugState.tesla.score} · stale{" "}
+                    {gpsDebugState.tesla.stale ? "yes" : "no"}
+                  </div>
+                  <div>
+                    PHONE: acc {fmtNum(gpsDebugState.phone.accuracy)}m · age{" "}
+                    {fmtAge(gpsDebugState.phone.ageMs)} · score {gpsDebugState.phone.score} · stale{" "}
+                    {gpsDebugState.phone.stale ? "yes" : "no"}
+                  </div>
+                  <div>
+                    SELECTOR: {gpsDebugState.reason ?? "—"} · {fmtAge(gpsDebugState.sinceSwitchMs)} ago
+                  </div>
+                  <div>SELECTED FIX ACC: {fmtNum(fix?.accuracy ?? null)}m</div>
+                </div>
               ) : null}
 
             </Suspense>

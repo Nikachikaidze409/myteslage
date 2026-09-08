@@ -509,13 +509,29 @@ export class RouteProgressEngine {
     this.armManeuver(match.along);
     const armed = this.armed;
     if (armed) {
-      if (this.crossedManeuver(rawPos, armed, fix.accuracy)) {
+      // Well past the maneuver and still on the line: the turn was taken.
+      if (match.along > armed.endAlong + 20 && match.offset < threshold) {
+        this.note(`Maneuver at step ${armed.step} cleared`);
+        this.armed = null;
+      } else if (this.crossedManeuver(rawPos, armed, fix.accuracy)) {
+        const outDiff =
+          moveHeading != null ? Math.abs(angleDelta(moveHeading, armed.outBearing)) : null;
+        const inDiff =
+          moveHeading != null ? Math.abs(angleDelta(moveHeading, armed.inBearing)) : null;
+        // Scale to the turn itself so shallow but genuine forks and ramps are
+        // still detected, without lowering MIN_TURN_DEG globally: on a 30°
+        // fork, driving straight on disagrees with the ramp by ~30°.
+        const rejectLimit = Math.min(REJECT_OUTGOING_DEG, Math.max(20, armed.turn * 0.7));
+        const acceptLimit = Math.min(ACCEPT_OUTGOING_DEG, Math.max(15, armed.turn * 0.5));
         const rejects =
-          moveHeading != null &&
-          Math.abs(angleDelta(moveHeading, armed.outBearing)) > REJECT_OUTGOING_DEG;
-        const took =
-          moveHeading != null &&
-          Math.abs(angleDelta(moveHeading, armed.outBearing)) <= ACCEPT_OUTGOING_DEG;
+          outDiff != null &&
+          inDiff != null &&
+          outDiff > rejectLimit &&
+          // The movement must fit the road we did NOT take better than the
+          // one we should have, and the car must really be off the line.
+          outDiff > inDiff + 10 &&
+          match.offset > Math.max(8, fix.accuracy);
+        const took = outDiff != null && outDiff <= acceptLimit;
         if (took) {
           this.note(`Maneuver at step ${armed.step} taken correctly`);
           this.armed = null;

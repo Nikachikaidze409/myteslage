@@ -10,7 +10,7 @@ let authFailed = false;
 let fetchedKey: string | null | undefined = undefined;
 let fetchKeyPromise: Promise<string | null> | null = null;
 // Version suffix: bump to drop keys cached by an older build.
-const KEY_CACHE = "tmg:mapkey:v2";
+const KEY_CACHE = "tmg:mapkey:v3";
 
 function cachedKey(): string | null {
   try {
@@ -97,8 +97,10 @@ export function loadGoogleMaps(): Promise<any> {
   if ((window as any).google?.maps) return Promise.resolve((window as any).google);
   if (loaderPromise) return loaderPromise;
 
-  loaderPromise = Promise.resolve(getMapsApiKey() ?? null)
-    .then((k) => k ?? resolveBrowserKey())
+  // The server-provided key (TESLANAVI_BROWSER_KEY → GOOGLE_MAPS_BROWSER_KEY
+  // → GOOGLE_API_KEY) is primary; the build-time VITE key is a legacy fallback.
+  loaderPromise = resolveBrowserKey()
+    .then((k) => k ?? getMapsApiKey() ?? null)
     .then((key) => {
       if (!key) throw new Error("Missing Google Maps browser key");
       return loadGoogleMapsWithKey(key);

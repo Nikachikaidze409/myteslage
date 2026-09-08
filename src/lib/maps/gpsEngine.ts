@@ -16,10 +16,18 @@ export interface RawFix {
 }
 
 export interface GpsState {
-  /** smoothed position */
+  /** smoothed position (may be snapped to the route for rendering) */
   lat: number;
-  lng: number;
   /** smoothed heading in degrees, or null while stationary and unknown */
+  lng: number;
+  /**
+   * Smoothed position that is NEVER snapped to a route. Decision logic must
+   * use this: snapping the displayed car to the line and then measuring the
+   * distance from that same line is a feedback loop that hides real
+   * departures.
+   */
+  dLat: number;
+  dLng: number;
   heading: number | null;
   /** metres per second */
   speed: number;
@@ -29,6 +37,7 @@ export interface GpsState {
   /** true when no usable fix arrived recently (tunnel, garage) */
   stale: boolean;
 }
+
 
 /** Beyond this a fix is meaningless even as a rough hint. */
 const MAX_ACCURACY_M = 2000;

@@ -68,17 +68,25 @@ function IndexGated() {
 
 function Index() {
   const [fix, setFixRaw] = useState<Fix | null>(null);
-  // While a paired phone is streaming, it is the authoritative position source.
-  const lastPhoneFixAtRef = useRef(0);
-  const PHONE_FIX_TTL_MS = 9_000;
+  // Tesla browser GPS is the preferred primary source; a paired phone is a
+  // quality-based fallback. The selector decides which one drives the pipeline.
+  const selectorRef = useRef<LocationSourceSelector | null>(null);
+  if (!selectorRef.current) selectorRef.current = new LocationSourceSelector();
+  const [gpsDebugState, setGpsDebugState] = useState<SelectorSnapshot | null>(null);
+  const gpsDebugRef = useRef(false);
   // GpsEngine is the single navigation processor: it owns accuracy gating,
   // outlier rejection, smoothing and heading derivation. Here we only do the
   // cheap sanity check the UI itself needs.
   const setFix = useCallback((next: Fix) => {
-    if (next.source === "phone") lastPhoneFixAtRef.current = Date.now();
-    else if (Date.now() - lastPhoneFixAtRef.current < PHONE_FIX_TTL_MS) return;
     if (!Number.isFinite(next.lat) || !Number.isFinite(next.lng)) return;
     if (Math.abs(next.lat) > 90 || Math.abs(next.lng) > 180) return;
+    const now = Date.now();
+    const selector = selectorRef.current!;
+    const selected = selector.offer({ accuracy: next.accuracy, source: next.source }, now);
+    if (gpsDebugRef.current) setGpsDebugState(selector.snapshot(now));
+    // Only the selected source continues into MapView / NavigationEngine, so
+    // the two sources never feed GpsEngine at the same time.
+    if (!selected) return;
     setFixRaw(next);
     // Lightweight route-origin guard: remember the most recent fix that is
     // good enough to ANCHOR a Google route request (finite coords + accuracy

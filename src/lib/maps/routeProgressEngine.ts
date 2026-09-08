@@ -27,6 +27,7 @@ import {
   type PathIndex,
   type Projection,
 } from "@/lib/route-progress";
+import { decodePolyline } from "@/lib/geo";
 import { angleDelta, haversine, type LatLng } from "./math";
 
 export interface StepBoundary {
@@ -110,6 +111,14 @@ const GPS_GAP_MS = 4000;
 /** The same physical special event may not fire twice within these bounds. */
 const SAME_EVENT_M = 12;
 const SAME_EVENT_MS = 15000;
+/** Fast path: only very trustworthy fixes may skip the 3-strike evidence. */
+const STRONG_ACCURACY_M = 10;
+const STRONG_MIN_SPEED = 2;
+/** How far beyond the adaptive limit a deviation must be to count as strong. */
+const STRONG_OFFSET_FACTOR = 1.6;
+const STRONG_ACCURACY_FACTOR = 3;
+const STRONG_STRIKES = 2;
+const STRONG_SPAN_MS = 500;
 /** Track heading needs at least this much movement to be meaningful. */
 const TRACK_HEADING_MIN_M = 3;
 
@@ -120,6 +129,8 @@ export class RouteProgressEngine {
   private reverseHits = 0;
   private strikes = 0;
   private firstStrikeAt = 0;
+  private strongStrikes = 0;
+  private firstStrongAt = 0;
   private lastOffset = 0;
   private routeSetAt = 0;
   private log: string[] = [];
@@ -195,6 +206,8 @@ export class RouteProgressEngine {
     if (recovered) {
       this.strikes = 0;
       this.firstStrikeAt = 0;
+      this.strongStrikes = 0;
+      this.firstStrongAt = 0;
       this.reverseHits = 0;
       this.armed = null;
       this.lastPos = null;
@@ -286,8 +299,28 @@ export class RouteProgressEngine {
     this.strikes = 0;
     this.firstStrikeAt = 0;
     this.armed = null;
+    this.strongStrikes = 0;
+    this.firstStrongAt = 0;
     this.genericArmed = false;
     this.reacquireHits = 0;
+  }
+
+  /**
+   * A reroute REQUEST failed (network error, no route, UI timeout). No new
+   * geometry arrived, so the car is still off the old line: we must not
+   * pretend the episode was resolved. Only the in-flight evidence is cleared;
+   * detection stays armed so fresh persistent evidence can try again.
+   */
+  markRerouteFailed(now = performance.now()): void {
+    this.strikes = 0;
+    this.firstStrikeAt = 0;
+    this.strongStrikes = 0;
+    this.firstStrongAt = 0;
+    this.reacquireHits = 0;
+    this.genericArmed = true;
+    // Suppress an instant retry on the very next fix without disarming.
+    this.routeSetAt = now;
+    this.note("Reroute request failed — detection re-armed, awaiting fresh evidence");
   }
 
   nextManeuver(): { instruction: string; distance: number; step: number } | null {
@@ -526,6 +559,7 @@ export class RouteProgressEngine {
     const sustained = match.offset >= this.lastOffset - 2;
     const stabilising = now - this.routeSetAt < STABILISE_MS;
     const onRoute = match.offset < threshold * 0.7;
+    const prevOffset = this.lastOffset;
     this.lastOffset = match.offset;
 
     // One deviation event = one Google reroute. Generic rerouting stays
@@ -547,7 +581,22 @@ export class RouteProgressEngine {
       return { ...base, strikes: 0, reason: "awaiting-route-reacquire" };
     }
 
-    if (match.offset > threshold && credible && sustained && !stabilising) {
+    const deviating = match.offset > threshold && credible && sustained && !stabilising;
+
+    // Fast path: a clean fix, a moving car and a deviation far beyond any
+    // plausible GPS error is not noise. Two such fixes are enough. Ambiguous
+    // deviations still go the conservative route below.
+    const strongEvidence =
+      deviating &&
+      fix.accuracy <= STRONG_ACCURACY_M &&
+      fix.speed >= STRONG_MIN_SPEED &&
+      match.offset > Math.max(threshold * STRONG_OFFSET_FACTOR, fix.accuracy * STRONG_ACCURACY_FACTOR) &&
+      // Geometry has to agree: the gap is opening, or we are simply not
+      // pointing along this road any more.
+      (match.offset > prevOffset + 1 ||
+        (moveHeading != null && Math.abs(angleDelta(moveHeading, match.routeBearing)) > 35));
+
+    if (deviating) {
       if (!this.strikes) this.firstStrikeAt = now;
       this.strikes++;
     } else if (onRoute) {
@@ -555,19 +604,39 @@ export class RouteProgressEngine {
       this.strikes = 0;
       this.firstStrikeAt = 0;
     }
+    if (strongEvidence) {
+      if (!this.strongStrikes) this.firstStrongAt = now;
+      this.strongStrikes++;
+    } else {
+      this.strongStrikes = 0;
+      this.firstStrongAt = 0;
+    }
 
     const span = this.firstStrikeAt ? now - this.firstStrikeAt : 0;
-    const confirmed = this.strikes >= STRIKES_TO_CONFIRM && span >= CONFIRM_SPAN_MS;
+    const strongSpan = this.firstStrongAt ? now - this.firstStrongAt : 0;
+    const strongConfirmed =
+      this.strongStrikes >= STRONG_STRIKES && strongSpan >= STRONG_SPAN_MS;
+    const confirmed =
+      strongConfirmed || (this.strikes >= STRIKES_TO_CONFIRM && span >= CONFIRM_SPAN_MS);
 
     if (confirmed) {
       this.note(
-        `OFF_ROUTE confirmed — ${this.strikes} readings ≥ ${Math.round(threshold)} m over ${Math.round(span)} ms`,
+        strongConfirmed
+          ? `OFF_ROUTE confirmed fast — ${Math.round(match.offset)} m at ±${Math.round(fix.accuracy)} m over ${Math.round(strongSpan)} ms`
+          : `OFF_ROUTE confirmed — ${this.strikes} readings ≥ ${Math.round(threshold)} m over ${Math.round(span)} ms`,
       );
       this.strikes = 0;
       this.firstStrikeAt = 0;
+      this.strongStrikes = 0;
+      this.firstStrongAt = 0;
       this.genericArmed = false;
       this.reacquireHits = 0;
-      return { ...base, offRoute: true, strikes: 0, reason: "off-route-confirmed" };
+      return {
+        ...base,
+        offRoute: true,
+        strikes: 0,
+        reason: strongConfirmed ? "off-route-strong" : "off-route-confirmed",
+      };
     }
 
     const reason = !credible && match.offset > threshold
@@ -626,4 +695,67 @@ function projectSegment(
     offset: Math.hypot(px - cx, py - cy),
     t,
   };
+}
+
+/**
+ * Exact maneuver positions from step geometry.
+ *
+ * Each Routes API step carries its own polyline; its last point IS the
+ * maneuver point. Projecting that point onto the full route index gives a
+ * real along-distance instead of a distance-scaled guess. Steps are walked in
+ * order and each search starts at the previous maneuver, so a self-crossing
+ * route cannot snap a later turn onto an earlier passage of the same road.
+ * When a step polyline is missing or lands nowhere near the route we fall
+ * back to the old cumulative-distance estimate. No API calls are involved.
+ */
+function buildStepBoundaries(
+  idx: PathIndex,
+  steps: { instruction: string; distanceMeters: number; polyline?: string }[],
+): StepBoundary[] {
+  const declared = steps.reduce((s, x) => s + (x.distanceMeters || 0), 0);
+  const scale = declared > 0 ? idx.total / declared : 0;
+  const out: StepBoundary[] = [];
+  let acc = 0;
+  let prevAlong = 0;
+  steps.forEach((s, i) => {
+    acc += (s.distanceMeters || 0) * scale;
+    const geo = stepEndAlong(idx, s.polyline, prevAlong);
+    let endAlong = geo ?? acc;
+    endAlong = Math.min(idx.total, Math.max(endAlong, prevAlong + 1));
+    out.push({ index: i, instruction: s.instruction, endAlong });
+    prevAlong = endAlong;
+  });
+  return out;
+}
+
+/** Along-distance of a step polyline's last point, or null if unusable. */
+function stepEndAlong(idx: PathIndex, encoded: string | undefined, fromAlong: number): number | null {
+  if (!encoded) return null;
+  let pts: LatLng[];
+  try {
+    pts = decodePolyline(encoded);
+  } catch {
+    return null;
+  }
+  if (!pts.length) return null;
+  const end = pts[pts.length - 1];
+  const { path, cum } = idx;
+  let lo = 0;
+  while (lo < path.length - 2 && cum[lo + 1] < fromAlong - 5) lo++;
+  let bestAlong: number | null = null;
+  let bestOffset = Infinity;
+  for (let i = lo; i < path.length - 1; i++) {
+    const seg = projectSegment(end, path[i], path[i + 1]);
+    if (!seg) continue;
+    if (seg.offset < bestOffset) {
+      bestOffset = seg.offset;
+      bestAlong = cum[i] + seg.t * (cum[i + 1] - cum[i]);
+      // Close enough to be the real maneuver point: stop at the first match
+      // going forward rather than a later, equally close crossing.
+      if (bestOffset < 1) break;
+    }
+  }
+  // A step end that is nowhere near the route line is not trustworthy.
+  if (bestAlong == null || bestOffset > 25) return null;
+  return bestAlong;
 }

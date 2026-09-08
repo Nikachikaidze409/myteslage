@@ -86,21 +86,14 @@ export function resetMapsLoader(): void {
   }
 }
 
-/** Build-time key, when one is configured. The server key is the source of truth. */
-export function getMapsApiKey(): string | undefined {
-  const own = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
-  return own && own.trim() ? own : undefined;
-}
-
 export function loadGoogleMaps(): Promise<any> {
   if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
   if ((window as any).google?.maps) return Promise.resolve((window as any).google);
   if (loaderPromise) return loaderPromise;
 
-  // The server-provided key (TESLANAVI_BROWSER_KEY → GOOGLE_MAPS_BROWSER_KEY
-  // → GOOGLE_API_KEY) is primary; the build-time VITE key is a legacy fallback.
+  // TESLANAVI_BROWSER_KEY (served via getMapsBrowserKey) is the sole browser
+  // key source. No build-time or legacy fallbacks are used.
   loaderPromise = resolveBrowserKey()
-    .then((k) => k ?? getMapsApiKey() ?? null)
     .then((key) => {
       if (!key) throw new Error("Missing Google Maps browser key");
       return loadGoogleMapsWithKey(key);

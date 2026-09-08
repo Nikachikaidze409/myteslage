@@ -990,6 +990,25 @@ function Index() {
               {debugEnabled && navDebug ? (
                 <NavDebugPanel debug={navDebug.debug} state={navDebug.state} timing={rerouteTiming} />
               ) : null}
+              {gpsDebugEnabled && gpsDebugState ? (
+                <div className="pointer-events-none absolute left-3 top-3 z-30 rounded-xl bg-black/75 p-3 font-mono text-[11px] leading-4 text-white">
+                  <div>ACTIVE SOURCE: {gpsDebugState.active === "phone" ? "Phone" : "Tesla"}</div>
+                  <div>
+                    TESLA: acc {fmtNum(gpsDebugState.tesla.accuracy)}m · age{" "}
+                    {fmtAge(gpsDebugState.tesla.ageMs)} · score {gpsDebugState.tesla.score} · stale{" "}
+                    {gpsDebugState.tesla.stale ? "yes" : "no"}
+                  </div>
+                  <div>
+                    PHONE: acc {fmtNum(gpsDebugState.phone.accuracy)}m · age{" "}
+                    {fmtAge(gpsDebugState.phone.ageMs)} · score {gpsDebugState.phone.score} · stale{" "}
+                    {gpsDebugState.phone.stale ? "yes" : "no"}
+                  </div>
+                  <div>
+                    SELECTOR: {gpsDebugState.reason ?? "—"} · {fmtAge(gpsDebugState.sinceSwitchMs)} ago
+                  </div>
+                  <div>SELECTED FIX ACC: {fmtNum(fix?.accuracy ?? null)}m</div>
+                </div>
+              ) : null}
 
             </Suspense>
           </ClientOnly>

@@ -62,6 +62,14 @@ const MAP_CATEGORIES: { key: string; label: string; emoji: string }[] = [
   { key: "parking", label: "Parking", emoji: "🅿" },
 ];
 
+// Diagnostics formatting only — never renders coordinates.
+function fmtNum(n: number | null): string {
+  return n == null || !Number.isFinite(n) ? "—" : String(Math.round(n));
+}
+function fmtAge(ms: number | null): string {
+  return ms == null ? "—" : `${(ms / 1000).toFixed(1)}s`;
+}
+
 function IndexGated() {
   return (
     <AuthGate>

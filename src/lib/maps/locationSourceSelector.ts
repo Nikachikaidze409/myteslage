@@ -167,7 +167,8 @@ export class LocationSourceSelector {
   }
 
   private commit(src: LocationSource, reason: SwitchReason, now: number): void {
-    if (this.active !== src) this.lastSwitchAt = now;
+    // Only a real hand-over arms the lock; the very first selection does not.
+    if (this.active != null && this.active !== src) this.lastSwitchAt = now;
     this.active = src;
     this.reason = reason;
     this.streak.tesla = 0;

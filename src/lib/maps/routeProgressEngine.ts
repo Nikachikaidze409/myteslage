@@ -7,11 +7,26 @@
 //   2. is the car making forward progress?
 //   3. has the driver genuinely left the route (or missed a turn)?
 //
+// Two independent reroute detectors live here:
+//
+//   A) FAST MISSED MANEUVER — geometry based. Arms shortly before a real turn
+//      and fires on the first fix that crosses the maneuver point while the
+//      movement direction rejects the outgoing road. It never waits for a
+//      lateral distance threshold.
+//   B) GENERIC OFF-ROUTE — noise resistant. Needs several consecutive credible
+//      readings spanning over a second before it will confirm.
+//
 // Matching is candidate-scored, not nearest-point: geometry alone picks the
 // wrong road on parallel carriageways, ramps, bridges and self-crossing
 // routes, and makes the car look like it is driving backwards.
 
-import { buildPathIndex, bearingBetween, type PathIndex, type Projection } from "@/lib/route-progress";
+import {
+  buildPathIndex,
+  bearingBetween,
+  pointAtAlong,
+  type PathIndex,
+  type Projection,
+} from "@/lib/route-progress";
 import { angleDelta, haversine, type LatLng } from "./math";
 
 export interface StepBoundary {
@@ -51,16 +66,52 @@ export interface FixInput {
   accuracy: number;
 }
 
+interface ArmedManeuver {
+  step: number;
+  instruction: string;
+  /** along-distance of the maneuver point */
+  endAlong: number;
+  point: LatLng;
+  /** bearing of the road arriving at the maneuver */
+  inBearing: number;
+  /** bearing of the road leaving the maneuver */
+  outBearing: number;
+  turn: number;
+}
+
 const MIN_HEADING_SPEED = 1.5;
 /** Never let the threshold drop below this or GPS noise reroutes constantly. */
 const MIN_OFF_ROUTE_M = 10;
 const MAX_OFF_ROUTE_M = 35;
-/** Consecutive credible readings needed to confirm a deviation. */
-const STRIKES_TO_CONFIRM = 2;
+/** Consecutive credible readings needed to confirm a generic deviation. */
+const STRIKES_TO_CONFIRM = 3;
+/** …and the evidence must span at least this long. */
+const CONFIRM_SPAN_MS = 1200;
 /** Right after a reroute the car needs a moment to settle on the new line. */
-const STABILISE_MS = 5000;
+const STABILISE_MS = 2500;
 /** The deviation must exceed the reported accuracy by this factor to count. */
 const ACCURACY_MARGIN = 1.1;
+
+/** Maneuver detector arms this close to the turn. */
+const ARM_DISTANCE_M = 30;
+/** Below this the route does not really change direction: no turn to miss. */
+const MIN_TURN_DEG = 28;
+/** Sample distance used to read the road bearings around a maneuver. */
+const GEOMETRY_SAMPLE_M = 12;
+/** Movement must disagree with the outgoing road by more than this. */
+const REJECT_OUTGOING_DEG = 50;
+/** …and agree within this to count the turn as taken. */
+const ACCEPT_OUTGOING_DEG = 45;
+
+/** Re-arming generic off-route needs this many clean fixes. */
+const REACQUIRE_HITS = 2;
+/** A gap longer than this means the GPS dropped out. */
+const GPS_GAP_MS = 4000;
+/** The same physical special event may not fire twice within these bounds. */
+const SAME_EVENT_M = 12;
+const SAME_EVENT_MS = 15000;
+/** Track heading needs at least this much movement to be meaningful. */
+const TRACK_HEADING_MIN_M = 3;
 
 export class RouteProgressEngine {
   private index: PathIndex | null = null;
@@ -68,10 +119,22 @@ export class RouteProgressEngine {
   private state: MatchState | null = null;
   private reverseHits = 0;
   private strikes = 0;
+  private firstStrikeAt = 0;
   private lastOffset = 0;
   private routeSetAt = 0;
   private log: string[] = [];
   private lastLogged = "";
+
+  /** Generic off-route rearm gate: one deviation event = one Google reroute. */
+  private genericArmed = true;
+  private reacquireHits = 0;
+
+  private armed: ArmedManeuver | null = null;
+  private lastFixAt = 0;
+  private lastPos: LatLng | null = null;
+  private recovering = false;
+  private lastSpecial: { point: LatLng; at: number; kind: string } | null = null;
+  private uTurnFired = false;
 
   get pathIndex(): PathIndex | null {
     return this.index;
@@ -99,9 +162,16 @@ export class RouteProgressEngine {
     this.state = null;
     this.reverseHits = 0;
     this.strikes = 0;
+    this.firstStrikeAt = 0;
     this.lastOffset = 0;
     this.routeSetAt = now;
     this.steps = [];
+    this.armed = null;
+    this.uTurnFired = false;
+    // A brand new line has not been reacquired yet; generic rerouting stays
+    // disarmed until the car is demonstrably following it.
+    this.genericArmed = true;
+    this.reacquireHits = 0;
     if (this.index && steps.length) {
       const declared = steps.reduce((s, x) => s + (x.distanceMeters || 0), 0);
       const scale = declared > 0 ? this.index.total / declared : 0;
@@ -122,22 +192,45 @@ export class RouteProgressEngine {
     const prev = this.state;
     const useHeading = fix.heading != null && fix.speed >= MIN_HEADING_SPEED;
 
+    // ---- GPS gap handling ------------------------------------------------
+    // A blackout must never itself produce a reroute: the first fix back is
+    // treated as recovery only, and stale evidence is dropped.
+    const gap = this.lastFixAt ? now - this.lastFixAt : 0;
+    const recovered = this.lastFixAt > 0 && gap > GPS_GAP_MS;
+    if (recovered) {
+      this.strikes = 0;
+      this.firstStrikeAt = 0;
+      this.reverseHits = 0;
+      this.armed = null;
+      this.lastPos = null;
+      this.recovering = true;
+      this.note(`GPS recovered after ${Math.round(gap / 1000)} s — evidence reset`);
+    }
+    const isRecoveryFix = this.recovering;
+    this.lastFixAt = now;
+
+    const trackHeading = this.trackHeading(p);
+    this.lastPos = p;
+
     const best = this.bestCandidate(p, fix, useHeading, prev);
     if (!best) return null;
 
     let along = best.along;
     let direction: MatchState["direction"] = "forward";
+    let uTurn = false;
 
     if (prev) {
       const delta = along - prev.along;
       if (delta < -5) {
         // Going backwards is real only with a matching heading reversal seen
         // more than once; otherwise it is a mis-match and we hold position.
-        const reversed = useHeading && Math.abs(angleDelta(fix.heading!, best.bearing)) > 120;
+        const dirHeading = trackHeading ?? (useHeading ? fix.heading! : null);
+        const reversed = dirHeading != null && Math.abs(angleDelta(dirHeading, best.bearing)) > 120;
         if (reversed) this.reverseHits++;
         else this.reverseHits = 0;
         if (this.reverseHits >= 2) {
           direction = "backward";
+          uTurn = true;
           this.note(`Backward movement accepted (U-turn) at ${Math.round(along)} m`);
         } else {
           this.note(
@@ -150,6 +243,7 @@ export class RouteProgressEngine {
         }
       } else {
         this.reverseHits = 0;
+        this.uTurnFired = false;
         if (delta < 1) direction = "stalled";
       }
     }
@@ -173,7 +267,8 @@ export class RouteProgressEngine {
     };
     this.state = match;
 
-    const verdict = this.judge(match, fix, now);
+    const verdict = this.judge(match, fix, p, trackHeading, uTurn, isRecoveryFix, now);
+    if (isRecoveryFix) this.recovering = false;
     return { match, verdict };
   }
 
@@ -194,6 +289,10 @@ export class RouteProgressEngine {
   markRerouted(now = performance.now()): void {
     this.routeSetAt = now;
     this.strikes = 0;
+    this.firstStrikeAt = 0;
+    this.armed = null;
+    this.genericArmed = false;
+    this.reacquireHits = 0;
   }
 
   nextManeuver(): { instruction: string; distance: number; step: number } | null {
@@ -208,6 +307,13 @@ export class RouteProgressEngine {
   }
 
   // ---- internals ---------------------------------------------------------
+
+  private trackHeading(p: LatLng): number | null {
+    const prev = this.lastPos;
+    if (!prev) return null;
+    if (haversine(prev, p) < TRACK_HEADING_MIN_M) return null;
+    return bearingBetween(prev, p);
+  }
 
   private bestCandidate(
     p: LatLng,
@@ -275,77 +381,213 @@ export class RouteProgressEngine {
     return this.steps[this.steps.length - 1].index;
   }
 
-  private judge(match: MatchState, fix: FixInput, now: number): OffRouteVerdict {
+  // ---- detector A: fast missed maneuver ----------------------------------
+
+  /** Read the physical turn geometry around a maneuver from the route line. */
+  private maneuverGeometry(b: StepBoundary): ArmedManeuver | null {
+    const idx = this.index;
+    if (!idx) return null;
+    const end = b.endAlong;
+    if (end <= GEOMETRY_SAMPLE_M || end >= idx.total - 1) return null;
+    const point = pointAtAlong(idx, end);
+    const before = pointAtAlong(idx, Math.max(0, end - GEOMETRY_SAMPLE_M));
+    const after = pointAtAlong(idx, Math.min(idx.total, end + GEOMETRY_SAMPLE_M));
+    if (haversine(before, point) < 2 || haversine(point, after) < 2) return null;
+    const inBearing = bearingBetween(before, point);
+    const outBearing = bearingBetween(point, after);
+    const turn = Math.abs(angleDelta(inBearing, outBearing));
+    if (turn < MIN_TURN_DEG) return null;
+    return {
+      step: b.index,
+      instruction: b.instruction,
+      endAlong: end,
+      point,
+      inBearing,
+      outBearing,
+      turn,
+    };
+  }
+
+  /** Arm the detector when a real turn comes into range. */
+  private armManeuver(along: number): void {
+    if (this.armed) return;
+    const next = this.steps.find((b) => b.endAlong > along - 5);
+    if (!next) return;
+    if (next.endAlong - along > ARM_DISTANCE_M) return;
+    const geo = this.maneuverGeometry(next);
+    if (!geo) return;
+    this.armed = geo;
+    this.note(
+      `Maneuver armed — step ${geo.step}, ${Math.round(geo.turn)}° turn in ${Math.round(next.endAlong - along)} m`,
+    );
+  }
+
+  /**
+   * Has the car driven past the armed maneuver point, measured as a signed
+   * projection along the incoming road direction?
+   */
+  private crossedManeuver(p: LatLng, m: ArmedManeuver, accuracy: number): boolean {
+    const margin = Math.min(6, Math.max(2, accuracy * 0.25));
+    const d = haversine(m.point, p);
+    if (d < margin) return false;
+    const brg = bearingBetween(m.point, p);
+    // Component of the displacement along the incoming direction.
+    const forward = d * Math.cos((angleDelta(m.inBearing, brg) * Math.PI) / 180);
+    return forward > margin;
+  }
+
+  private sameSpecialEvent(point: LatLng, now: number): boolean {
+    const last = this.lastSpecial;
+    if (!last) return false;
+    return now - last.at < SAME_EVENT_MS && haversine(last.point, point) < SAME_EVENT_M;
+  }
+
+  // ---- verdict -----------------------------------------------------------
+
+  private judge(
+    match: MatchState,
+    fix: FixInput,
+    rawPos: LatLng,
+    trackHeading: number | null,
+    uTurn: boolean,
+    isRecoveryFix: boolean,
+    now: number,
+  ): OffRouteVerdict {
     // Sensitive, but scaled by how much we can trust this fix and how fast
     // the car is moving (a metre of lateral error means less at 100 km/h).
     const threshold = Math.min(
       MAX_OFF_ROUTE_M,
       Math.max(MIN_OFF_ROUTE_M, fix.accuracy * 1.2, fix.speed * 0.6),
     );
+
+    const base = {
+      offRoute: false,
+      maneuverMissed: false,
+      threshold,
+      strikes: this.strikes,
+    };
+
+    if (isRecoveryFix) {
+      return { ...base, strikes: 0, reason: "gps-recovery" };
+    }
+
+    // Movement direction: the track between consecutive fixes reacts to a
+    // real corner immediately, while browser course can lag badly.
+    const moveHeading =
+      trackHeading ?? (fix.heading != null && fix.speed >= MIN_HEADING_SPEED ? fix.heading : null);
+
+    // ---- A) missed maneuver — evaluated first and never suppressed by the
+    // post-reroute stabilisation window.
+    this.armManeuver(match.along);
+    const armed = this.armed;
+    if (armed) {
+      if (this.crossedManeuver(rawPos, armed, fix.accuracy)) {
+        const rejects =
+          moveHeading != null &&
+          Math.abs(angleDelta(moveHeading, armed.outBearing)) > REJECT_OUTGOING_DEG;
+        const took =
+          moveHeading != null &&
+          Math.abs(angleDelta(moveHeading, armed.outBearing)) <= ACCEPT_OUTGOING_DEG;
+        if (took) {
+          this.note(`Maneuver at step ${armed.step} taken correctly`);
+          this.armed = null;
+        } else if (rejects) {
+          if (this.sameSpecialEvent(armed.point, now)) {
+            this.armed = null;
+            return { ...base, reason: "awaiting-route-reacquire" };
+          }
+          this.lastSpecial = { point: armed.point, at: now, kind: "maneuver-missed" };
+          this.armed = null;
+          this.strikes = 0;
+          this.firstStrikeAt = 0;
+          this.genericArmed = false;
+          this.reacquireHits = 0;
+          this.note(
+            `MANEUVER MISSED at step ${armed.step} — moving ${Math.round(moveHeading!)}° vs expected ${Math.round(armed.outBearing)}°`,
+          );
+          return { ...base, offRoute: true, maneuverMissed: true, reason: "maneuver-missed" };
+        }
+      }
+    }
+
+    // ---- U-turn: consecutive reverse evidence already confirmed upstream.
+    if (uTurn && !this.uTurnFired && !this.sameSpecialEvent(rawPos, now)) {
+      this.uTurnFired = true;
+      this.lastSpecial = { point: rawPos, at: now, kind: "u-turn" };
+      this.strikes = 0;
+      this.firstStrikeAt = 0;
+      this.genericArmed = false;
+      this.reacquireHits = 0;
+      this.note("U-turn confirmed — rerouting immediately");
+      return { ...base, offRoute: true, reason: "u-turn" };
+    }
+
+    // ---- B) generic off-route ------------------------------------------
     // An error ellipse that already covers the route line cannot prove a
     // deviation: a 50 m accuracy fix 25 m off the line is just drift.
     const credible = match.offset > fix.accuracy * ACCURACY_MARGIN;
-    const growing = match.offset >= this.lastOffset - 2;
-    // Clearly heading away from the line: no need to wait for a second read.
-    const diverging = match.offset > this.lastOffset + 2 && match.headingDiff > 35;
+    // The deviation must persist or grow; a random sideways jump that snaps
+    // back on the next reading is noise, not a departure.
+    const sustained = match.offset >= this.lastOffset - 2;
     const stabilising = now - this.routeSetAt < STABILISE_MS;
-    const needed = stabilising ? STRIKES_TO_CONFIRM + 1 : STRIKES_TO_CONFIRM;
-
-    // Missed maneuver: the car went past the turn and is drifting away from
-    // the line the route expected it to follow.
-    const man = this.nextManeuver();
-    const passedManeuver =
-      !!man && man.distance < 5 && match.offset > threshold && match.headingDiff > 45;
-
-    if (match.offset > threshold && credible && growing) {
-      this.strikes++;
-    } else if (match.offset < threshold * 0.7) {
-      if (this.strikes) this.note(`Back on route — deviation ${Math.round(match.offset)} m`);
-      this.strikes = 0;
-    }
+    const onRoute = match.offset < threshold * 0.7;
     this.lastOffset = match.offset;
 
-    // Clearly on another road: no point collecting a second reading.
-    const gross = credible && !stabilising && match.offset > Math.max(threshold * 2, 25);
-    const fastConfirm = (diverging || gross) && credible && !stabilising && match.offset > threshold;
-    const confirmed =
-      passedManeuver || fastConfirm ? this.strikes >= 1 : this.strikes >= needed;
-    if (confirmed) {
-      this.note(
-        passedManeuver
-          ? `Maneuver missed at step ${man!.step} — ${Math.round(match.offset)} m off route`
-          : fastConfirm
-            ? `Diverging fast — off route on first credible reading (${Math.round(match.offset)} m, acc ${Math.round(fix.accuracy)} m)`
-            : `OFF_ROUTE confirmed — ${this.strikes} readings ≥ ${Math.round(threshold)} m`,
-      );
-    } else if (match.offset > 6) {
-      this.note(
-        `Continuing current route — deviation ${Math.round(match.offset)} m (limit ${Math.round(threshold)} m)`,
-      );
+    // One deviation event = one Google reroute. Generic rerouting stays
+    // disarmed until the car is demonstrably back on the active line.
+    if (!this.genericArmed) {
+      if (onRoute && match.confidence > 0.4) {
+        this.reacquireHits++;
+        if (this.reacquireHits >= REACQUIRE_HITS) {
+          this.genericArmed = true;
+          this.reacquireHits = 0;
+          this.strikes = 0;
+          this.firstStrikeAt = 0;
+          this.note("Route reacquired — generic off-route re-armed");
+          return { ...base, strikes: 0, reason: "on-route" };
+        }
+      } else {
+        this.reacquireHits = 0;
+      }
+      return { ...base, strikes: 0, reason: "awaiting-route-reacquire" };
     }
 
-    const reason = confirmed
-      ? passedManeuver
-        ? "maneuver-missed"
-        : gross
-          ? "gross-deviation"
-          : diverging
-            ? "diverging"
-            : "strikes"
-      : !credible
-        ? "low-accuracy"
-        : stabilising
-          ? "stabilising"
-          : match.offset > threshold
-            ? "pending-confirmation"
-            : "on-route";
-    return {
-      offRoute: confirmed,
-      maneuverMissed: passedManeuver,
-      threshold,
-      strikes: this.strikes,
-      reason,
-    };
+    if (match.offset > threshold && credible && sustained && !stabilising) {
+      if (!this.strikes) this.firstStrikeAt = now;
+      this.strikes++;
+    } else if (onRoute) {
+      if (this.strikes) this.note(`Back on route — deviation ${Math.round(match.offset)} m`);
+      this.strikes = 0;
+      this.firstStrikeAt = 0;
+    }
+
+    const span = this.firstStrikeAt ? now - this.firstStrikeAt : 0;
+    const confirmed = this.strikes >= STRIKES_TO_CONFIRM && span >= CONFIRM_SPAN_MS;
+
+    if (confirmed) {
+      this.note(
+        `OFF_ROUTE confirmed — ${this.strikes} readings ≥ ${Math.round(threshold)} m over ${Math.round(span)} ms`,
+      );
+      this.strikes = 0;
+      this.firstStrikeAt = 0;
+      this.genericArmed = false;
+      this.reacquireHits = 0;
+      return { ...base, offRoute: true, strikes: 0, reason: "off-route-confirmed" };
+    }
+
+    const reason = !credible && match.offset > threshold
+      ? "low-accuracy"
+      : stabilising && match.offset > threshold
+        ? "stabilising"
+        : this.strikes > 0
+          ? "pending-confirmation"
+          : "on-route";
+    if (match.offset > 6 && this.strikes > 0) {
+      this.note(
+        `Continuing current route — deviation ${Math.round(match.offset)} m (limit ${Math.round(threshold)} m, strike ${this.strikes}/${STRIKES_TO_CONFIRM})`,
+      );
+    }
+    return { ...base, strikes: this.strikes, reason };
   }
 
   private note(line: string): void {

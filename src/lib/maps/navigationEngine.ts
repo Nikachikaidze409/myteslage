@@ -74,8 +74,14 @@ type Listener = (s: NavSnapshot) => void;
 
 /** Dead reckoning never runs longer than this without a real fix. */
 const MAX_PREDICT_S = 5;
-/** Short debounce so GPS noise cannot fire two reroutes back to back. */
+/**
+ * Final duplicate-request safety guard only. It is NOT an off-route detection
+ * interval: the decision engine evaluates every accepted GPS fix, and the
+ * authoritative request lock is `this.rerouting` (in-flight state). This value
+ * exists purely so two requests cannot leave in the same instant.
+ */
 const REROUTE_DEBOUNCE_MS = 1200;
+
 /** A maneuver closer than this puts the UI in approach mode. */
 const APPROACH_M = 150;
 

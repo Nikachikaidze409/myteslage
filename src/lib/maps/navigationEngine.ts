@@ -11,6 +11,7 @@ import type { RouteStep } from "@/lib/routes.functions";
 import { CameraEngine } from "./cameraEngine";
 import { rememberCenter } from "./googleMapsService";
 import { GpsEngine, type GpsState, type RawFix } from "./gpsEngine";
+import { PipelineDiagnostics, type PipelineDiag } from "./gpsDiagnostics";
 import { RouteRenderer } from "./routeRenderer";
 import { RouteProgressEngine, type MatchState } from "./routeProgressEngine";
 import { VehicleRenderer } from "./vehicleRenderer";
@@ -79,6 +80,8 @@ const APPROACH_M = 150;
 
 export class NavigationEngine {
   readonly gps = new GpsEngine();
+  /** Measurement only: displacement between raw, decision and rendered pos. */
+  private pipelineDiag = new PipelineDiagnostics();
   private camera: CameraEngine;
   private vehicle: VehicleRenderer;
   readonly route: RouteRenderer;
@@ -135,6 +138,13 @@ export class NavigationEngine {
     if (!this.gps.ingest(fix, now)) return;
     const s = this.gps.state(now);
     if (!s) return;
+    // Diagnostics only: how far our own smoothing / snapping moved the car
+    // away from the device's raw report. Never fed back into navigation.
+    this.pipelineDiag.record(
+      haversine(fix, { lat: s.dLat, lng: s.dLng }),
+      haversine(fix, { lat: s.lat, lng: s.lng }),
+      haversine({ lat: s.dLat, lng: s.dLng }, { lat: s.lat, lng: s.lng }),
+    );
 
     if (!this.rendered) {
       this.rendered = { lat: s.lat, lng: s.lng };
@@ -189,6 +199,11 @@ export class NavigationEngine {
     // Free-drive (no active route): rely on local GPS smoothing only. Calling
     // Roads continuously while merely browsing is billed and buys nothing.
 
+  }
+
+  /** Diagnostics snapshot (GPS acceptance + pipeline displacement). */
+  gpsDiagnostics(): { engine: ReturnType<GpsEngine["diagnostics"]>; pipeline: PipelineDiag } {
+    return { engine: this.gps.diagnostics(), pipeline: this.pipelineDiag.snapshot() };
   }
 
   /**

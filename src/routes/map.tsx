@@ -20,6 +20,13 @@ import {
   LocationSourceSelector,
   type SelectorSnapshot,
 } from "@/lib/maps/locationSourceSelector";
+import {
+  SourceDiagnostics,
+  classifyRaw,
+  classifyPipeline,
+  type SourceDiag,
+  type PipelineDiag,
+} from "@/lib/maps/gpsDiagnostics";
 import { computeRoute, type RouteResult, type AvoidOption } from "@/lib/routes.functions";
 import {
   pushRecent,
@@ -70,6 +77,11 @@ function fmtAge(ms: number | null): string {
   return ms == null ? "—" : `${(ms / 1000).toFixed(1)}s`;
 }
 
+// Diagnostics-only helper: metres with one decimal.
+function fmtM(n: number | null): string {
+  return n == null || !Number.isFinite(n) ? "—" : `${n.toFixed(1)}m`;
+}
+
 function IndexGated() {
   return (
     <AuthGate>
@@ -86,6 +98,15 @@ function Index() {
   if (!selectorRef.current) selectorRef.current = new LocationSourceSelector();
   const [gpsDebugState, setGpsDebugState] = useState<SelectorSnapshot | null>(null);
   const gpsDebugRef = useRef(false);
+  // Raw-fix diagnostics per source. Recording is a few numbers per fix and is
+  // skipped entirely unless ?gpsdebug=1 is present.
+  const rawDiagRef = useRef({ tesla: new SourceDiagnostics(), phone: new SourceDiagnostics() });
+  const [rawDiag, setRawDiag] = useState<{ tesla: SourceDiag; phone: SourceDiag } | null>(null);
+  const [pipeDiag, setPipeDiag] = useState<{
+    engine: { offered: number; accepted: number; rejected: number; lastReject: string | null };
+    pipeline: PipelineDiag;
+  } | null>(null);
+  const lastDebugPaintRef = useRef(0);
   // GpsEngine is the single navigation processor: it owns accuracy gating,
   // outlier rejection, smoothing and heading derivation. Here we only do the
   // cheap sanity check the UI itself needs.
@@ -95,7 +116,25 @@ function Index() {
     const now = Date.now();
     const selector = selectorRef.current!;
     const selected = selector.offer({ accuracy: next.accuracy, source: next.source }, now);
-    if (gpsDebugRef.current) setGpsDebugState(selector.snapshot(now));
+    if (gpsDebugRef.current) {
+      // Local receive time only: Tesla and phone device clocks are never mixed.
+      const bucket = next.source === "phone" ? "phone" : "tesla";
+      rawDiagRef.current[bucket].record({
+        accuracy: next.accuracy,
+        hasSpeed: next.speed != null && Number.isFinite(next.speed),
+        hasHeading: next.heading != null && Number.isFinite(next.heading),
+        receivedAt: now,
+      });
+      // ~2 Hz UI refresh; no per-fix React render for diagnostics.
+      if (now - lastDebugPaintRef.current >= 500) {
+        lastDebugPaintRef.current = now;
+        setGpsDebugState(selector.snapshot(now));
+        setRawDiag({
+          tesla: rawDiagRef.current.tesla.snapshot(now),
+          phone: rawDiagRef.current.phone.snapshot(now),
+        });
+      }
+    }
     // Only the selected source continues into MapView / NavigationEngine, so
     // the two sources never feed GpsEngine at the same time.
     if (!selected) return;
@@ -1015,27 +1054,87 @@ function Index() {
                 onDebug={
                   debugEnabled ? (debug, state) => setNavDebug({ debug, state }) : undefined
                 }
+                onGpsDiag={gpsDebugEnabled ? setPipeDiag : undefined}
               />
               {debugEnabled && navDebug ? (
                 <NavDebugPanel debug={navDebug.debug} state={navDebug.state} timing={rerouteTiming} />
               ) : null}
               {gpsDebugEnabled && gpsDebugState ? (
-                <div className="pointer-events-none absolute left-3 top-3 z-30 rounded-xl bg-black/75 p-3 font-mono text-[11px] leading-4 text-white">
-                  <div>ACTIVE SOURCE: {gpsDebugState.active === "phone" ? "Phone" : "Tesla"}</div>
+                <div className="pointer-events-none absolute left-3 top-3 z-30 max-h-[80%] overflow-hidden rounded-xl bg-black/75 p-3 font-mono text-[11px] leading-4 text-white">
                   <div>
-                    TESLA: acc {fmtNum(gpsDebugState.tesla.accuracy)}m · age{" "}
-                    {fmtAge(gpsDebugState.tesla.ageMs)} · score {gpsDebugState.tesla.score} · stale{" "}
+                    RAW GPS:{" "}
+                    {classifyRaw(
+                      gpsDebugState.active === "phone"
+                        ? (rawDiag?.phone ?? null)
+                        : (rawDiag?.tesla ?? null),
+                    )}{" "}
+                    · PIPELINE:{" "}
+                    {pipeDiag
+                      ? classifyPipeline({
+                          active:
+                            gpsDebugState.active === "phone"
+                              ? (rawDiag?.phone ?? null)
+                              : (rawDiag?.tesla ?? null),
+                          pipeline: pipeDiag.pipeline,
+                          accepted: pipeDiag.engine.accepted,
+                          rejected: pipeDiag.engine.rejected,
+                        })
+                      : "—"}
+                  </div>
+                  <div className="mt-1">TESLA</div>
+                  <div>
+                    acc {fmtNum(rawDiag?.tesla.accuracy ?? null)}m · age{" "}
+                    {fmtAge(rawDiag?.tesla.ageMs ?? null)} · int{" "}
+                    {fmtNum(rawDiag?.tesla.lastIntervalMs ?? null)}ms · avg{" "}
+                    {fmtNum(rawDiag?.tesla.avgIntervalMs ?? null)}ms ·{" "}
+                    {rawDiag?.tesla.hz ? rawDiag.tesla.hz.toFixed(2) : "—"}Hz
+                  </div>
+                  <div>
+                    acc min/med/max {fmtNum(rawDiag?.tesla.minAccuracy ?? null)}/
+                    {fmtNum(rawDiag?.tesla.medianAccuracy ?? null)}/
+                    {fmtNum(rawDiag?.tesla.maxAccuracy ?? null)}m · n{" "}
+                    {rawDiag?.tesla.count ?? 0} · spd {rawDiag?.tesla.hasSpeed ? "y" : "n"} · hdg{" "}
+                    {rawDiag?.tesla.hasHeading ? "y" : "n"} · stale{" "}
                     {gpsDebugState.tesla.stale ? "yes" : "no"}
                   </div>
+                  <div className="mt-1">PHONE</div>
                   <div>
-                    PHONE: acc {fmtNum(gpsDebugState.phone.accuracy)}m · age{" "}
-                    {fmtAge(gpsDebugState.phone.ageMs)} · score {gpsDebugState.phone.score} · stale{" "}
+                    acc {fmtNum(rawDiag?.phone.accuracy ?? null)}m · age{" "}
+                    {fmtAge(rawDiag?.phone.ageMs ?? null)} · int{" "}
+                    {fmtNum(rawDiag?.phone.lastIntervalMs ?? null)}ms · avg{" "}
+                    {fmtNum(rawDiag?.phone.avgIntervalMs ?? null)}ms ·{" "}
+                    {rawDiag?.phone.hz ? rawDiag.phone.hz.toFixed(2) : "—"}Hz
+                  </div>
+                  <div>
+                    acc min/med/max {fmtNum(rawDiag?.phone.minAccuracy ?? null)}/
+                    {fmtNum(rawDiag?.phone.medianAccuracy ?? null)}/
+                    {fmtNum(rawDiag?.phone.maxAccuracy ?? null)}m · n{" "}
+                    {rawDiag?.phone.count ?? 0} · spd {rawDiag?.phone.hasSpeed ? "y" : "n"} · hdg{" "}
+                    {rawDiag?.phone.hasHeading ? "y" : "n"} · stale{" "}
                     {gpsDebugState.phone.stale ? "yes" : "no"}
                   </div>
-                  <div>
-                    SELECTOR: {gpsDebugState.reason ?? "—"} · {fmtAge(gpsDebugState.sinceSwitchMs)} ago
+                  <div className="mt-1">
+                    ACTIVE: {gpsDebugState.active === "phone" ? "Phone" : "Tesla"} · score{" "}
+                    {gpsDebugState.active === "phone"
+                      ? gpsDebugState.phone.score
+                      : gpsDebugState.tesla.score}{" "}
+                    · {gpsDebugState.reason ?? "—"} · {fmtAge(gpsDebugState.sinceSwitchMs)} ago
                   </div>
-                  <div>SELECTED FIX ACC: {fmtNum(fix?.accuracy ?? null)}m</div>
+                  <div>
+                    ENGINE: acc {pipeDiag?.engine.accepted ?? 0} · rej{" "}
+                    {pipeDiag?.engine.rejected ?? 0} · last {pipeDiag?.engine.lastReject ?? "—"}
+                  </div>
+                  <div>
+                    PIPE raw→dec {fmtM(pipeDiag?.pipeline.rawToDecision ?? null)} (avg{" "}
+                    {fmtM(pipeDiag?.pipeline.avgRawToDecision ?? null)}) · raw→rend{" "}
+                    {fmtM(pipeDiag?.pipeline.rawToRendered ?? null)} (avg{" "}
+                    {fmtM(pipeDiag?.pipeline.avgRawToRendered ?? null)})
+                  </div>
+                  <div>
+                    PIPE dec→rend {fmtM(pipeDiag?.pipeline.decisionToRendered ?? null)} (avg{" "}
+                    {fmtM(pipeDiag?.pipeline.avgDecisionToRendered ?? null)}) · SELECTED ACC{" "}
+                    {fmtNum(fix?.accuracy ?? null)}m
+                  </div>
                 </div>
               ) : null}
 

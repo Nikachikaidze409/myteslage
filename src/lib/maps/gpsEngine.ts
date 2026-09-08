@@ -46,8 +46,26 @@ const MAX_SPEED_MPS = 75;
 /** After this long without a fix, the position is treated as stale. */
 const STALE_AFTER_MS = 14000;
 
+export type RejectReason =
+  | "invalid-coordinate"
+  | "accuracy-too-poor"
+  | "impossible-jump"
+  | "other";
+
+export interface GpsEngineDiag {
+  offered: number;
+  accepted: number;
+  rejected: number;
+  lastReject: RejectReason | null;
+}
+
 export class GpsEngine {
   private accepted: RawFix | null = null;
+  // Diagnostics counters only — they never influence acceptance.
+  private nOffered = 0;
+  private nAccepted = 0;
+  private nRejected = 0;
+  private lastReject: RejectReason | null = null;
   private smooth: LatLng | null = null;
   /** Same smoothing, but never overwritten by route snapping. */
   private decisionSmooth: LatLng | null = null;
@@ -58,9 +76,12 @@ export class GpsEngine {
 
   /** Feed a device / paired-phone fix. Returns false when it was rejected. */
   ingest(fix: RawFix, now = performance.now()): boolean {
-    if (!Number.isFinite(fix.lat) || !Number.isFinite(fix.lng)) return false;
-    if (Math.abs(fix.lat) > 90 || Math.abs(fix.lng) > 180) return false;
-    if (Number.isFinite(fix.accuracy) && fix.accuracy > MAX_ACCURACY_M) return false;
+    this.nOffered++;
+    if (!Number.isFinite(fix.lat) || !Number.isFinite(fix.lng)) return this.reject("invalid-coordinate");
+    if (Math.abs(fix.lat) > 90 || Math.abs(fix.lng) > 180) return this.reject("invalid-coordinate");
+    if (Number.isFinite(fix.accuracy) && fix.accuracy > MAX_ACCURACY_M) {
+      return this.reject("accuracy-too-poor");
+    }
 
     const prev = this.accepted;
     if (prev) {
@@ -71,10 +92,11 @@ export class GpsEngine {
       // the device really did move (tunnel exit, GPS re-lock) so we accept.
       if (implied > MAX_SPEED_MPS && this.rejects < 2) {
         this.rejects++;
-        return false;
+        return this.reject("impossible-jump");
       }
     }
     this.rejects = 0;
+    this.nAccepted++;
     this.accepted = fix;
     this.acceptedAt = now;
 
@@ -117,6 +139,22 @@ export class GpsEngine {
             lerpAngle(this.headingSmooth, target, Math.abs(angleDelta(this.headingSmooth, target)) > 60 ? 0.6 : 0.25);
     }
     return true;
+  }
+
+  /** Diagnostics snapshot; measurement only. */
+  diagnostics(): GpsEngineDiag {
+    return {
+      offered: this.nOffered,
+      accepted: this.nAccepted,
+      rejected: this.nRejected,
+      lastReject: this.lastReject,
+    };
+  }
+
+  private reject(reason: RejectReason): false {
+    this.nRejected++;
+    this.lastReject = reason;
+    return false;
   }
 
   /** Last reliable state, or null before the first accepted fix. */

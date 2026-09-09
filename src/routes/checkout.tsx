@@ -40,6 +40,7 @@ export const Route = createFileRoute("/checkout")({
 function Checkout() {
   const navigate = useNavigate();
   const [plan, setPlan] = useState<Plan>("quarterly");
+  const [provider, setProvider] = useState<PaymentProvider>("bog");
   const [email, setEmail] = useState("");
   const [userId, setUserId] = useState("");
   const [fullName, setFullName] = useState("");

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { getMembershipState } from "@/lib/bog.functions";
+import { getBogPaymentState, getMembershipState } from "@/lib/bog.functions";
 
 export const Route = createFileRoute("/checkout/success")({
   component: CheckoutSuccess,
@@ -19,20 +19,37 @@ export const Route = createFileRoute("/checkout/success")({
 function CheckoutSuccess() {
   // The redirect back from the bank is not proof of payment — only the
   // verified callback, reflected in our own database, activates a membership.
-  const [state, setState] = useState<"checking" | "active" | "waiting">("checking");
+  const [state, setState] = useState<"checking" | "active" | "waiting" | "failed">("checking");
   const attempts = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
+    const params = new URLSearchParams(window.location.search);
+    const externalOrderId = params.get("order");
+
     const poll = async () => {
       try {
-        const result = await getMembershipState();
-        if (cancelled) return;
-        if (result.active) {
-          setState("active");
-          return;
+        if (externalOrderId) {
+          // Tied to THIS payment attempt: an older membership cannot mark it paid.
+          const result = await getBogPaymentState({ data: { externalOrderId } });
+          if (cancelled) return;
+          if (result.state === "completed") {
+            setState("active");
+            return;
+          }
+          if (result.state === "failed") {
+            setState("failed");
+            return;
+          }
+        } else {
+          const result = await getMembershipState();
+          if (cancelled) return;
+          if (result.active) {
+            setState("active");
+            return;
+          }
         }
       } catch {
         /* keep waiting */
@@ -64,6 +81,15 @@ function CheckoutSuccess() {
             <p className="mt-3 text-white/65">Your membership is active. Enjoy the drive.</p>
             <Link to="/map" className="font-display mt-7 inline-flex h-12 items-center justify-center rounded-xl bg-[#3b82f6] px-6 font-bold text-white hover:brightness-110">
               Open Tesla Map
+            </Link>
+          </>
+        ) : state === "failed" ? (
+          <>
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-rose-400/15 text-2xl text-rose-300">!</div>
+            <h1 className="font-display mt-5 text-3xl font-black">Payment not completed</h1>
+            <p className="mt-3 text-white/65">The bank did not complete this payment. No membership was started.</p>
+            <Link to="/checkout" className="font-display mt-7 inline-flex h-12 items-center justify-center rounded-xl border border-white/15 px-6 font-bold text-white hover:bg-white/5">
+              Try again
             </Link>
           </>
         ) : state === "checking" ? (

@@ -58,8 +58,8 @@ async function resolveEligibility(
   return decideCheckoutEligibility({
     provider: input.provider,
     plan: input.plan,
-    subscriptions: subscriptions ?? [],
-    pendingOrders: pendingOrders ?? [],
+    subscriptions: (subscriptions ?? []) as SubscriptionRecord[],
+    pendingOrders: (pendingOrders ?? []) as PendingOrderRecord[],
     now,
     paddleEnvironment: resolvePaddleEnvironment(
       process.env["VITE_PAYMENTS_CLIENT_TOKEN"] ?? process.env["PAYMENTS_CLIENT_TOKEN"],

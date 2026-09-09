@@ -42,24 +42,33 @@ export const createBogCheckout = createServerFn({ method: "POST" })
 /**
  * Trusted membership state for the success page. A redirect back from the bank
  * is never treated as proof of payment — only this database state counts.
+ *
+ * Provider-aware: only rows from the requested provider are considered, using
+ * the one shared membership-validity rule (membership.ts). An active BOG
+ * membership can never make a Paddle checkout look successful and vice versa.
  */
 export const getMembershipState = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data } = await context.supabase
+  .inputValidator((data) =>
+    z.object({ provider: z.enum(["bog", "paddle"]) }).parse(data ?? { provider: "paddle" }),
+  )
+  .handler(async ({ data, context }) => {
+    const { anyMembershipValid, resolvePaddleEnvironment } = await import("@/lib/membership");
+    const { data: rows } = await context.supabase
       .from("subscriptions")
-      .select("status, current_period_end, provider")
+      .select("status, current_period_end, provider, environment")
       .eq("user_id", context.userId)
+      .eq("provider", data.provider)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(10);
 
-    const open =
-      !!data &&
-      ["active", "trialing", "past_due"].includes(data.status) &&
-      (!data.current_period_end || new Date(data.current_period_end).getTime() > Date.now());
+    const active = anyMembershipValid(rows, {
+      paddleEnvironment: resolvePaddleEnvironment(
+        process.env["VITE_PAYMENTS_CLIENT_TOKEN"] ?? process.env["PAYMENTS_CLIENT_TOKEN"],
+      ),
+    });
 
-    return { active: open, provider: data?.provider ?? null };
+    return { active, provider: data.provider };
   });
 
 /**

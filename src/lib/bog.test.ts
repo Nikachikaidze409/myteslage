@@ -406,3 +406,36 @@ describe("callback recovery safety", () => {
     expect(route).toContain('return new Response("Subscription owner mismatch", { status: 500 })');
   });
 });
+
+describe("provider-aware success-page membership check", () => {
+  const future = new Date(Date.now() + 86_400_000).toISOString();
+
+  it("an active BOG membership must NOT satisfy a Paddle success page", () => {
+    // getMembershipState({ provider: "paddle" }) filters rows to paddle only.
+    const rows = [
+      { status: "active", current_period_end: future, provider: "bog", environment: "live" },
+    ].filter((r) => r.provider === "paddle");
+    expect(anyMembershipValid(rows, { paddleEnvironment: "live" })).toBe(false);
+  });
+
+  it("a valid Paddle membership satisfies the Paddle success page", () => {
+    const rows = [
+      { status: "active", current_period_end: future, provider: "bog", environment: "live" },
+      { status: "active", current_period_end: future, provider: "paddle", environment: "live" },
+    ].filter((r) => r.provider === "paddle");
+    expect(anyMembershipValid(rows, { paddleEnvironment: "live" })).toBe(true);
+  });
+
+  it("getMembershipState filters subscriptions by the requested provider", () => {
+    const fn = src("lib/bog.functions.ts");
+    expect(fn).toContain('z.enum(["bog", "paddle"])');
+    expect(fn).toContain('.eq("provider", data.provider)');
+    expect(fn).toContain("anyMembershipValid");
+  });
+
+  it("the Paddle success path passes provider=paddle and keeps BOG order-specific", () => {
+    const page = src("routes/checkout.success.tsx");
+    expect(page).toContain('getMembershipState({ data: { provider: "paddle" } })');
+    expect(page).toContain("getBogPaymentState({ data: { externalOrderId } })");
+  });
+});

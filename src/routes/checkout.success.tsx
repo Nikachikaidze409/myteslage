@@ -49,8 +49,9 @@ function CheckoutSuccess() {
             return;
           }
         } else {
-          // Paddle (or legacy) return: the verified subscription state decides.
-          const result = await getMembershipState();
+          // Paddle (or legacy) return: only a verified Paddle membership counts —
+          // an active BOG membership must not satisfy a Paddle success page.
+          const result = await getMembershipState({ data: { provider: "paddle" } });
           if (cancelled) return;
           if (result.active) {
             setState("active");

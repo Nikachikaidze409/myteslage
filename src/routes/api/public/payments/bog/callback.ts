@@ -68,32 +68,62 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
         const start = new Date();
         const planConfig = BOG_PLANS[plan];
 
-        const { error: subError } = await supabaseAdmin.from("subscriptions").insert({
-          user_id: order.user_id,
-          provider: "bog",
-          provider_subscription_id: orderId,
-          provider_parent_order_id: orderId,
-          last_payment_order_id: orderId,
-          product_id: planConfig.id,
-          price_id: planConfig.id,
-          status: "active",
-          current_period_start: start.toISOString(),
-          current_period_end: computePeriodEnd(plan, start).toISOString(),
-          environment: "live",
-          paddle_subscription_id: null,
-          paddle_customer_id: null,
-        });
-        if (subError) {
-          console.error("[BOG] could not activate membership", subError.message);
-          return new Response("Unable to save subscription", { status: 500 });
+        // Recovery-safe: a previous attempt may have inserted the subscription and then
+        // failed before the payment order was settled. Never insert twice, and never
+        // treat someone else's subscription row as proof of this payment.
+        const { data: existingSub, error: existingSubError } = await supabaseAdmin
+          .from("subscriptions")
+          .select("id, user_id")
+          .eq("provider", "bog")
+          .eq("provider_subscription_id", orderId)
+          .maybeSingle();
+
+        if (existingSubError) {
+          console.error("[BOG] could not read existing subscription", existingSubError.message);
+          return new Response("Unable to read subscription", { status: 500 });
         }
 
-        await supabaseAdmin
+        if (existingSub && existingSub.user_id !== order.user_id) {
+          console.error("[BOG] refusing to settle: subscription belongs to another user");
+          return new Response("Subscription owner mismatch", { status: 500 });
+        }
+
+        if (!existingSub) {
+          const { error: subError } = await supabaseAdmin.from("subscriptions").insert({
+            user_id: order.user_id,
+            provider: "bog",
+            provider_subscription_id: orderId,
+            provider_parent_order_id: orderId,
+            last_payment_order_id: orderId,
+            product_id: planConfig.id,
+            price_id: planConfig.id,
+            status: "active",
+            current_period_start: start.toISOString(),
+            current_period_end: computePeriodEnd(plan, start).toISOString(),
+            environment: "live",
+            paddle_subscription_id: null,
+            paddle_customer_id: null,
+          });
+          if (subError) {
+            console.error("[BOG] could not activate membership", subError.message);
+            return new Response("Unable to save subscription", { status: 500 });
+          }
+        }
+
+        const { error: orderUpdateError } = await supabaseAdmin
           .from("payment_orders")
           .update({ status: "completed" })
           .eq("id", order.id);
 
+        if (orderUpdateError) {
+          // Membership is active but the order is still pending: ask BOG to retry
+          // so the two rows converge. The retry is safe: the insert is skipped above.
+          console.error("[BOG] could not settle payment order", orderUpdateError.message);
+          return new Response("Unable to settle payment order", { status: 500 });
+        }
+
         return new Response("ok");
+
       },
     },
   },

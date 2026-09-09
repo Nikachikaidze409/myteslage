@@ -38,6 +38,24 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_tokens: {
+        Row: {
+          created_at: string
+          name: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          name: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          name?: string
+          token?: string
+        }
+        Relationships: []
+      }
       pair_sessions: {
         Row: {
           code: string
@@ -62,59 +80,81 @@ export type Database = {
       payment_orders: {
         Row: {
           amount: number
+          attempt_no: number
           base_amount: number | null
+          billing_period_end: string | null
           created_at: string
           credit_amount: number
           currency: string
           external_order_id: string | null
           final_amount: number | null
           id: string
+          kind: string
+          parent_order_id: string | null
           plan: string
           pricing_reason: string | null
           provider: string
           provider_order_id: string | null
           status: string
+          subscription_id: string | null
           updated_at: string
           upgrade_from_subscription_id: string | null
           user_id: string
         }
         Insert: {
           amount: number
+          attempt_no?: number
           base_amount?: number | null
+          billing_period_end?: string | null
           created_at?: string
           credit_amount?: number
           currency: string
           external_order_id?: string | null
           final_amount?: number | null
           id?: string
+          kind?: string
+          parent_order_id?: string | null
           plan: string
           pricing_reason?: string | null
           provider: string
           provider_order_id?: string | null
           status?: string
+          subscription_id?: string | null
           updated_at?: string
           upgrade_from_subscription_id?: string | null
           user_id: string
         }
         Update: {
           amount?: number
+          attempt_no?: number
           base_amount?: number | null
+          billing_period_end?: string | null
           created_at?: string
           credit_amount?: number
           currency?: string
           external_order_id?: string | null
           final_amount?: number | null
           id?: string
+          kind?: string
+          parent_order_id?: string | null
           plan?: string
           pricing_reason?: string | null
           provider?: string
           provider_order_id?: string | null
           status?: string
+          subscription_id?: string | null
           updated_at?: string
           upgrade_from_subscription_id?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payment_orders_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payment_orders_upgrade_from_subscription_id_fkey"
             columns: ["upgrade_from_subscription_id"]
@@ -162,6 +202,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          auto_renew: boolean
           cancel_at_period_end: boolean | null
           created_at: string | null
           current_period_end: string | null
@@ -169,6 +210,8 @@ export type Database = {
           environment: string
           id: string
           last_payment_order_id: string | null
+          last_renewal_attempt_at: string | null
+          next_billing_at: string | null
           paddle_customer_id: string | null
           paddle_subscription_id: string | null
           price_id: string
@@ -176,11 +219,15 @@ export type Database = {
           provider: string
           provider_parent_order_id: string | null
           provider_subscription_id: string | null
+          renewal_attempts: number
+          renewal_lock_until: string | null
+          renewal_status: string
           status: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          auto_renew?: boolean
           cancel_at_period_end?: boolean | null
           created_at?: string | null
           current_period_end?: string | null
@@ -188,6 +235,8 @@ export type Database = {
           environment?: string
           id?: string
           last_payment_order_id?: string | null
+          last_renewal_attempt_at?: string | null
+          next_billing_at?: string | null
           paddle_customer_id?: string | null
           paddle_subscription_id?: string | null
           price_id: string
@@ -195,11 +244,15 @@ export type Database = {
           provider?: string
           provider_parent_order_id?: string | null
           provider_subscription_id?: string | null
+          renewal_attempts?: number
+          renewal_lock_until?: string | null
+          renewal_status?: string
           status?: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          auto_renew?: boolean
           cancel_at_period_end?: boolean | null
           created_at?: string | null
           current_period_end?: string | null
@@ -207,6 +260,8 @@ export type Database = {
           environment?: string
           id?: string
           last_payment_order_id?: string | null
+          last_renewal_attempt_at?: string | null
+          next_billing_at?: string | null
           paddle_customer_id?: string | null
           paddle_subscription_id?: string | null
           price_id?: string
@@ -214,6 +269,9 @@ export type Database = {
           provider?: string
           provider_parent_order_id?: string | null
           provider_subscription_id?: string | null
+          renewal_attempts?: number
+          renewal_lock_until?: string | null
+          renewal_status?: string
           status?: string
           updated_at?: string | null
           user_id?: string

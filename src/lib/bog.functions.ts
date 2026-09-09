@@ -148,6 +148,18 @@ export const createBogCheckout = createServerFn({ method: "POST" })
       throw error;
     }
 
+    // STANDARD purchases only may become an automatic-renewal parent. A
+    // prorated upgrade is charged below the full price, and BOG reuses the
+    // parent's amount for every future renewal — so it is never saved.
+    if (!upgrade) {
+      const { enableBogAutomaticSubscription } = await import("@/lib/bog.server");
+      const accepted = await enableBogAutomaticSubscription(created.orderId);
+      if (!accepted) {
+        // Never breaks checkout: the user pays normally, without auto-renew.
+        console.error("[BOG] automatic subscription not established for this order");
+      }
+    }
+
     const { error: linkError } = await supabaseAdmin
       .from("payment_orders")
       .update({ provider_order_id: created.orderId })
@@ -212,4 +224,106 @@ export const getBogPaymentState = createServerFn({ method: "GET" })
     const status =
       row.status === "completed" ? "completed" : row.status === "failed" ? "failed" : "pending";
     return { state: status as "pending" | "completed" | "failed" };
+  });
+
+/**
+ * Membership summary for the account menu. Read-only, own rows only.
+ */
+export const getBogSubscriptionSummary = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { isMembershipRowValid } = await import("@/lib/membership");
+    const { planFromProductId } = await import("@/lib/checkout-eligibility");
+
+    const { data: rows } = await context.supabase
+      .from("subscriptions")
+      .select(
+        "id, status, provider, environment, product_id, current_period_end, auto_renew, next_billing_at, cancel_at_period_end, renewal_status",
+      )
+      .eq("user_id", context.userId)
+      .eq("provider", "bog")
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    const active = (rows ?? []).filter((row) =>
+      isMembershipRowValid(row, { paddleEnvironment: "live" }),
+    );
+    const current = active.sort(
+      (a, b) =>
+        new Date(b.current_period_end ?? 0).getTime() -
+        new Date(a.current_period_end ?? 0).getTime(),
+    )[0];
+
+    if (!current) return { active: false as const };
+
+    // A prorated upgrade is deliberately not an auto-renew parent.
+    const { data: lastOrder } = await context.supabase
+      .from("payment_orders")
+      .select("pricing_reason")
+      .eq("user_id", context.userId)
+      .eq("provider", "bog")
+      .eq("status", "completed")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    return {
+      active: true as const,
+      proratedUpgrade: lastOrder?.pricing_reason === "monthly_to_quarterly_proration",
+      plan: planFromProductId(current.product_id),
+      validUntil: current.current_period_end,
+      autoRenew: current.auto_renew === true,
+      nextBillingAt: current.next_billing_at,
+      canceled: current.cancel_at_period_end === true || current.renewal_status === "canceled",
+    };
+  });
+
+/**
+ * Turns automatic renewal off. The local state is authoritative: even if the
+ * bank's delete-card call fails, the scheduler can never charge again.
+ */
+export const cancelBogAutoRenew = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { deleteBogSavedCard } = await import("@/lib/bog.server");
+
+    const { data: sub } = await context.supabase
+      .from("subscriptions")
+      .select("id, provider_parent_order_id, current_period_end")
+      .eq("user_id", context.userId)
+      .eq("provider", "bog")
+      .eq("auto_renew", true)
+      .order("current_period_end", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!sub) return { canceled: false as const };
+
+    const { error } = await supabaseAdmin
+      .from("subscriptions")
+      .update({
+        auto_renew: false,
+        cancel_at_period_end: true,
+        next_billing_at: null,
+        renewal_status: "canceled",
+        renewal_lock_until: null,
+      })
+      .eq("id", sub.id)
+      .eq("user_id", context.userId);
+
+    if (error) {
+      console.error("[BOG] could not cancel automatic renewal", error.message);
+      throw new Error("Could not cancel automatic renewal. Please try again.");
+    }
+
+    if (sub.provider_parent_order_id) {
+      const removed = await deleteBogSavedCard(sub.provider_parent_order_id);
+      if (!removed) {
+        // Auto-renew stays OFF regardless; only flagged for follow-up.
+        console.error("[BOG] saved card deletion needs administrative follow-up");
+      }
+    }
+
+    return { canceled: true as const, validUntil: sub.current_period_end };
   });

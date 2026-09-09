@@ -1,5 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { cancelBogAutoRenew, getBogSubscriptionSummary } from "@/lib/bog.functions";
+
+interface SubscriptionSummary {
+  active: boolean;
+  plan?: string | null;
+  validUntil?: string | null;
+  autoRenew?: boolean;
+  nextBillingAt?: string | null;
+  canceled?: boolean;
+  proratedUpgrade?: boolean;
+}
+
+function geoDate(value: string | null | undefined): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  return Number.isFinite(d.getTime()) ? d.toLocaleDateString("ka-GE") : "—";
+}
 
 /** Name shown when profiles.full_name is missing: the email local part. */
 export function displayNameFrom(fullName: string | null | undefined, email: string | null | undefined): string {
@@ -19,6 +36,8 @@ export function AccountMenu({ signOutLabel = "Sign out" }: { signOutLabel?: stri
   const [fullName, setFullName] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [membership, setMembership] = useState<SubscriptionSummary | null>(null);
+  const [canceling, setCanceling] = useState(false);
   const boxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -76,6 +95,22 @@ export function AccountMenu({ signOutLabel = "Sign out" }: { signOutLabel?: stri
     };
   }, [open]);
 
+  // Membership details are loaded lazily, only for a signed-in user.
+  useEffect(() => {
+    if (!open || !email || membership) return;
+    let cancelled = false;
+    void getBogSubscriptionSummary()
+      .then((data) => {
+        if (!cancelled) setMembership(data as SubscriptionSummary);
+      })
+      .catch(() => {
+        /* the menu stays usable without membership details */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, email, membership]);
+
   if (!email) return null;
 
   const name = displayNameFrom(fullName, email);
@@ -105,6 +140,64 @@ export function AccountMenu({ signOutLabel = "Sign out" }: { signOutLabel?: stri
         >
           <div className="truncate text-sm font-semibold text-white">{name}</div>
           <div className="mt-0.5 truncate text-xs text-white/50">{email}</div>
+
+          {membership?.active && (
+            <div className="mt-3 space-y-1 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-xs text-white/70">
+              <div>
+                <span className="text-white/50">გეგმა: </span>
+                <span className="font-semibold text-white">
+                  {membership.plan === "quarterly" ? "3 თვე" : "1 თვე"}
+                </span>
+              </div>
+              <div>
+                <span className="text-white/50">სტატუსი: </span>
+                <span className="font-semibold text-white">აქტიური</span>
+              </div>
+              <div>
+                <span className="text-white/50">ძალაშია: </span>
+                <span className="font-semibold text-white">{geoDate(membership.validUntil)}</span>
+              </div>
+
+              {membership.autoRenew ? (
+                <>
+                  <div>ავტომატური განახლება: ჩართულია</div>
+                  <div>შემდეგი გადახდა: {geoDate(membership.nextBillingAt)}</div>
+                  <button
+                    type="button"
+                    disabled={canceling}
+                    onClick={() => {
+                      setCanceling(true);
+                      void cancelBogAutoRenew()
+                        .then(() =>
+                          setMembership((m) =>
+                            m ? { ...m, autoRenew: false, canceled: true, nextBillingAt: null } : m,
+                          ),
+                        )
+                        .finally(() => setCanceling(false));
+                    }}
+                    className="mt-2 w-full rounded-lg border border-white/15 px-3 py-1.5 font-semibold text-white hover:bg-white/10 disabled:opacity-60"
+                  >
+                    {canceling ? "…" : "ავტომატური განახლების გაუქმება"}
+                  </button>
+                </>
+              ) : membership.canceled ? (
+                <>
+                  <div>ავტომატური განახლება გაუქმებულია.</div>
+                  <div>თქვენი გამოწერა აქტიური დარჩება {geoDate(membership.validUntil)}-მდე.</div>
+                </>
+              ) : membership.proratedUpgrade ? (
+                <>
+                  <div>ავტომატური განახლება ამ განახლებაზე არ არის ჩართული.</div>
+                  <div>
+                    3-თვიანი პერიოდის დასრულების შემდეგ შეგიძლიათ გამოწერა განაახლოთ სრული 3-თვიანი
+                    ფასით.
+                  </div>
+                </>
+              ) : (
+                <div>ავტომატური განახლება: გამორთულია</div>
+              )}
+            </div>
+          )}
           <button
             type="button"
             role="menuitem"

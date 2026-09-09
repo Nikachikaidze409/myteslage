@@ -36,7 +36,7 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
         const { data: order } = await supabaseAdmin
           .from("payment_orders")
           .select(
-            "id, user_id, plan, amount, currency, status, provider_order_id, external_order_id, pricing_reason, upgrade_from_subscription_id",
+            "id, user_id, plan, amount, currency, status, provider_order_id, external_order_id, pricing_reason, upgrade_from_subscription_id, kind, subscription_id, parent_order_id, billing_period_end, attempt_no",
           )
           .eq("provider_order_id", orderId)
           .maybeSingle();
@@ -49,6 +49,7 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
           fetchBogPaymentDetails,
           paymentMatchesOrder,
           computePeriodEnd,
+          canBeAutoRenewParent,
           BOG_PLANS,
           isPlanKey,
         } = await import("@/lib/bog.server");
@@ -60,6 +61,39 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
         }
 
         const details = await fetchBogPaymentDetails(orderId);
+
+        // ---- automatic renewal charge -----------------------------------
+        if (order.kind === "renewal") {
+          const { settleRenewalOrder } = await import("@/lib/bog-renewals.server");
+          const result = await settleRenewalOrder(
+            order as unknown as import("@/lib/bog-renewals.server").RenewalOrderRow,
+            details,
+          );
+          if (result === "rejected") {
+            const { afterFailedAttempt } = await import("@/lib/bog-renewals");
+            await supabaseAdmin
+              .from("payment_orders")
+              .update({ status: "failed" })
+              .eq("id", order.id)
+              .eq("status", "pending");
+            if (order.subscription_id) {
+              const { data: sub } = await supabaseAdmin
+                .from("subscriptions")
+                .select("renewal_attempts")
+                .eq("id", order.subscription_id)
+                .maybeSingle();
+              await supabaseAdmin
+                .from("subscriptions")
+                .update(afterFailedAttempt(sub?.renewal_attempts ?? 0, new Date()))
+                .eq("id", order.subscription_id);
+            }
+          }
+          if (result === "error") {
+            return new Response("Unable to settle renewal", { status: 500 });
+          }
+          return new Response("ok");
+        }
+
         if (!paymentMatchesOrder(details, order)) {
           if (details.statusKey && details.statusKey !== "completed") {
             await supabaseAdmin
@@ -74,6 +108,14 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
         const plan = order.plan;
         const start = new Date();
         const planConfig = BOG_PLANS[plan];
+        const periodEnd = computePeriodEnd(plan, start);
+
+        // Auto-renew is NEVER inferred from the save-card 202: only BOG's own
+        // receipt proves a saved-card subscription exists. A prorated upgrade is
+        // never allowed to become a parent — BOG would reuse its discounted amount.
+        const autoRenew =
+          details.savedCardType === "subscription" &&
+          canBeAutoRenewParent(order.pricing_reason, Number(order.amount), plan);
 
         // Recovery-safe: a previous attempt may have inserted the subscription and then
         // failed before the payment order was settled. Never insert twice, and never
@@ -100,13 +142,17 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
             user_id: order.user_id,
             provider: "bog",
             provider_subscription_id: orderId,
-            provider_parent_order_id: orderId,
+            provider_parent_order_id: autoRenew ? orderId : null,
             last_payment_order_id: orderId,
             product_id: planConfig.id,
             price_id: planConfig.id,
             status: "active",
             current_period_start: start.toISOString(),
-            current_period_end: computePeriodEnd(plan, start).toISOString(),
+            current_period_end: periodEnd.toISOString(),
+            auto_renew: autoRenew,
+            next_billing_at: autoRenew ? periodEnd.toISOString() : null,
+            renewal_status: "idle",
+            renewal_attempts: 0,
             environment: "live",
             paddle_subscription_id: null,
             paddle_customer_id: null,

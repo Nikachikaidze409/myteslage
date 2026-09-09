@@ -20,10 +20,6 @@ import type { Database } from "@/integrations/supabase/types";
 
 const ACTIVE_STATUSES = ["active", "trialing", "past_due", "canceled"];
 
-function paddleEnvironment(): string {
-  const token = import.meta.env["VITE_PAYMENTS_CLIENT_TOKEN"] as string | undefined;
-  return token?.startsWith("test_") ? "sandbox" : "live";
-}
 
 function isNewSupabaseApiKey(value: string): boolean {
   return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");

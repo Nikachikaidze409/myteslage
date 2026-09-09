@@ -23,6 +23,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PhoneCodeRouteImport } from './routes/phone.$code'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicPaymentsBogCallbackRouteImport } from './routes/api/public/payments/bog/callback'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -95,6 +96,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPaymentsBogCallbackRoute =
+  ApiPublicPaymentsBogCallbackRouteImport.update({
+    id: '/api/public/payments/bog/callback',
+    path: '/api/public/payments/bog/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/checkout/success': typeof CheckoutSuccessRoute
   '/phone/$code': typeof PhoneCodeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/payments/bog/callback': typeof ApiPublicPaymentsBogCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -127,6 +135,7 @@ export interface FileRoutesByTo {
   '/checkout/success': typeof CheckoutSuccessRoute
   '/phone/$code': typeof PhoneCodeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/payments/bog/callback': typeof ApiPublicPaymentsBogCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -144,6 +153,7 @@ export interface FileRoutesById {
   '/checkout/success': typeof CheckoutSuccessRoute
   '/phone/$code': typeof PhoneCodeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/payments/bog/callback': typeof ApiPublicPaymentsBogCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/checkout/success'
     | '/phone/$code'
     | '/api/public/payments/webhook'
+    | '/api/public/payments/bog/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/checkout/success'
     | '/phone/$code'
     | '/api/public/payments/webhook'
+    | '/api/public/payments/bog/callback'
   id:
     | '__root__'
     | '/'
@@ -194,6 +206,7 @@ export interface FileRouteTypes {
     | '/checkout/success'
     | '/phone/$code'
     | '/api/public/payments/webhook'
+    | '/api/public/payments/bog/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -210,6 +223,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   PhoneCodeRoute: typeof PhoneCodeRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
+  ApiPublicPaymentsBogCallbackRoute: typeof ApiPublicPaymentsBogCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -312,6 +326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/bog/callback': {
+      id: '/api/public/payments/bog/callback'
+      path: '/api/public/payments/bog/callback'
+      fullPath: '/api/public/payments/bog/callback'
+      preLoaderRoute: typeof ApiPublicPaymentsBogCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -341,6 +362,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   PhoneCodeRoute: PhoneCodeRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
+  ApiPublicPaymentsBogCallbackRoute: ApiPublicPaymentsBogCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -68,9 +68,9 @@ describe("order payload is built server-side only", () => {
     expect(src("lib/bog.server.ts")).toContain('"Idempotency-Key": crypto.randomUUID()');
   });
 
-  it("returns only the order id and redirect URL to the browser", () => {
+  it("returns only the order id, redirect URL and trusted decision to the browser", () => {
     expect(src("lib/bog.functions.ts")).toContain(
-      "return { orderId: created.orderId, redirectUrl: created.redirectUrl };",
+      "return { ...eligibility, orderId: created.orderId, redirectUrl: created.redirectUrl };",
     );
   });
 });

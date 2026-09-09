@@ -24,9 +24,8 @@ async function resolveEligibility(
   context: { supabase: SupabaseClient<Database>; userId: string },
   input: { provider: "bog" | "paddle"; plan: "monthly" | "quarterly" },
 ): Promise<Eligibility> {
-  const { decideCheckoutEligibility, PENDING_CHECKOUT_TTL_MS } = await import(
-    "@/lib/checkout-eligibility"
-  );
+  const { decideCheckoutEligibility, PENDING_CHECKOUT_TTL_MS } =
+    await import("@/lib/checkout-eligibility");
   const { resolvePaddleEnvironment } = await import("@/lib/membership");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -43,7 +42,9 @@ async function resolveEligibility(
   const [{ data: subscriptions }, { data: pendingOrders }] = await Promise.all([
     context.supabase
       .from("subscriptions")
-      .select("id, status, current_period_start, current_period_end, provider, environment, product_id")
+      .select(
+        "id, status, current_period_start, current_period_end, provider, environment, product_id",
+      )
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false })
       .limit(20),
@@ -77,9 +78,8 @@ export const createBogCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => planSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { BOG_PLANS, buildOrderPayload, createBogOrder, BOG_UPGRADE_DESCRIPTION } = await import(
-      "@/lib/bog.server"
-    );
+    const { BOG_PLANS, buildOrderPayload, createBogOrder, BOG_UPGRADE_DESCRIPTION } =
+      await import("@/lib/bog.server");
     const { isPayableStatus } = await import("@/lib/checkout-eligibility");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -111,7 +111,9 @@ export const createBogCheckout = createServerFn({ method: "POST" })
         base_amount: baseAmount,
         credit_amount: creditAmount,
         final_amount: finalAmount,
-        upgrade_from_subscription_id: upgrade ? (eligibility.upgradeFromSubscriptionId ?? null) : null,
+        upgrade_from_subscription_id: upgrade
+          ? (eligibility.upgradeFromSubscriptionId ?? null)
+          : null,
         pricing_reason: upgrade ? "monthly_to_quarterly_proration" : "standard",
         currency: plan.currency,
         status: "pending",
@@ -138,7 +140,10 @@ export const createBogCheckout = createServerFn({ method: "POST" })
     } catch (error) {
       // Release the reservation so the user can try again immediately.
       if (reserved?.id) {
-        await supabaseAdmin.from("payment_orders").update({ status: "failed" }).eq("id", reserved.id);
+        await supabaseAdmin
+          .from("payment_orders")
+          .update({ status: "failed" })
+          .eq("id", reserved.id);
       }
       throw error;
     }
@@ -193,9 +198,7 @@ export const getMembershipState = createServerFn({ method: "GET" })
  */
 export const getBogPaymentState = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) =>
-    z.object({ externalOrderId: z.string().min(4).max(64) }).parse(data),
-  )
+  .inputValidator((data) => z.object({ externalOrderId: z.string().min(4).max(64) }).parse(data))
   .handler(async ({ data, context }) => {
     const { data: row } = await context.supabase
       .from("payment_orders")
@@ -206,6 +209,7 @@ export const getBogPaymentState = createServerFn({ method: "GET" })
       .maybeSingle();
 
     if (!row) return { state: "pending" as const };
-    const status = row.status === "completed" ? "completed" : row.status === "failed" ? "failed" : "pending";
+    const status =
+      row.status === "completed" ? "completed" : row.status === "failed" ? "failed" : "pending";
     return { state: status as "pending" | "completed" | "failed" };
   });

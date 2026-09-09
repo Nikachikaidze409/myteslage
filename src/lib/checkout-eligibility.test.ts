@@ -142,7 +142,10 @@ describe("monthly -> quarterly proration", () => {
       plan: "quarterly",
       now: Date.parse("2026-03-16T12:00:00Z"),
       subscriptions: [
-        sub({ current_period_start: "2026-03-01T12:00:00Z", current_period_end: "2026-03-31T12:00:00Z" }),
+        sub({
+          current_period_start: "2026-03-01T12:00:00Z",
+          current_period_end: "2026-03-31T12:00:00Z",
+        }),
       ],
     });
     expect(result.status).toBe("upgrade_prorated");
@@ -157,12 +160,16 @@ describe("client cannot influence pricing", () => {
   const functions = src("lib/bog.functions.ts");
 
   it("10. the checkout input accepts only a plan name", () => {
-    expect(functions).toContain('planSchema = z.object({ plan: z.enum(["monthly", "quarterly"]) })');
+    expect(functions).toContain(
+      'planSchema = z.object({ plan: z.enum(["monthly", "quarterly"]) })',
+    );
     expect(functions).not.toMatch(/data\.(credit|creditAmount|discount)/);
   });
 
   it("11. the charged amount comes from server-side eligibility only", () => {
-    expect(functions).toContain("resolveEligibility(context, { provider: \"bog\", plan: data.plan })");
+    expect(functions).toContain(
+      'resolveEligibility(context, { provider: "bog", plan: data.plan })',
+    );
     expect(functions).not.toMatch(/data\.(amount|finalAmount|baseAmount)/);
   });
 });
@@ -175,7 +182,12 @@ describe("callback verification and upgrade period", () => {
       amount: 17.6,
       currency: "GEL",
     };
-    const details = { orderId: "o1", externalOrderId: "x1", statusKey: "completed", currency: "GEL" };
+    const details = {
+      orderId: "o1",
+      externalOrderId: "x1",
+      statusKey: "completed",
+      currency: "GEL",
+    };
     expect(paymentMatchesOrder({ ...details, amount: 21.6 }, order)).toBe(false);
     expect(paymentMatchesOrder({ ...details, amount: 17.6 }, order)).toBe(true);
   });
@@ -205,7 +217,13 @@ describe("race protection", () => {
       provider: "bog",
       plan: "quarterly",
       pendingOrders: [
-        { id: "p1", plan: "quarterly", provider: "bog", created_at: "2026-03-15T11:55:00Z", pricing_reason: "standard" },
+        {
+          id: "p1",
+          plan: "quarterly",
+          provider: "bog",
+          created_at: "2026-03-15T11:55:00Z",
+          pricing_reason: "standard",
+        },
       ],
     });
     expect(result.status).toBe("payment_in_progress");
@@ -226,7 +244,13 @@ describe("race protection", () => {
       provider: "bog",
       plan: "quarterly",
       pendingOrders: [
-        { id: "p1", plan: "quarterly", provider: "bog", created_at: "2026-03-15T10:00:00Z", pricing_reason: "standard" },
+        {
+          id: "p1",
+          plan: "quarterly",
+          provider: "bog",
+          created_at: "2026-03-15T10:00:00Z",
+          pricing_reason: "standard",
+        },
       ],
     });
     expect(result.status).toBe("new_purchase");
@@ -250,7 +274,9 @@ describe("cross-provider safety", () => {
       ...baseInput,
       provider: "bog",
       plan: "quarterly",
-      subscriptions: [sub({ provider: "paddle", environment: "live", product_id: "tesla_map_georgia_quarterly" })],
+      subscriptions: [
+        sub({ provider: "paddle", environment: "live", product_id: "tesla_map_georgia_quarterly" }),
+      ],
     });
     expect(result.status).toBe("provider_switch_blocked");
   });

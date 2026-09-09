@@ -45,8 +45,13 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
         // Idempotent: a repeated callback for an already-settled order is a no-op.
         if (order.status === "completed") return new Response("ok");
 
-        const { fetchBogPaymentDetails, paymentMatchesOrder, computePeriodEnd, BOG_PLANS, isPlanKey } =
-          await import("@/lib/bog.server");
+        const {
+          fetchBogPaymentDetails,
+          paymentMatchesOrder,
+          computePeriodEnd,
+          BOG_PLANS,
+          isPlanKey,
+        } = await import("@/lib/bog.server");
 
         // An unknown plan value must never be silently treated as quarterly.
         if (!isPlanKey(order.plan)) {
@@ -114,7 +119,10 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
 
         // Prorated upgrade: the unused monthly value was already credited in the
         // price, so the old entitlement ends now — its days are never re-added.
-        if (order.pricing_reason === "monthly_to_quarterly_proration" && order.upgrade_from_subscription_id) {
+        if (
+          order.pricing_reason === "monthly_to_quarterly_proration" &&
+          order.upgrade_from_subscription_id
+        ) {
           const { error: closeError } = await supabaseAdmin
             .from("subscriptions")
             .update({ status: "canceled", current_period_end: start.toISOString() })
@@ -125,8 +133,6 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
             return new Response("Unable to close previous subscription", { status: 500 });
           }
         }
-
-
 
         const { error: orderUpdateError } = await supabaseAdmin
           .from("payment_orders")
@@ -141,7 +147,6 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
         }
 
         return new Response("ok");
-
       },
     },
   },

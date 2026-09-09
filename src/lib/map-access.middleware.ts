@@ -20,10 +20,6 @@ import type { Database } from "@/integrations/supabase/types";
 
 const ACTIVE_STATUSES = ["active", "trialing", "past_due", "canceled"];
 
-function paddleEnvironment(): string {
-  const token = import.meta.env["VITE_PAYMENTS_CLIENT_TOKEN"] as string | undefined;
-  return token?.startsWith("test_") ? "sandbox" : "live";
-}
 
 function isNewSupabaseApiKey(value: string): boolean {
   return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
@@ -64,19 +60,22 @@ export async function hasMapAccess(
   });
   if (isAdmin) return true;
 
-  const { data: sub } = await client
+  // Provider-neutral: any subscription row (Paddle or Bank of Georgia) that is
+  // in an active-ish state with an open period grants the same access.
+  const { data: subs } = await client
     .from("subscriptions")
     .select("status, current_period_end")
     .eq("user_id", userId)
-    .eq("environment", paddleEnvironment())
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!sub) return false;
+    .limit(10);
+  if (!subs?.length) return false;
 
-  const periodOpen =
-    !sub.current_period_end || new Date(sub.current_period_end).getTime() > Date.now();
-  return periodOpen && ACTIVE_STATUSES.includes(sub.status);
+  return subs.some((sub) => {
+    const periodOpen =
+      !sub.current_period_end || new Date(sub.current_period_end).getTime() > Date.now();
+    return periodOpen && ACTIVE_STATUSES.includes(sub.status);
+  });
+
 }
 
 async function pairedOwner(code: string): Promise<string | null> {

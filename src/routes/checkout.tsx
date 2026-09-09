@@ -1,37 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getPaddleEnvironment, getPaddlePriceId, initializePaddle } from "@/lib/paddle";
 import { saveProfileDetails } from "@/lib/auth.functions";
+import { createBogCheckout } from "@/lib/bog.functions";
 import { AccountBar } from "@/components/AccountBar";
 
 type Plan = "monthly" | "quarterly";
 
 const PLAN_KEY = "tsl.pending-plan";
-const PLANS: Record<Plan, {
-  label: string;
-  referencePrice: string;
-  period: string;
-  total: string;
-  paddlePriceId: string;
-  chargedPrice: string;
-}> = {
-  monthly: {
-    label: "Monthly",
-    referencePrice: "8 ₾",
-    period: "per month",
-    total: "8 ₾ reference price",
-    paddlePriceId: "tesla_map_georgia_monthly",
-    chargedPrice: "$2.99 USD",
-  },
-  quarterly: {
-    label: "3 months · save 10%",
-    referencePrice: "21.60 ₾",
-    period: "every 3 months",
-    total: "21.60 ₾ reference price",
-    paddlePriceId: "tesla_map_georgia_quarterly",
-    chargedPrice: "$7.99 USD",
-  },
+const PLANS: Record<Plan, { label: string; price: string; period: string }> = {
+  monthly: { label: "Monthly", price: "8 ₾", period: "per month" },
+  quarterly: { label: "3 months · save 10%", price: "21.60 ₾", period: "every 3 months" },
 };
 
 export const Route = createFileRoute("/checkout")({
@@ -39,9 +18,9 @@ export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
       { title: "Secure checkout | Tesla Map Georgia" },
-      { name: "description", content: "Start your Tesla Map Georgia membership with secure Paddle checkout." },
+      { name: "description", content: "Start your Tesla Map Georgia membership with secure Bank of Georgia checkout." },
       { property: "og:title", content: "Secure checkout | Tesla Map Georgia" },
-      { property: "og:description", content: "Start your Tesla Map Georgia membership with secure Paddle checkout." },
+      { property: "og:description", content: "Start your Tesla Map Georgia membership with secure Bank of Georgia checkout." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -60,6 +39,9 @@ function Checkout() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("payment") === "failed") {
+      setError("The payment was not completed. You can try again below.");
+    }
     const stored = window.localStorage.getItem(PLAN_KEY);
     if (stored === "monthly" || stored === "quarterly") setPlan(stored);
 
@@ -96,22 +78,11 @@ function Checkout() {
     setError(null);
     try {
       await saveProfileDetails({ data: { fullName: fullName.trim(), phone: phone.trim() } });
-      await initializePaddle();
-      const paddlePriceId = await getPaddlePriceId(PLANS[plan].paddlePriceId);
-      window.Paddle?.Checkout.open({
-        items: [{ priceId: paddlePriceId, quantity: 1 }],
-        customer: email ? { email } : undefined,
-        customData: { userId },
-        settings: {
-          displayMode: "overlay",
-          successUrl: `${window.location.origin}/checkout/success`,
-          allowLogout: false,
-          variant: "one-page",
-        },
-      });
+      // The browser sends only the plan name — never a price.
+      const result = await createBogCheckout({ data: { plan } });
+      window.location.assign(result.redirectUrl);
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : "Checkout could not open. Please try again.");
-    } finally {
       setBusy(false);
     }
   };
@@ -138,7 +109,7 @@ function Checkout() {
         <AccountBar note="Paying for someone else's email? Sign out first and sign in with the email that should get the membership." />
         <div className="text-[11px] font-bold uppercase tracking-widest text-[#e9b149]">Almost there</div>
         <h1 className="font-display mt-2 text-4xl font-black">Confirm your subscription</h1>
-        <p className="mt-3 text-white/60">Secure checkout powered by Paddle. Paddle is the Merchant of Record for your payment.</p>
+        <p className="mt-3 text-white/60">Secure checkout powered by Bank of Georgia. Card details are entered on the bank's own payment page.</p>
 
         <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.02] p-6">
           <div className="text-[11px] font-bold uppercase tracking-widest text-white/50">Account</div>
@@ -174,19 +145,13 @@ function Checkout() {
             <div>
               <div className="text-[11px] font-bold uppercase tracking-widest text-white/50">Plan</div>
               <div className="mt-1 text-lg">{selectedPlan.label}</div>
-              <div className="text-sm text-white/60">{selectedPlan.referencePrice} {selectedPlan.period}</div>
+              <div className="text-sm text-white/60">{selectedPlan.period}</div>
             </div>
             <div className="text-right">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-white/50">Paddle checkout</div>
-              <div className="font-display mt-1 text-3xl font-black">{selectedPlan.chargedPrice}</div>
-              <div className="text-xs text-white/45">{selectedPlan.total}</div>
+              <div className="text-[11px] font-bold uppercase tracking-widest text-white/50">Total</div>
+              <div className="font-display mt-1 text-3xl font-black">{selectedPlan.price}</div>
             </div>
           </div>
-        </div>
-
-        <div className="mt-6 rounded-2xl border border-[#e9b149]/30 bg-[#e9b149]/[0.06] p-5 text-sm text-[#f4d68b]">
-          <div className="font-semibold text-[#e9b149]">Currency note</div>
-          <p className="mt-1 text-white/70">Paddle does not support GEL settlement, so the secure checkout charges the USD amount shown above. GEL amounts are local reference prices.</p>
         </div>
 
         {error && <div className="mt-5 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200">{error}</div>}
@@ -197,15 +162,14 @@ function Checkout() {
           onClick={() => void startCheckout()}
           className="font-display mt-6 flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] text-base font-bold text-white shadow-[0_10px_40px_-10px_rgba(59,130,246,0.7)] hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
         >
-          {busy ? "Opening secure checkout…" : `Pay ${selectedPlan.chargedPrice} and start membership →`}
+          {busy ? "Opening secure checkout…" : `Pay ${selectedPlan.price} →`}
         </button>
-        <p className="mt-3 text-center text-xs text-white/40">Your membership activates after Paddle confirms payment.</p>
+        <p className="mt-3 text-center text-xs text-white/40">Your membership activates once the bank confirms the payment.</p>
         <div className="mt-7 flex justify-center gap-3 text-xs text-white/40">
           <button type="button" onClick={() => setPlan("monthly")} className={plan === "monthly" ? "text-white" : "hover:text-white"}>Monthly</button>
           <span aria-hidden>·</span>
           <button type="button" onClick={() => setPlan("quarterly")} className={plan === "quarterly" ? "text-white" : "hover:text-white"}>3 months</button>
         </div>
-        <p className="mt-4 text-center text-xs text-white/30">Environment: {getPaddleEnvironment() === "sandbox" ? "test" : "live"}</p>
       </main>
     </div>
   );

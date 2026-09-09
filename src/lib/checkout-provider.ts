@@ -47,3 +47,41 @@ export function checkoutButtonLabel(provider: PaymentProvider, plan: Plan): stri
   const price = providerPrice(provider, plan);
   return provider === "bog" ? `Pay ${price} with Bank of Georgia →` : `Pay ${price} with Paddle →`;
 }
+
+export interface CheckoutDeps {
+  createBogCheckout: (args: { data: { plan: Plan } }) => Promise<{ redirectUrl: string }>;
+  initializePaddle: () => Promise<void>;
+  getPaddlePriceId: (externalId: string) => Promise<string>;
+  openPaddleCheckout: (options: Record<string, unknown>) => void;
+  assign: (url: string) => void;
+  origin: string;
+}
+
+/**
+ * Runs the checkout for the chosen provider. BOG redirects to the bank page;
+ * Paddle opens its overlay. Neither path sends a price from the browser.
+ */
+export async function startProviderCheckout(
+  args: { provider: PaymentProvider; plan: Plan; userId: string; email?: string },
+  deps: CheckoutDeps,
+): Promise<void> {
+  if (args.provider === "bog") {
+    const result = await deps.createBogCheckout({ data: { plan: args.plan } });
+    deps.assign(result.redirectUrl);
+    return;
+  }
+
+  await deps.initializePaddle();
+  const paddlePriceId = await deps.getPaddlePriceId(PADDLE_PRICE_IDS[args.plan]);
+  deps.openPaddleCheckout({
+    items: [{ priceId: paddlePriceId, quantity: 1 }],
+    customer: args.email ? { email: args.email } : undefined,
+    customData: { userId: args.userId },
+    settings: {
+      displayMode: "overlay",
+      successUrl: `${deps.origin}/checkout/success?provider=paddle`,
+      allowLogout: false,
+      variant: "one-page",
+    },
+  });
+}

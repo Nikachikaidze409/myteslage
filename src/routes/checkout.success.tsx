@@ -83,12 +83,23 @@ function CheckoutSuccess() {
       <section className="w-full max-w-lg rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center">
         {state === "active" ? (
           <>
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-400/15 text-2xl text-emerald-300">✓</div>
-            <h1 className="font-display mt-5 text-3xl font-black">Payment successful</h1>
-            <p className="mt-3 text-white/65">Your membership is active. Enjoy the drive.</p>
-            <Link to="/map" className="font-display mt-7 inline-flex h-12 items-center justify-center rounded-xl bg-[#3b82f6] px-6 font-bold text-white hover:brightness-110">
-              Open Tesla Map
-            </Link>
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-400/15 text-3xl text-emerald-300">✓</div>
+            <h1 className="font-display mt-6 text-3xl font-black md:text-4xl">გადახდა წარმატებით შესრულდა</h1>
+            <p className="mt-4 text-lg text-white/70">გსურთ აპლიკაციის გახსნა თუ მთავარ გვერდზე დაბრუნება?</p>
+            <div className="mt-8 flex flex-col gap-3">
+              <Link
+                to="/map"
+                className="font-display inline-flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] px-6 text-lg font-bold text-white hover:brightness-110"
+              >
+                აპლიკაციის გახსნა
+              </Link>
+              <Link
+                to="/"
+                className="font-display inline-flex h-14 w-full items-center justify-center rounded-2xl border border-white/15 px-6 text-lg font-bold text-white hover:bg-white/5"
+              >
+                მთავარ გვერდზე დაბრუნება
+              </Link>
+            </div>
           </>
         ) : state === "failed" ? (
           <>

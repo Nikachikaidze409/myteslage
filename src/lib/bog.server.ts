@@ -141,6 +141,19 @@ export async function getBogAccessToken(): Promise<string> {
  * Order creation.
  * ------------------------------------------------------------------ */
 
+/**
+ * Hosted-checkout payment methods we ask BOG to offer. All values are from the
+ * official create-order documentation. Apple Pay / Google Pay are offered
+ * ALONGSIDE card — never instead of it.
+ */
+export const BOG_PAYMENT_METHODS = [
+  "card",
+  "apple_pay",
+  "google_pay",
+  "bog_p2p",
+  "bog_loyalty",
+] as const;
+
 export interface BogOrderPayload {
   callback_url: string;
   external_order_id: string;
@@ -157,6 +170,9 @@ export interface BogOrderPayload {
     }>;
   };
   redirect_urls: { success: string; fail: string };
+  payment_method?: string[];
+  // external:false = Apple Pay happens on the BANK's hosted page (not ours).
+  config?: { apple_pay: { external: false } };
 }
 
 /**
@@ -184,7 +200,20 @@ export function buildOrderPayload(plan: PlanKey, externalOrderId: string): BogOr
       ],
     },
     redirect_urls: { success: bogSuccessUrl(externalOrderId), fail: BOG_FAIL_URL },
+    payment_method: [...BOG_PAYMENT_METHODS],
+    config: { apple_pay: { external: false } },
   };
+}
+
+/**
+ * Fallback body used only if BOG rejects the explicit method list because one
+ * of the methods is not activated on the merchant. With no payment_method BOG
+ * offers every method the merchant actually has enabled, so checkout keeps
+ * working instead of breaking.
+ */
+export function withoutExplicitPaymentMethods(payload: BogOrderPayload): BogOrderPayload {
+  const { payment_method: _pm, config: _cfg, ...rest } = payload;
+  return rest;
 }
 
 export interface BogCreatedOrder {

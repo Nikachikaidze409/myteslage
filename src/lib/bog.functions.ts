@@ -1,7 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Eligibility } from "@/lib/checkout-eligibility";
+import type { Database } from "@/integrations/supabase/types";
+import type {
+  Eligibility,
+  PendingOrderRecord,
+  SubscriptionRecord,
+} from "@/lib/checkout-eligibility";
 
 /**
  * The browser may only name a plan and a provider. Amounts, credits, currency
@@ -13,10 +19,9 @@ const eligibilitySchema = z.object({
   plan: z.enum(["monthly", "quarterly"]),
 });
 
-
 /** Loads the trusted membership + pending-checkout state and decides. */
 async function resolveEligibility(
-  context: { supabase: any; userId: string },
+  context: { supabase: SupabaseClient<Database>; userId: string },
   input: { provider: "bog" | "paddle"; plan: "monthly" | "quarterly" },
 ): Promise<Eligibility> {
   const { decideCheckoutEligibility, PENDING_CHECKOUT_TTL_MS } = await import(

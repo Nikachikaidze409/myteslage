@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import {
@@ -13,6 +13,8 @@ import {
   parsePaymentDetails,
   paymentMatchesOrder,
   verifyCallbackSignature,
+  resetBogTokenCache,
+  getBogAccessToken,
 } from "./bog.server";
 import { hasMapAccess } from "./map-access.middleware";
 import { anyMembershipValid, isMembershipRowValid } from "./membership";
@@ -437,5 +439,117 @@ describe("provider-aware success-page membership check", () => {
     const page = src("routes/checkout.success.tsx");
     expect(page).toContain('getMembershipState({ data: { provider: "paddle" } })');
     expect(page).toContain("getBogPaymentState({ data: { externalOrderId } })");
+  });
+});
+
+describe("getBogAccessToken safe diagnostics", () => {
+  const ORIGINAL_ID = process.env["BOG_CLIENT_ID"];
+  const ORIGINAL_SECRET = process.env["BOG_CLIENT_SECRET"];
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    resetBogTokenCache();
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    if (ORIGINAL_ID === undefined) delete process.env["BOG_CLIENT_ID"];
+    else process.env["BOG_CLIENT_ID"] = ORIGINAL_ID;
+    if (ORIGINAL_SECRET === undefined) delete process.env["BOG_CLIENT_SECRET"];
+    else process.env["BOG_CLIENT_SECRET"] = ORIGINAL_SECRET;
+    errorSpy.mockRestore();
+  });
+
+  it("trims whitespace from credentials before use", async () => {
+    process.env["BOG_CLIENT_ID"] = "  client_123  ";
+    process.env["BOG_CLIENT_SECRET"] = "  secret_456  ";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ access_token: "tok", expires_in: 300 }),
+      })),
+    );
+    const token = await getBogAccessToken();
+    expect(token).toBe("tok");
+    const call = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string;
+    const auth = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]![1] as RequestInit;
+    const decoded = Buffer.from(
+      (auth.headers as Record<string, string>)["Authorization"].replace("Basic ", ""),
+      "base64",
+    ).toString("utf8");
+    expect(decoded).toBe("client_123:secret_456");
+    expect(call).toBe("https://oauth2.bog.ge/auth/realms/bog/protocol/openid-connect/token");
+    vi.unstubAllGlobals();
+  });
+
+  it("includes the OAuth error in the user-facing message", async () => {
+    process.env["BOG_CLIENT_ID"] = "client_123";
+    process.env["BOG_CLIENT_SECRET"] = "secret_456";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: "invalid_client", error_description: "Bad credentials" }),
+      })),
+    );
+    await expect(getBogAccessToken()).rejects.toThrow(
+      "Bank of Georgia authentication failed (400: invalid_client)",
+    );
+    const logged = errorSpy.mock.calls.map((c: unknown[]) => c.join(" ")).join("\n");
+    expect(logged).toContain("status=400");
+    expect(logged).toContain("error=invalid_client");
+    expect(logged).toContain("error_description=Bad credentials");
+    vi.unstubAllGlobals();
+  });
+
+  it("never logs credentials, the base64 auth, or a token on failure", async () => {
+    process.env["BOG_CLIENT_ID"] = "client_123";
+    process.env["BOG_CLIENT_SECRET"] = "secret_456";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: "invalid_client" }),
+      })),
+    );
+    await expect(getBogAccessToken()).rejects.toThrow();
+    const logged = errorSpy.mock.calls.map((c: unknown[]) => c.join(" ")).join("\n");
+    expect(logged).not.toContain("client_123");
+    expect(logged).not.toContain("secret_456");
+    expect(logged).not.toContain("Basic ");
+    // base64 of client_123:secret_456
+    expect(logged).not.toContain(Buffer.from("client_123:secret_456").toString("base64"));
+    expect(logged).not.toContain("Bearer ");
+    vi.unstubAllGlobals();
+  });
+
+  it("falls back to status-only when the body is not JSON", async () => {
+    process.env["BOG_CLIENT_ID"] = "client_123";
+    process.env["BOG_CLIENT_SECRET"] = "secret_456";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 502,
+        json: async () => {
+          throw new Error("not json");
+        },
+      })),
+    );
+    await expect(getBogAccessToken()).rejects.toThrow(
+      "Bank of Georgia authentication failed (502)",
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("throws when credentials are missing even with surrounding whitespace", async () => {
+    process.env["BOG_CLIENT_ID"] = "   ";
+    process.env["BOG_CLIENT_SECRET"] = "secret_456";
+    await expect(getBogAccessToken()).rejects.toThrow(
+      "Bank of Georgia credentials are not configured",
+    );
   });
 });

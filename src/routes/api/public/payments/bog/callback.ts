@@ -35,7 +35,9 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: order } = await supabaseAdmin
           .from("payment_orders")
-          .select("id, user_id, plan, amount, currency, status, provider_order_id, external_order_id")
+          .select(
+            "id, user_id, plan, amount, currency, status, provider_order_id, external_order_id, pricing_reason, upgrade_from_subscription_id",
+          )
           .eq("provider_order_id", orderId)
           .maybeSingle();
 

@@ -113,7 +113,7 @@ function Checkout() {
     try {
       await saveProfileDetails({ data: { fullName: fullName.trim(), phone: phone.trim() } });
       // The browser sends only the plan name — never a price.
-      await startProviderCheckout(
+      const outcome = await startProviderCheckout(
         { provider, plan, userId, email },
         {
           createBogCheckout: (args) => createBogCheckout(args),
@@ -124,6 +124,12 @@ function Checkout() {
           origin: window.location.origin,
         },
       );
+      // The server refused to charge again (already active / in progress).
+      if (outcome.status !== "new_purchase" && outcome.status !== "upgrade_prorated") {
+        await refreshEligibility();
+        setBusy(false);
+        return;
+      }
       if (provider === "paddle") setBusy(false);
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : "Checkout could not open. Please try again.");

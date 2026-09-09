@@ -28,28 +28,55 @@ export const signupWithCode = createServerFn({ method: "POST" })
       password: data.password,
     });
     if (signErr || !signed.user) {
+      console.error("[signup] auth sign-up failed", signErr?.message);
       throw new Error(signErr?.message ?? "Could not create account.");
+    }
+
+    // When the email is already registered, Supabase returns a decoy user with
+    // a random id that does NOT exist in auth.users (user-enumeration
+    // protection). Writing that id into profiles violates profiles_id_fkey.
+    if ((signed.user.identities?.length ?? 0) === 0) {
+      console.warn("[signup] email already registered; no profile written");
+      throw new Error("An account with this email already exists. Please sign in instead.");
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Authoritative confirmation that the auth.users row really exists before
+    // any profile / payment record is created for this id.
+    const { data: verified, error: verifyErr } = await supabaseAdmin.auth.admin.getUserById(
+      signed.user.id,
+    );
+    if (verifyErr || !verified?.user) {
+      console.error("[signup] could not verify created auth user", verifyErr?.message);
+      throw new Error("Could not create account. Please try again.");
+    }
+    const userId = verified.user.id;
+
     // Keep the existing experience: the driver is signed in straight away.
-    if (!signed.user.email_confirmed_at) {
-      await supabaseAdmin.auth.admin.updateUserById(signed.user.id, { email_confirm: true });
+    if (!verified.user.email_confirmed_at) {
+      const { error: confirmErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        email_confirm: true,
+      });
+      if (confirmErr) console.error("[signup] email confirm failed", confirmErr.message);
     }
 
+    // The AFTER INSERT trigger on auth.users already created the profile row.
+    // This only fills in the details, and stays idempotent on retries.
     const { error: profileErr } = await supabaseAdmin
       .from("profiles")
-      .upsert({
-        id: signed.user.id,
-        email,
-        full_name: data.fullName,
-        phone: data.phone,
-      });
-    if (profileErr) throw new Error(profileErr.message);
+      .upsert(
+        { id: userId, email, full_name: data.fullName, phone: data.phone },
+        { onConflict: "id" },
+      );
+    if (profileErr) {
+      console.error("[signup] profile details save failed", profileErr.message);
+      throw new Error("Account created, but we could not save your details. Please sign in and retry.");
+    }
 
     return { ok: true as const };
   });
+
 
 const ProfileDetailsSchema = z.object({
   fullName: z.string().trim().min(2, "Please enter your full name").max(120),

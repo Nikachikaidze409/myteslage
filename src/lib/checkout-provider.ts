@@ -49,7 +49,9 @@ export function checkoutButtonLabel(provider: PaymentProvider, plan: Plan): stri
 }
 
 export interface CheckoutDeps {
-  createBogCheckout: (args: { data: { plan: Plan } }) => Promise<{ redirectUrl: string }>;
+  createBogCheckout: (args: {
+    data: { plan: Plan };
+  }) => Promise<{ redirectUrl: string | null; status?: string }>;
   initializePaddle: () => Promise<void>;
   getPaddlePriceId: (externalId: string) => Promise<string>;
   openPaddleCheckout: (options: Record<string, unknown>) => void;
@@ -60,15 +62,19 @@ export interface CheckoutDeps {
 /**
  * Runs the checkout for the chosen provider. BOG redirects to the bank page;
  * Paddle opens its overlay. Neither path sends a price from the browser.
+ *
+ * Returns the server's decision: when the server refuses to charge again the
+ * status is returned and no redirect happens.
  */
 export async function startProviderCheckout(
   args: { provider: PaymentProvider; plan: Plan; userId: string; email?: string },
   deps: CheckoutDeps,
-): Promise<void> {
+): Promise<{ status: string }> {
   if (args.provider === "bog") {
     const result = await deps.createBogCheckout({ data: { plan: args.plan } });
+    if (!result.redirectUrl) return { status: result.status ?? "already_active" };
     deps.assign(result.redirectUrl);
-    return;
+    return { status: result.status ?? "new_purchase" };
   }
 
   await deps.initializePaddle();

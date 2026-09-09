@@ -13,7 +13,6 @@ const eligibilitySchema = z.object({
   plan: z.enum(["monthly", "quarterly"]),
 });
 
-type SupabaseCtx = { supabase: { from: (t: string) => never } };
 
 /** Loads the trusted membership + pending-checkout state and decides. */
 async function resolveEligibility(

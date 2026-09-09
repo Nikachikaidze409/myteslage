@@ -153,6 +153,26 @@ function Checkout() {
   const selectedPlan = PLANS[plan];
   const price = providerPrice(provider, plan);
 
+  const formatDate = (iso?: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("ka-GE", { year: "numeric", month: "long", day: "numeric" }) : "";
+
+  const status = eligibility?.status ?? "new_purchase";
+  const blocked = status !== "new_purchase" && status !== "upgrade_prorated";
+  const blockedTitle =
+    status === "higher_plan_active"
+      ? "თქვენ უკვე გაქვთ უფრო ხანგრძლივი აქტიური გამოწერა."
+      : status === "payment_in_progress"
+        ? "გადახდა უკვე მიმდინარეობს."
+        : "თქვენ უკვე გაქვთ აქტიური გამოწერა.";
+  const blockedNote =
+    status === "payment_in_progress"
+      ? "დაასრულეთ დაწყებული გადახდა ან სცადეთ ცოტა ხანში."
+      : status === "higher_plan_active"
+        ? `მიმდინარე გამოწერა მოქმედებს ${formatDate(eligibility?.validUntil)}-მდე.`
+        : `გამოწერა მოქმედებს: ${formatDate(eligibility?.validUntil)}-მდე`;
+
+
+
 
   return (
     <div className="min-h-screen bg-[#050708] text-white">

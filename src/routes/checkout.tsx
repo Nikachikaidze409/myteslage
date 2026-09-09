@@ -3,14 +3,24 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { saveProfileDetails } from "@/lib/auth.functions";
 import { createBogCheckout } from "@/lib/bog.functions";
+import { initializePaddle, getPaddlePriceId } from "@/lib/paddle";
+import {
+  PROVIDER_KEY,
+  PROVIDER_LABELS,
+  PROVIDER_NOTES,
+  checkoutButtonLabel,
+  providerPrice,
+  readStoredProvider,
+  startProviderCheckout,
+  type PaymentProvider,
+  type Plan,
+} from "@/lib/checkout-provider";
 import { AccountBar } from "@/components/AccountBar";
 
-type Plan = "monthly" | "quarterly";
-
 const PLAN_KEY = "tsl.pending-plan";
-const PLANS: Record<Plan, { label: string; price: string; period: string }> = {
-  monthly: { label: "Monthly", price: "8 ₾", period: "per month" },
-  quarterly: { label: "3 months · save 10%", price: "21.60 ₾", period: "every 3 months" },
+const PLANS: Record<Plan, { label: string; period: string }> = {
+  monthly: { label: "Monthly", period: "per month" },
+  quarterly: { label: "3 months · save 10%", period: "every 3 months" },
 };
 
 export const Route = createFileRoute("/checkout")({

@@ -84,8 +84,8 @@ export async function getBogAccessToken(): Promise<string> {
   const now = Date.now();
   if (tokenCache && tokenCache.expiresAt > now) return tokenCache.token;
 
-  const clientId = process.env["BOG_CLIENT_ID"];
-  const clientSecret = process.env["BOG_CLIENT_SECRET"];
+  const clientId = (process.env["BOG_CLIENT_ID"] ?? "").trim();
+  const clientSecret = (process.env["BOG_CLIENT_SECRET"] ?? "").trim();
   if (!clientId || !clientSecret) {
     throw new Error("Bank of Georgia credentials are not configured");
   }
@@ -101,8 +101,32 @@ export async function getBogAccessToken(): Promise<string> {
   });
 
   if (!response.ok) {
-    // Never log the body: it can echo credential material.
-    throw new Error(`Bank of Georgia authentication failed (${response.status})`);
+    // Parse the OAuth error envelope WITHOUT leaking credential material.
+    // Only HTTP status + error + error_description are surfaced; never the
+    // client id, secret, Authorization header, base64 creds, or access token.
+    let error: string | null = null;
+    let errorDescription: string | null = null;
+    try {
+      const body = (await response.json()) as {
+        error?: string;
+        error_description?: string;
+      } | null;
+      error = typeof body?.error === "string" ? body.error : null;
+      errorDescription =
+        typeof body?.error_description === "string" ? body.error_description : null;
+    } catch {
+      // Non-JSON or unparseable body — fall through with nulls.
+    }
+    const reason = error ?? errorDescription;
+    console.error(
+      `[BOG] auth failed status=${response.status}` +
+        (error ? ` error=${error}` : "") +
+        (errorDescription ? ` error_description=${errorDescription}` : ""),
+    );
+    const message = reason
+      ? `Bank of Georgia authentication failed (${response.status}: ${reason})`
+      : `Bank of Georgia authentication failed (${response.status})`;
+    throw new Error(message);
   }
 
   const json = (await response.json()) as { access_token?: string; expires_in?: number };

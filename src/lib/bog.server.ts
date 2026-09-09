@@ -14,7 +14,12 @@ export const BOG_ORDERS_URL = "https://api.bog.ge/payments/v1/ecommerce/orders";
 export const BOG_RECEIPT_URL = "https://api.bog.ge/payments/v1/receipt";
 
 export const BOG_CALLBACK_URL = "https://teslanavi.online/api/public/payments/bog/callback";
-export const BOG_SUCCESS_URL = "https://teslanavi.online/checkout/success?provider=bog";
+export const BOG_SUCCESS_BASE_URL = "https://teslanavi.online/checkout/success";
+
+/** Success redirect tied to the specific, opaque payment attempt. */
+export function bogSuccessUrl(externalOrderId: string): string {
+  return `${BOG_SUCCESS_BASE_URL}?provider=bog&order=${encodeURIComponent(externalOrderId)}`;
+}
 export const BOG_FAIL_URL = "https://teslanavi.online/checkout?payment=failed";
 
 /* ------------------------------------------------------------------ *
@@ -154,7 +159,7 @@ export function buildOrderPayload(plan: PlanKey, externalOrderId: string): BogOr
         },
       ],
     },
-    redirect_urls: { success: BOG_SUCCESS_URL, fail: BOG_FAIL_URL },
+    redirect_urls: { success: bogSuccessUrl(externalOrderId), fail: BOG_FAIL_URL },
   };
 }
 
@@ -251,10 +256,16 @@ export async function fetchBogPaymentDetails(orderId: string): Promise<BogPaymen
 /** Every condition that must hold before a membership is activated. */
 export function paymentMatchesOrder(
   details: BogPaymentDetails,
-  order: { provider_order_id: string | null; amount: number | string; currency: string },
+  order: {
+    provider_order_id: string | null;
+    external_order_id: string | null;
+    amount: number | string;
+    currency: string;
+  },
 ): boolean {
   if (details.statusKey !== "completed") return false;
   if (!details.orderId || details.orderId !== order.provider_order_id) return false;
+  if (!details.externalOrderId || details.externalOrderId !== order.external_order_id) return false;
   if (details.currency !== "GEL" || order.currency !== "GEL") return false;
   if (details.amount == null) return false;
   return Math.abs(details.amount - Number(order.amount)) < 0.005;

@@ -53,8 +53,8 @@ function resolveBrowserKey(): Promise<string | null> {
 }
 
 function authFailureMessage(): string {
-  const host = typeof window !== "undefined" ? window.location.hostname : "this domain";
-  return `Google rejected the Maps key on ${host}. Check the key's restrictions and that billing is enabled in Google Cloud.`;
+  const origin = typeof window !== "undefined" ? window.location.origin : "this domain";
+  return `Google rejected the Maps key on ${origin}. Add ${origin}/* to the browser key's HTTP referrer list in Google Cloud (and check billing).`;
 }
 
 /** Subscribe to Google's auth failure callback (invalid key / domain not allowed). */

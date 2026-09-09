@@ -14,7 +14,6 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RefundRouteImport } from './routes/refund'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as MapdiagRouteImport } from './routes/mapdiag'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as DriveRouteImport } from './routes/drive'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -50,11 +49,6 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MapdiagRoute = MapdiagRouteImport.update({
-  id: '/mapdiag',
-  path: '/mapdiag',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MapRoute = MapRouteImport.update({
@@ -123,7 +117,6 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRouteWithChildren
   '/drive': typeof DriveRoute
   '/map': typeof MapRoute
-  '/mapdiag': typeof MapdiagRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund': typeof RefundRoute
@@ -142,7 +135,6 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRouteWithChildren
   '/drive': typeof DriveRoute
   '/map': typeof MapRoute
-  '/mapdiag': typeof MapdiagRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund': typeof RefundRoute
@@ -162,7 +154,6 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRouteWithChildren
   '/drive': typeof DriveRoute
   '/map': typeof MapRoute
-  '/mapdiag': typeof MapdiagRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund': typeof RefundRoute
@@ -183,7 +174,6 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/drive'
     | '/map'
-    | '/mapdiag'
     | '/pricing'
     | '/privacy'
     | '/refund'
@@ -202,7 +192,6 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/drive'
     | '/map'
-    | '/mapdiag'
     | '/pricing'
     | '/privacy'
     | '/refund'
@@ -221,7 +210,6 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/drive'
     | '/map'
-    | '/mapdiag'
     | '/pricing'
     | '/privacy'
     | '/refund'
@@ -241,7 +229,6 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRouteWithChildren
   DriveRoute: typeof DriveRoute
   MapRoute: typeof MapRoute
-  MapdiagRoute: typeof MapdiagRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   RefundRoute: typeof RefundRoute
@@ -288,13 +275,6 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mapdiag': {
-      id: '/mapdiag'
-      path: '/mapdiag'
-      fullPath: '/mapdiag'
-      preLoaderRoute: typeof MapdiagRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/map': {
@@ -396,7 +376,6 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRouteWithChildren,
   DriveRoute: DriveRoute,
   MapRoute: MapRoute,
-  MapdiagRoute: MapdiagRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   RefundRoute: RefundRoute,

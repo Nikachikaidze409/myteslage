@@ -187,6 +187,12 @@ describe("callback verification and upgrade period", () => {
       externalOrderId: "x1",
       statusKey: "completed",
       currency: "GEL",
+      transferMethodKey: null,
+      paymentOption: null,
+      savedCardType: null,
+      parentOrderId: null,
+      code: null,
+      codeDescription: null,
     };
     expect(paymentMatchesOrder({ ...details, amount: 21.6 }, order)).toBe(false);
     expect(paymentMatchesOrder({ ...details, amount: 17.6 }, order)).toBe(true);

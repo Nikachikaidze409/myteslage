@@ -59,6 +59,48 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_orders: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          external_order_id: string | null
+          id: string
+          plan: string
+          provider: string
+          provider_order_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          external_order_id?: string | null
+          id?: string
+          plan: string
+          provider: string
+          provider_order_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          external_order_id?: string | null
+          id?: string
+          plan?: string
+          provider?: string
+          provider_order_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           active_device_id: string | null
@@ -103,10 +145,14 @@ export type Database = {
           current_period_start: string | null
           environment: string
           id: string
-          paddle_customer_id: string
-          paddle_subscription_id: string
+          last_payment_order_id: string | null
+          paddle_customer_id: string | null
+          paddle_subscription_id: string | null
           price_id: string
           product_id: string
+          provider: string
+          provider_parent_order_id: string | null
+          provider_subscription_id: string | null
           status: string
           updated_at: string | null
           user_id: string
@@ -118,10 +164,14 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
-          paddle_customer_id: string
-          paddle_subscription_id: string
+          last_payment_order_id?: string | null
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
           price_id: string
           product_id: string
+          provider?: string
+          provider_parent_order_id?: string | null
+          provider_subscription_id?: string | null
           status?: string
           updated_at?: string | null
           user_id: string
@@ -133,10 +183,14 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
-          paddle_customer_id?: string
-          paddle_subscription_id?: string
+          last_payment_order_id?: string | null
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
           price_id?: string
           product_id?: string
+          provider?: string
+          provider_parent_order_id?: string | null
+          provider_subscription_id?: string | null
           status?: string
           updated_at?: string | null
           user_id?: string

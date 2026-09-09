@@ -19,7 +19,10 @@ function geoDate(value: string | null | undefined): string {
 }
 
 /** Name shown when profiles.full_name is missing: the email local part. */
-export function displayNameFrom(fullName: string | null | undefined, email: string | null | undefined): string {
+export function displayNameFrom(
+  fullName: string | null | undefined,
+  email: string | null | undefined,
+): string {
   const name = (fullName ?? "").trim();
   if (name) return name;
   const local = (email ?? "").split("@")[0]?.trim();
@@ -50,7 +53,11 @@ export function AccountMenu({ signOutLabel = "Sign out" }: { signOutLabel?: stri
         setFullName(null);
         return;
       }
-      const { data } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", userId)
+        .maybeSingle();
       if (!cancelled) setFullName(data?.full_name ?? null);
     };
 
@@ -131,7 +138,9 @@ export function AccountMenu({ signOutLabel = "Sign out" }: { signOutLabel?: stri
         className="flex max-w-[180px] items-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white hover:bg-white/10"
       >
         <span className="truncate">{name}</span>
-        <span aria-hidden="true" className="text-white/50">▼</span>
+        <span aria-hidden="true" className="text-white/50">
+          ▼
+        </span>
       </button>
       {open && (
         <div

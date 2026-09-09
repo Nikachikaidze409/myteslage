@@ -313,10 +313,7 @@ export async function processDueBogRenewals(
         .eq("id", sub.id);
       summary.charged += 1;
     } catch {
-      await supabaseAdmin
-        .from("payment_orders")
-        .update({ status: "failed" })
-        .eq("id", reserved.id);
+      await supabaseAdmin.from("payment_orders").update({ status: "failed" }).eq("id", reserved.id);
       await markAttemptFailed(sub.id, attemptsBefore, now);
       summary.failed += 1;
     }

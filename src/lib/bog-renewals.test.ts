@@ -278,7 +278,7 @@ describe("scheduler gate", () => {
   it("18. an unresolved pending renewal blocks a second charge", () => {
     const server = src("lib/bog-renewals.server.ts");
     expect(server).toContain('.in("status", ["pending", "completed"])');
-    expect(server).toContain("if (row.status === \"pending\") await reconcilePending(row");
+    expect(server).toContain('if (row.status === "pending") await reconcilePending(row');
   });
 
   it("not yet due is skipped", () => {
@@ -334,7 +334,7 @@ describe("retry policy", () => {
 
   it("21. a later success resets the counters", () => {
     const server = src("lib/bog-renewals.server.ts");
-    expect(server).toContain("renewal_status: \"idle\"");
+    expect(server).toContain('renewal_status: "idle"');
     expect(server).toContain("renewal_attempts: 0");
   });
 });

@@ -8,8 +8,7 @@
 
 import { createVerify } from "crypto";
 
-export const BOG_OAUTH_URL =
-  "https://oauth2.bog.ge/auth/realms/bog/protocol/openid-connect/token";
+export const BOG_OAUTH_URL = "https://oauth2.bog.ge/auth/realms/bog/protocol/openid-connect/token";
 export const BOG_ORDERS_URL = "https://api.bog.ge/payments/v1/ecommerce/orders";
 export const BOG_RECEIPT_URL = "https://api.bog.ge/payments/v1/receipt";
 /** Save-card-for-automatic-payments (PUT /payments/v1/orders/{id}/subscriptions). */
@@ -326,26 +325,24 @@ function str(value: unknown): string | null {
 }
 
 export function parsePaymentDetails(json: unknown): BogPaymentDetails {
-  const d = json as
-    | {
-        order_id?: string;
-        external_order_id?: string;
-        order_status?: { key?: string };
-        payment_detail?: {
-          transfer_method?: { key?: string };
-          payment_option?: string;
-          saved_card_type?: string;
-          parent_order_id?: string;
-          code?: string;
-          code_description?: string;
-        };
-        purchase_units?: {
-          request_amount?: string | number;
-          transfer_amount?: string | number;
-          currency_code?: string;
-        };
-      }
-    | null;
+  const d = json as {
+    order_id?: string;
+    external_order_id?: string;
+    order_status?: { key?: string };
+    payment_detail?: {
+      transfer_method?: { key?: string };
+      payment_option?: string;
+      saved_card_type?: string;
+      parent_order_id?: string;
+      code?: string;
+      code_description?: string;
+    };
+    purchase_units?: {
+      request_amount?: string | number;
+      transfer_amount?: string | number;
+      currency_code?: string;
+    };
+  } | null;
   const raw = d?.purchase_units?.transfer_amount ?? d?.purchase_units?.request_amount;
   const amount = raw == null ? null : Number(raw);
   const pd = d?.payment_detail;
@@ -412,11 +409,9 @@ PwIDAQAB
 export function verifyCallbackSignature(rawBody: string, signature: string | null): boolean {
   if (!signature) return false;
   try {
-    return createVerify("RSA-SHA256").update(rawBody, "utf8").verify(
-      BOG_PUBLIC_KEY,
-      signature,
-      "base64",
-    );
+    return createVerify("RSA-SHA256")
+      .update(rawBody, "utf8")
+      .verify(BOG_PUBLIC_KEY, signature, "base64");
   } catch {
     return false;
   }
@@ -488,21 +483,18 @@ export async function createBogRenewalCharge(
   externalOrderId: string,
 ): Promise<BogCreatedOrder> {
   const token = await getBogAccessToken();
-  const response = await fetch(
-    `${BOG_ORDERS_URL}/${encodeURIComponent(parentOrderId)}/subscribe`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        "Idempotency-Key": crypto.randomUUID(),
-      },
-      body: JSON.stringify({
-        callback_url: BOG_CALLBACK_URL,
-        external_order_id: externalOrderId,
-      }),
+  const response = await fetch(`${BOG_ORDERS_URL}/${encodeURIComponent(parentOrderId)}/subscribe`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": crypto.randomUUID(),
     },
-  );
+    body: JSON.stringify({
+      callback_url: BOG_CALLBACK_URL,
+      external_order_id: externalOrderId,
+    }),
+  });
 
   if (!response.ok) {
     let body = "";
@@ -515,7 +507,10 @@ export async function createBogRenewalCharge(
     throw new Error("The bank refused the automatic payment.");
   }
 
-  const json = (await response.json()) as { id?: string; _links?: { redirect?: { href?: string } } };
+  const json = (await response.json()) as {
+    id?: string;
+    _links?: { redirect?: { href?: string } };
+  };
   if (!json.id) throw new Error("The bank did not return a renewal order id.");
   return { orderId: json.id, redirectUrl: json._links?.redirect?.href ?? "" };
 }
@@ -524,16 +519,13 @@ export async function createBogRenewalCharge(
 export async function deleteBogSavedCard(parentOrderId: string): Promise<boolean> {
   try {
     const token = await getBogAccessToken();
-    const response = await fetch(
-      `${BOG_DELETE_CARD_URL}/${encodeURIComponent(parentOrderId)}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Idempotency-Key": crypto.randomUUID(),
-        },
+    const response = await fetch(`${BOG_DELETE_CARD_URL}/${encodeURIComponent(parentOrderId)}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Idempotency-Key": crypto.randomUUID(),
       },
-    );
+    });
     if (response.status === 202 || response.ok) return true;
     console.error(`[BOG] delete saved card refused with status ${response.status}`);
     return false;
@@ -572,7 +564,8 @@ export function computeRenewalPeriod(
   now: Date,
 ): { start: Date; end: Date } {
   const anchored = anchor ? new Date(anchor) : null;
-  const valid = anchored && Number.isFinite(anchored.getTime()) && anchored.getTime() > now.getTime();
+  const valid =
+    anchored && Number.isFinite(anchored.getTime()) && anchored.getTime() > now.getTime();
   const start = valid ? anchored! : now;
   return { start, end: computePeriodEnd(plan, start) };
 }

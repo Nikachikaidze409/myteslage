@@ -426,12 +426,15 @@ function Nav({
             </button>
           </div>
           {signedIn ? (
-            <Link
-              to="/map"
-              className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
-            >
-              {t.navOpenApp}
-            </Link>
+            <>
+              <Link
+                to="/map"
+                className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
+              >
+                {t.navOpenApp}
+              </Link>
+              <AccountMenu signOutLabel={lang === "ka" ? "გასვლა" : "Sign out"} />
+            </>
           ) : (
             <>
               <Link to="/auth" className="hidden text-sm text-white/70 hover:text-white sm:inline">

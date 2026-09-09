@@ -143,7 +143,41 @@ function Checkout() {
         <AccountBar note="Paying for someone else's email? Sign out first and sign in with the email that should get the membership." />
         <div className="text-[11px] font-bold uppercase tracking-widest text-[#e9b149]">Almost there</div>
         <h1 className="font-display mt-2 text-4xl font-black">Confirm your subscription</h1>
-        <p className="mt-3 text-white/60">Secure checkout powered by Bank of Georgia. Card details are entered on the bank's own payment page.</p>
+        <p className="mt-3 text-white/60">Choose how you would like to pay. Card details are always entered on the payment provider's own secure page.</p>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {(["bog", "paddle"] as const).map((option) => {
+            const active = provider === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={active}
+                onClick={() => chooseProvider(option)}
+                className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors ${
+                  active ? "border-[#3b82f6] bg-[#3b82f6]/10" : "border-white/10 bg-white/[0.02] hover:border-white/25"
+                }`}
+              >
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/5 text-lg" aria-hidden>
+                  {option === "bog" ? "🏦" : "🌐"}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold">{PROVIDER_LABELS[option].label}</span>
+                  <span className="block text-xs text-white/55">{PROVIDER_LABELS[option].sublabel}</span>
+                </span>
+                <span
+                  className={`ml-auto grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[11px] ${
+                    active ? "border-[#3b82f6] bg-[#3b82f6] text-white" : "border-white/25 text-transparent"
+                  }`}
+                  aria-hidden
+                >
+                  ✓
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
 
         <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.02] p-6">
           <div className="text-[11px] font-bold uppercase tracking-widest text-white/50">Account</div>

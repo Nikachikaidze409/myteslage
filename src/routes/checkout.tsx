@@ -271,16 +271,49 @@ function Checkout() {
 
         {error && <div className="mt-5 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200">{error}</div>}
 
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void startCheckout()}
-          className="font-display mt-6 flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] text-base font-bold text-white shadow-[0_10px_40px_-10px_rgba(59,130,246,0.7)] hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
-        >
-          {busy ? "Opening secure checkout…" : checkoutButtonLabel(provider, plan)}
-        </button>
-        <p className="mt-3 text-center text-xs text-white/40">{PROVIDER_NOTES[provider]}</p>
-        <p className="mt-1 text-center text-xs text-white/40">Your membership activates once the payment is confirmed.</p>
+        {status === "upgrade_prorated" && (
+          <div className="mt-6 rounded-3xl border border-[#e9b149]/40 bg-[#e9b149]/10 p-6">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-[#e9b149]">Upgrade</div>
+            <dl className="mt-3 space-y-2 text-sm">
+              <div className="flex justify-between"><dt className="text-white/60">Current plan</dt><dd>1 month</dd></div>
+              <div className="flex justify-between"><dt className="text-white/60">Remaining value credit</dt><dd>−{(eligibility?.creditAmount ?? 0).toFixed(2)} ₾</dd></div>
+              <div className="flex justify-between"><dt className="text-white/60">3-month plan</dt><dd>{(eligibility?.baseAmount ?? 21.6).toFixed(2)} ₾</dd></div>
+              <div className="flex justify-between border-t border-white/10 pt-2 text-base font-bold"><dt>Amount to pay now</dt><dd>{(eligibility?.finalAmount ?? 0).toFixed(2)} ₾</dd></div>
+            </dl>
+          </div>
+        )}
+
+        {blocked ? (
+          <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-center">
+            <div className="text-lg font-bold">{blockedTitle}</div>
+            <p className="mt-2 text-sm text-white/60">{blockedNote}</p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Link to="/map" className="font-display flex h-12 items-center justify-center rounded-2xl bg-[#3b82f6] px-6 text-sm font-bold text-white hover:brightness-110">
+                აპლიკაციის გახსნა
+              </Link>
+              <Link to="/" className="flex h-12 items-center justify-center rounded-2xl border border-white/15 px-6 text-sm font-bold text-white/80 hover:text-white">
+                მთავარ გვერდზე დაბრუნება
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={busy || checkingEligibility}
+              onClick={() => void startCheckout()}
+              className="font-display mt-6 flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] text-base font-bold text-white shadow-[0_10px_40px_-10px_rgba(59,130,246,0.7)] hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
+            >
+              {busy
+                ? "Opening secure checkout…"
+                : status === "upgrade_prorated"
+                  ? `Upgrade for ${(eligibility?.finalAmount ?? 0).toFixed(2)} ₾ →`
+                  : checkoutButtonLabel(provider, plan)}
+            </button>
+            <p className="mt-3 text-center text-xs text-white/40">{PROVIDER_NOTES[provider]}</p>
+            <p className="mt-1 text-center text-xs text-white/40">Your membership activates once the payment is confirmed.</p>
+          </>
+        )}
         <div className="mt-7 flex justify-center gap-3 text-xs text-white/40">
           <button type="button" onClick={() => setPlan("monthly")} className={plan === "monthly" ? "text-white" : "hover:text-white"}>Monthly</button>
           <span aria-hidden>·</span>

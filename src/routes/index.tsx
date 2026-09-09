@@ -215,6 +215,8 @@ function Landing() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setSignedIn(!!session));
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   const t = T[lang];

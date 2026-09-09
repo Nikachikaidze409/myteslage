@@ -497,7 +497,7 @@ describe("getBogAccessToken safe diagnostics", () => {
     await expect(getBogAccessToken()).rejects.toThrow(
       "Bank of Georgia authentication failed (400: invalid_client)",
     );
-    const logged = errorSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    const logged = errorSpy.mock.calls.map((c: unknown[]) => c.join(" ")).join("\n");
     expect(logged).toContain("status=400");
     expect(logged).toContain("error=invalid_client");
     expect(logged).toContain("error_description=Bad credentials");
@@ -516,7 +516,7 @@ describe("getBogAccessToken safe diagnostics", () => {
       })),
     );
     await expect(getBogAccessToken()).rejects.toThrow();
-    const logged = errorSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    const logged = errorSpy.mock.calls.map((c: unknown[]) => c.join(" ")).join("\n");
     expect(logged).not.toContain("client_123");
     expect(logged).not.toContain("secret_456");
     expect(logged).not.toContain("Basic ");

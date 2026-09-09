@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { claimDevice, verifyDevice } from "@/lib/auth.functions";
 import { getOrCreateDeviceId, getDeviceLabel } from "@/lib/device";
 import { getPaddleEnvironment } from "@/lib/paddle";
+import { anyMembershipValid } from "@/lib/membership";
 
 interface Props {
   children: ReactNode;
@@ -37,17 +38,15 @@ export function AuthGate({ children }: Props) {
         .maybeSingle();
       const isAdmin = !!adminRole;
       if (!isAdmin) {
-        const { data: subscription, error: subscriptionError } = await supabase
+        const { data: subscriptions, error: subscriptionError } = await supabase
           .from("subscriptions")
-          .select("status, current_period_end")
+          .select("status, current_period_end, provider, environment")
           .eq("user_id", userId)
-          .eq("environment", getPaddleEnvironment())
           .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const periodIsOpen = !subscription?.current_period_end || new Date(subscription.current_period_end).getTime() > Date.now();
-        const hasAccess = !subscriptionError && !!subscription && periodIsOpen &&
-          ["active", "trialing", "past_due", "canceled"].includes(subscription.status);
+          .limit(10);
+        const hasAccess =
+          !subscriptionError &&
+          anyMembershipValid(subscriptions, { paddleEnvironment: getPaddleEnvironment() });
         if (!hasAccess) {
           try {
             window.sessionStorage.setItem("tsl.no-membership", data.session.user.email ?? "1");

@@ -61,3 +61,26 @@ export const getMembershipState = createServerFn({ method: "GET" })
 
     return { active: open, provider: data?.provider ?? null };
   });
+
+/**
+ * Verified state of ONE specific payment attempt. An unrelated (Paddle or
+ * older BOG) membership can never make this attempt look successful.
+ */
+export const getBogPaymentState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z.object({ externalOrderId: z.string().min(4).max(64) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row } = await context.supabase
+      .from("payment_orders")
+      .select("status")
+      .eq("user_id", context.userId)
+      .eq("provider", "bog")
+      .eq("external_order_id", data.externalOrderId)
+      .maybeSingle();
+
+    if (!row) return { state: "pending" as const };
+    const status = row.status === "completed" ? "completed" : row.status === "failed" ? "failed" : "pending";
+    return { state: status as "pending" | "completed" | "failed" };
+  });

@@ -4,6 +4,8 @@ import { join } from "path";
 import {
   BOG_CALLBACK_URL,
   BOG_PLANS,
+  bogSuccessUrl,
+  isPlanKey,
   bogAmount,
   buildOrderPayload,
   computePeriodEnd,
@@ -13,6 +15,7 @@ import {
   verifyCallbackSignature,
 } from "./bog.server";
 import { hasMapAccess } from "./map-access.middleware";
+import { anyMembershipValid, isMembershipRowValid } from "./membership";
 
 const src = (p: string) => readFileSync(join(process.cwd(), "src", p), "utf8");
 
@@ -124,9 +127,10 @@ describe("callback signature", () => {
 });
 
 describe("payment verification", () => {
-  const order = { provider_order_id: "ord_1", amount: 8, currency: "GEL" };
+  const order = { provider_order_id: "ord_1", external_order_id: "tsn_1", amount: 8, currency: "GEL" };
   const good = parsePaymentDetails({
     order_id: "ord_1",
+    external_order_id: "tsn_1",
     order_status: { key: "completed" },
     purchase_units: { transfer_amount: "8.00", currency_code: "GEL" },
   });
@@ -138,6 +142,7 @@ describe("payment verification", () => {
   it("rejects a wrong amount", () => {
     const d = parsePaymentDetails({
       order_id: "ord_1",
+      external_order_id: "tsn_1",
       order_status: { key: "completed" },
       purchase_units: { transfer_amount: "1.00", currency_code: "GEL" },
     });
@@ -147,6 +152,7 @@ describe("payment verification", () => {
   it("rejects a wrong currency", () => {
     const d = parsePaymentDetails({
       order_id: "ord_1",
+      external_order_id: "tsn_1",
       order_status: { key: "completed" },
       purchase_units: { transfer_amount: "8.00", currency_code: "USD" },
     });
@@ -156,6 +162,7 @@ describe("payment verification", () => {
   it("rejects a mismatched order id", () => {
     const d = parsePaymentDetails({
       order_id: "other",
+      external_order_id: "tsn_1",
       order_status: { key: "completed" },
       purchase_units: { transfer_amount: "8.00", currency_code: "GEL" },
     });
@@ -165,6 +172,7 @@ describe("payment verification", () => {
   it("rejects a non-completed status", () => {
     const d = parsePaymentDetails({
       order_id: "ord_1",
+      external_order_id: "tsn_1",
       order_status: { key: "rejected" },
       purchase_units: { transfer_amount: "8.00", currency_code: "GEL" },
     });
@@ -173,7 +181,7 @@ describe("payment verification", () => {
 
   it("the redirect page never activates a membership on its own", () => {
     const page = src("routes/checkout.success.tsx");
-    expect(page).toContain("getMembershipState");
+    expect(page).toContain("getBogPaymentState");
     expect(page).not.toContain("subscriptions");
     expect(page).not.toContain("insert");
   });
@@ -190,7 +198,14 @@ describe("payment verification", () => {
 describe("provider-neutral map access", () => {
   const future = new Date(Date.now() + 86_400_000).toISOString();
 
-  function client(rows: Array<{ status: string; current_period_end: string | null }>) {
+  function client(
+    rows: Array<{
+      status: string;
+      current_period_end: string | null;
+      provider?: string;
+      environment?: string;
+    }>,
+  ) {
     return {
       rpc: async () => ({ data: false }),
       from: () => ({
@@ -206,23 +221,158 @@ describe("provider-neutral map access", () => {
 
   it("an existing Paddle subscription still grants access", async () => {
     await expect(
-      hasMapAccess(client([{ status: "active", current_period_end: future }]), "u1"),
+      hasMapAccess(client([{ status: "active", current_period_end: future, provider: "paddle", environment: "live" }]), "u1"),
     ).resolves.toBe(true);
   });
 
   it("a new Bank of Georgia subscription grants access", async () => {
     await expect(
-      hasMapAccess(client([{ status: "active", current_period_end: future }]), "u2"),
+      hasMapAccess(client([{ status: "active", current_period_end: future, provider: "bog", environment: "live" }]), "u2"),
     ).resolves.toBe(true);
   });
 
   it("an expired subscription does not grant access", async () => {
     await expect(
-      hasMapAccess(client([{ status: "active", current_period_end: "2020-01-01T00:00:00Z" }]), "u3"),
+      hasMapAccess(client([{ status: "active", current_period_end: "2020-01-01T00:00:00Z", provider: "bog", environment: "live" }]), "u3"),
     ).resolves.toBe(false);
   });
 
   it("no subscription does not grant access", async () => {
     await expect(hasMapAccess(client([]), "u4")).resolves.toBe(false);
+  });
+});
+
+
+describe("pre-publish hardening", () => {
+  const future = new Date(Date.now() + 86_400_000).toISOString();
+  const past = "2020-01-01T00:00:00Z";
+  const live = { paddleEnvironment: "live" as const };
+
+  it("the success redirect carries the opaque external order id", () => {
+    expect(bogSuccessUrl("tsn_abc")).toBe(
+      "https://teslanavi.online/checkout/success?provider=bog&order=tsn_abc",
+    );
+    expect(buildOrderPayload("monthly", "tsn_abc").redirect_urls.success).toContain("order=tsn_abc");
+  });
+
+  it("an active Paddle subscription does not mark a pending BOG order as paid", () => {
+    const page = src("routes/checkout.success.tsx");
+    // The BOG branch is decided only by the payment_orders row for this attempt.
+    expect(page).toContain('getBogPaymentState({ data: { externalOrderId } })');
+    expect(page).toContain('result.state === "completed"');
+    const fn = src("lib/bog.functions.ts");
+    expect(fn).toContain('.from("payment_orders")');
+    expect(fn).toContain('.eq("provider", "bog")');
+  });
+
+  it("a completed matching BOG payment reports success", () => {
+    const details = parsePaymentDetails({
+      order_id: "ord_9",
+      external_order_id: "tsn_9",
+      order_status: { key: "completed" },
+      purchase_units: { transfer_amount: "21.60", currency_code: "GEL" },
+    });
+    expect(
+      paymentMatchesOrder(details, {
+        provider_order_id: "ord_9",
+        external_order_id: "tsn_9",
+        amount: 21.6,
+        currency: "GEL",
+      }),
+    ).toBe(true);
+  });
+
+  it("a user cannot inspect another user's payment order", () => {
+    const fn = src("lib/bog.functions.ts");
+    expect(fn).toContain("getBogPaymentState");
+    expect(fn).toContain('.eq("user_id", context.userId)');
+    expect(fn).toContain('.eq("external_order_id", data.externalOrderId)');
+    // Only a coarse state leaves the server.
+    expect(fn).toContain('state: status as "pending" | "completed" | "failed"');
+  });
+
+  it("a live BOG membership grants access", () => {
+    expect(
+      isMembershipRowValid(
+        { status: "active", current_period_end: future, provider: "bog", environment: "live" },
+        live,
+      ),
+    ).toBe(true);
+  });
+
+  it("a sandbox BOG membership never grants access", () => {
+    expect(
+      isMembershipRowValid(
+        { status: "active", current_period_end: future, provider: "bog", environment: "sandbox" },
+        live,
+      ),
+    ).toBe(false);
+  });
+
+  it("a sandbox Paddle membership does not grant production access", () => {
+    expect(
+      isMembershipRowValid(
+        { status: "active", current_period_end: future, provider: "paddle", environment: "sandbox" },
+        live,
+      ),
+    ).toBe(false);
+    expect(
+      isMembershipRowValid(
+        { status: "active", current_period_end: future, provider: "paddle", environment: "sandbox" },
+        { paddleEnvironment: "sandbox" },
+      ),
+    ).toBe(true);
+  });
+
+  it("a canceled subscription with no period end does not grant indefinite access", () => {
+    expect(
+      isMembershipRowValid(
+        { status: "canceled", current_period_end: null, provider: "bog", environment: "live" },
+        live,
+      ),
+    ).toBe(false);
+    expect(
+      isMembershipRowValid(
+        { status: "canceled", current_period_end: future, provider: "bog", environment: "live" },
+        live,
+      ),
+    ).toBe(true);
+    expect(
+      isMembershipRowValid(
+        { status: "canceled", current_period_end: past, provider: "bog", environment: "live" },
+        live,
+      ),
+    ).toBe(false);
+  });
+
+  it("the UI gate and the server gate share one rule", () => {
+    expect(src("components/AuthGate.tsx")).toContain("anyMembershipValid");
+    expect(src("lib/map-access.middleware.ts")).toContain("anyMembershipValid");
+    expect(anyMembershipValid([], live)).toBe(false);
+  });
+
+  it("an unknown plan cannot activate a quarterly membership", () => {
+    expect(isPlanKey("lifetime")).toBe(false);
+    const route = src("routes/api/public/payments/bog/callback.ts");
+    expect(route).toContain("if (!isPlanKey(order.plan))");
+    expect(route).not.toContain('order.plan === "monthly" ? "monthly" : "quarterly"');
+  });
+
+  it("a mismatched external order id cannot activate a membership", () => {
+    const details = parsePaymentDetails({
+      order_id: "ord_9",
+      external_order_id: "tsn_other",
+      order_status: { key: "completed" },
+      purchase_units: { transfer_amount: "8.00", currency_code: "GEL" },
+    });
+    expect(
+      paymentMatchesOrder(details, {
+        provider_order_id: "ord_9",
+        external_order_id: "tsn_9",
+        amount: 8,
+        currency: "GEL",
+      }),
+    ).toBe(false);
+    expect(src("routes/api/public/payments/bog/callback.ts")).toContain("external_order_id");
   });
 });

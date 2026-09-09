@@ -2,6 +2,7 @@ import { createMiddleware } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { anyMembershipValid, resolvePaddleEnvironment } from "@/lib/membership";
 
 /**
  * Server-side gate for every Google-billed endpoint (Routes, Places, Roads,
@@ -18,7 +19,6 @@ import type { Database } from "@/integrations/supabase/types";
  * endpoints directly.
  */
 
-const ACTIVE_STATUSES = ["active", "trialing", "past_due", "canceled"];
 
 
 function isNewSupabaseApiKey(value: string): boolean {
@@ -60,22 +60,20 @@ export async function hasMapAccess(
   });
   if (isAdmin) return true;
 
-  // Provider-neutral: any subscription row (Paddle or Bank of Georgia) that is
-  // in an active-ish state with an open period grants the same access.
+  // One shared membership rule (same as the UI gate): live BOG rows, or
+  // Paddle rows from the environment this deployment actually runs in.
   const { data: subs } = await client
     .from("subscriptions")
-    .select("status, current_period_end")
+    .select("status, current_period_end, provider, environment")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(10);
-  if (!subs?.length) return false;
 
-  return subs.some((sub) => {
-    const periodOpen =
-      !sub.current_period_end || new Date(sub.current_period_end).getTime() > Date.now();
-    return periodOpen && ACTIVE_STATUSES.includes(sub.status);
+  return anyMembershipValid(subs, {
+    paddleEnvironment: resolvePaddleEnvironment(
+      process.env["VITE_PAYMENTS_CLIENT_TOKEN"] ?? process.env["PAYMENTS_CLIENT_TOKEN"],
+    ),
   });
-
 }
 
 async function pairedOwner(code: string): Promise<string | null> {

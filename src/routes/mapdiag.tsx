@@ -5,7 +5,7 @@ const MapView = lazy(() =>
   import("@/components/MapView").then((m) => ({ default: m.MapView })),
 );
 
-export const Route = createFileRoute("/__mapdiag")({
+export const Route = createFileRoute("/mapdiag")({
   component: MapDiag,
 });
 

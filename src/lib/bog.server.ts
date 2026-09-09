@@ -235,7 +235,9 @@ export function extractCreatedOrder(json: unknown): BogCreatedOrder | null {
   return { orderId, redirectUrl };
 }
 
-export async function createBogOrder(payload: BogOrderPayload): Promise<BogCreatedOrder> {
+async function postOrder(
+  payload: BogOrderPayload,
+): Promise<{ ok: true; created: BogCreatedOrder } | { ok: false; status: number; body: string }> {
   const token = await getBogAccessToken();
   const response = await fetch(BOG_ORDERS_URL, {
     method: "POST",
@@ -249,13 +251,42 @@ export async function createBogOrder(payload: BogOrderPayload): Promise<BogCreat
   });
 
   if (!response.ok) {
-    console.error(`[BOG] create order failed with status ${response.status}`);
-    throw new Error("Could not start the bank checkout. Please try again.");
+    let body = "";
+    try {
+      body = (await response.text()).slice(0, 500);
+    } catch {
+      /* ignore */
+    }
+    return { ok: false, status: response.status, body };
   }
 
   const created = extractCreatedOrder(await response.json());
   if (!created) throw new Error("The bank did not return a checkout link.");
-  return created;
+  return { ok: true, created };
+}
+
+export async function createBogOrder(payload: BogOrderPayload): Promise<BogCreatedOrder> {
+  const first = await postOrder(payload);
+  if (first.ok) return first.created;
+
+  console.error(
+    `[BOG] create order failed with status ${first.status} (explicit payment methods: ${(payload.payment_method ?? []).join(",")}) body=${first.body}`,
+  );
+
+  // A rejected method list must never break a working checkout: retry once
+  // letting BOG offer every method actually activated on the merchant.
+  if (payload.payment_method) {
+    const retry = await postOrder(withoutExplicitPaymentMethods(payload));
+    if (retry.ok) {
+      console.error(
+        "[BOG] checkout created WITHOUT explicit payment_method — one of the requested methods is not activated on the merchant (see previous log line for the bank's message).",
+      );
+      return retry.created;
+    }
+    console.error(`[BOG] create order retry failed with status ${retry.status} body=${retry.body}`);
+  }
+
+  throw new Error("Could not start the bank checkout. Please try again.");
 }
 
 /* ------------------------------------------------------------------ *

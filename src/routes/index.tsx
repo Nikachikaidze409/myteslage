@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AccountMenu } from "@/components/AccountMenu";
 import heroImg from "@/assets/hero-dashboard.jpg";
 import pairingImg from "@/assets/feature-pairing.jpg";
 

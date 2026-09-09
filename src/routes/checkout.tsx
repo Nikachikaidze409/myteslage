@@ -217,7 +217,7 @@ function Checkout() {
             </div>
             <div className="text-right">
               <div className="text-[11px] font-bold uppercase tracking-widest text-white/50">Total</div>
-              <div className="font-display mt-1 text-3xl font-black">{selectedPlan.price}</div>
+              <div className="font-display mt-1 text-3xl font-black">{price}</div>
             </div>
           </div>
         </div>
@@ -230,9 +230,10 @@ function Checkout() {
           onClick={() => void startCheckout()}
           className="font-display mt-6 flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] text-base font-bold text-white shadow-[0_10px_40px_-10px_rgba(59,130,246,0.7)] hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
         >
-          {busy ? "Opening secure checkout…" : `Pay ${selectedPlan.price} →`}
+          {busy ? "Opening secure checkout…" : checkoutButtonLabel(provider, plan)}
         </button>
-        <p className="mt-3 text-center text-xs text-white/40">Your membership activates once the bank confirms the payment.</p>
+        <p className="mt-3 text-center text-xs text-white/40">{PROVIDER_NOTES[provider]}</p>
+        <p className="mt-1 text-center text-xs text-white/40">Your membership activates once the payment is confirmed.</p>
         <div className="mt-7 flex justify-center gap-3 text-xs text-white/40">
           <button type="button" onClick={() => setPlan("monthly")} className={plan === "monthly" ? "text-white" : "hover:text-white"}>Monthly</button>
           <span aria-hidden>·</span>

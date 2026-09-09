@@ -28,11 +28,16 @@ function CheckoutSuccess() {
 
     const params = new URLSearchParams(window.location.search);
     const externalOrderId = params.get("order");
+    const provider = params.get("provider");
 
     const poll = async () => {
       try {
-        if (externalOrderId) {
+        if (provider === "bog" || externalOrderId) {
           // Tied to THIS payment attempt: an older membership cannot mark it paid.
+          if (!externalOrderId) {
+            setState("failed");
+            return;
+          }
           const result = await getBogPaymentState({ data: { externalOrderId } });
           if (cancelled) return;
           if (result.state === "completed") {
@@ -44,6 +49,7 @@ function CheckoutSuccess() {
             return;
           }
         } else {
+          // Paddle (or legacy) return: the verified subscription state decides.
           const result = await getMembershipState();
           if (cancelled) return;
           if (result.active) {

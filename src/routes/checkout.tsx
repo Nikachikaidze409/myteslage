@@ -55,6 +55,8 @@ function Checkout() {
     }
     const stored = window.localStorage.getItem(PLAN_KEY);
     if (stored === "monthly" || stored === "quarterly") setPlan(stored);
+    setProvider(readStoredProvider(window.localStorage.getItem(PROVIDER_KEY)));
+
 
     supabase.auth.getSession().then(async ({ data }) => {
       const session = data.session;

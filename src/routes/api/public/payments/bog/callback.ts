@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: order } = await supabaseAdmin
           .from("payment_orders")
-          .select("id, user_id, plan, amount, currency, status, provider_order_id")
+          .select("id, user_id, plan, amount, currency, status, provider_order_id, external_order_id")
           .eq("provider_order_id", orderId)
           .maybeSingle();
 
@@ -43,8 +43,14 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
         // Idempotent: a repeated callback for an already-settled order is a no-op.
         if (order.status === "completed") return new Response("ok");
 
-        const { fetchBogPaymentDetails, paymentMatchesOrder, computePeriodEnd, BOG_PLANS } =
+        const { fetchBogPaymentDetails, paymentMatchesOrder, computePeriodEnd, BOG_PLANS, isPlanKey } =
           await import("@/lib/bog.server");
+
+        // An unknown plan value must never be silently treated as quarterly.
+        if (!isPlanKey(order.plan)) {
+          console.error("[BOG] refusing to activate: unknown plan on payment order");
+          return new Response("ok");
+        }
 
         const details = await fetchBogPaymentDetails(orderId);
         if (!paymentMatchesOrder(details, order)) {
@@ -58,7 +64,7 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
           return new Response("ok");
         }
 
-        const plan = order.plan === "monthly" ? "monthly" : "quarterly";
+        const plan = order.plan;
         const start = new Date();
         const planConfig = BOG_PLANS[plan];
 

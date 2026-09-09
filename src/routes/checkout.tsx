@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { saveProfileDetails } from "@/lib/auth.functions";
-import { createBogCheckout } from "@/lib/bog.functions";
+import { createBogCheckout, getCheckoutEligibility } from "@/lib/bog.functions";
+import type { Eligibility } from "@/lib/checkout-eligibility";
 import { initializePaddle, getPaddlePriceId } from "@/lib/paddle";
 import {
   PROVIDER_KEY,
@@ -48,6 +49,26 @@ function Checkout() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [eligibility, setEligibility] = useState<Eligibility | null>(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(true);
+
+  const refreshEligibility = useCallback(async () => {
+    setCheckingEligibility(true);
+    try {
+      const result = await getCheckoutEligibility({ data: { provider, plan } });
+      setEligibility(result as Eligibility);
+    } catch {
+      setEligibility(null);
+    } finally {
+      setCheckingEligibility(false);
+    }
+  }, [provider, plan]);
+
+  useEffect(() => {
+    if (!userId) return;
+    void refreshEligibility();
+  }, [userId, refreshEligibility]);
+
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("payment") === "failed") {
@@ -92,7 +113,7 @@ function Checkout() {
     try {
       await saveProfileDetails({ data: { fullName: fullName.trim(), phone: phone.trim() } });
       // The browser sends only the plan name — never a price.
-      await startProviderCheckout(
+      const outcome = await startProviderCheckout(
         { provider, plan, userId, email },
         {
           createBogCheckout: (args) => createBogCheckout(args),
@@ -103,6 +124,12 @@ function Checkout() {
           origin: window.location.origin,
         },
       );
+      // The server refused to charge again (already active / in progress).
+      if (outcome.status !== "new_purchase" && outcome.status !== "upgrade_prorated") {
+        await refreshEligibility();
+        setBusy(false);
+        return;
+      }
       if (provider === "paddle") setBusy(false);
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : "Checkout could not open. Please try again.");
@@ -125,6 +152,26 @@ function Checkout() {
 
   const selectedPlan = PLANS[plan];
   const price = providerPrice(provider, plan);
+
+  const formatDate = (iso?: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("ka-GE", { year: "numeric", month: "long", day: "numeric" }) : "";
+
+  const status = eligibility?.status ?? "new_purchase";
+  const blocked = status !== "new_purchase" && status !== "upgrade_prorated";
+  const blockedTitle =
+    status === "higher_plan_active"
+      ? "თქვენ უკვე გაქვთ უფრო ხანგრძლივი აქტიური გამოწერა."
+      : status === "payment_in_progress"
+        ? "გადახდა უკვე მიმდინარეობს."
+        : "თქვენ უკვე გაქვთ აქტიური გამოწერა.";
+  const blockedNote =
+    status === "payment_in_progress"
+      ? "დაასრულეთ დაწყებული გადახდა ან სცადეთ ცოტა ხანში."
+      : status === "higher_plan_active"
+        ? `მიმდინარე გამოწერა მოქმედებს ${formatDate(eligibility?.validUntil)}-მდე.`
+        : `გამოწერა მოქმედებს: ${formatDate(eligibility?.validUntil)}-მდე`;
+
+
 
 
   return (
@@ -224,16 +271,49 @@ function Checkout() {
 
         {error && <div className="mt-5 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200">{error}</div>}
 
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void startCheckout()}
-          className="font-display mt-6 flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] text-base font-bold text-white shadow-[0_10px_40px_-10px_rgba(59,130,246,0.7)] hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
-        >
-          {busy ? "Opening secure checkout…" : checkoutButtonLabel(provider, plan)}
-        </button>
-        <p className="mt-3 text-center text-xs text-white/40">{PROVIDER_NOTES[provider]}</p>
-        <p className="mt-1 text-center text-xs text-white/40">Your membership activates once the payment is confirmed.</p>
+        {status === "upgrade_prorated" && (
+          <div className="mt-6 rounded-3xl border border-[#e9b149]/40 bg-[#e9b149]/10 p-6">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-[#e9b149]">Upgrade</div>
+            <dl className="mt-3 space-y-2 text-sm">
+              <div className="flex justify-between"><dt className="text-white/60">Current plan</dt><dd>1 month</dd></div>
+              <div className="flex justify-between"><dt className="text-white/60">Remaining value credit</dt><dd>−{(eligibility?.creditAmount ?? 0).toFixed(2)} ₾</dd></div>
+              <div className="flex justify-between"><dt className="text-white/60">3-month plan</dt><dd>{(eligibility?.baseAmount ?? 21.6).toFixed(2)} ₾</dd></div>
+              <div className="flex justify-between border-t border-white/10 pt-2 text-base font-bold"><dt>Amount to pay now</dt><dd>{(eligibility?.finalAmount ?? 0).toFixed(2)} ₾</dd></div>
+            </dl>
+          </div>
+        )}
+
+        {blocked ? (
+          <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-center">
+            <div className="text-lg font-bold">{blockedTitle}</div>
+            <p className="mt-2 text-sm text-white/60">{blockedNote}</p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Link to="/map" className="font-display flex h-12 items-center justify-center rounded-2xl bg-[#3b82f6] px-6 text-sm font-bold text-white hover:brightness-110">
+                აპლიკაციის გახსნა
+              </Link>
+              <Link to="/" className="flex h-12 items-center justify-center rounded-2xl border border-white/15 px-6 text-sm font-bold text-white/80 hover:text-white">
+                მთავარ გვერდზე დაბრუნება
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={busy || checkingEligibility}
+              onClick={() => void startCheckout()}
+              className="font-display mt-6 flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] text-base font-bold text-white shadow-[0_10px_40px_-10px_rgba(59,130,246,0.7)] hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
+            >
+              {busy
+                ? "Opening secure checkout…"
+                : status === "upgrade_prorated"
+                  ? `Upgrade for ${(eligibility?.finalAmount ?? 0).toFixed(2)} ₾ →`
+                  : checkoutButtonLabel(provider, plan)}
+            </button>
+            <p className="mt-3 text-center text-xs text-white/40">{PROVIDER_NOTES[provider]}</p>
+            <p className="mt-1 text-center text-xs text-white/40">Your membership activates once the payment is confirmed.</p>
+          </>
+        )}
         <div className="mt-7 flex justify-center gap-3 text-xs text-white/40">
           <button type="button" onClick={() => setPlan("monthly")} className={plan === "monthly" ? "text-white" : "hover:text-white"}>Monthly</button>
           <span aria-hidden>·</span>

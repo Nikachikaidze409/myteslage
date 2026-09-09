@@ -178,10 +178,17 @@ export interface BogOrderPayload {
 /**
  * Builds the create-order body strictly from the trusted plan table.
  * No caller-supplied amount or currency is ever accepted here.
+ *
+ * `trusted` is only ever produced by server-side proration (never by the
+ * browser) and is used for a monthly -> quarterly upgrade price.
  */
-export function buildOrderPayload(plan: PlanKey, externalOrderId: string): BogOrderPayload {
+export function buildOrderPayload(
+  plan: PlanKey,
+  externalOrderId: string,
+  trusted?: { amount: number; description?: string },
+): BogOrderPayload {
   const config = BOG_PLANS[plan];
-  const price = bogAmount(config.amount);
+  const price = bogAmount(trusted ? trusted.amount : config.amount);
   return {
     callback_url: BOG_CALLBACK_URL,
     external_order_id: externalOrderId,
@@ -195,7 +202,7 @@ export function buildOrderPayload(plan: PlanKey, externalOrderId: string): BogOr
           quantity: 1,
           unit_price: price,
           product_id: config.id,
-          description: config.description,
+          description: trusted?.description ?? config.description,
         },
       ],
     },
@@ -204,6 +211,8 @@ export function buildOrderPayload(plan: PlanKey, externalOrderId: string): BogOr
     config: { apple_pay: { external: false } },
   };
 }
+
+export const BOG_UPGRADE_DESCRIPTION = "TeslaNavi 3-month membership upgrade";
 
 /**
  * Fallback body used only if BOG rejects the explicit method list because one

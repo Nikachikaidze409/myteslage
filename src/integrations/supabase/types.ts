@@ -62,44 +62,67 @@ export type Database = {
       payment_orders: {
         Row: {
           amount: number
+          base_amount: number | null
           created_at: string
+          credit_amount: number
           currency: string
           external_order_id: string | null
+          final_amount: number | null
           id: string
           plan: string
+          pricing_reason: string | null
           provider: string
           provider_order_id: string | null
           status: string
           updated_at: string
+          upgrade_from_subscription_id: string | null
           user_id: string
         }
         Insert: {
           amount: number
+          base_amount?: number | null
           created_at?: string
+          credit_amount?: number
           currency: string
           external_order_id?: string | null
+          final_amount?: number | null
           id?: string
           plan: string
+          pricing_reason?: string | null
           provider: string
           provider_order_id?: string | null
           status?: string
           updated_at?: string
+          upgrade_from_subscription_id?: string | null
           user_id: string
         }
         Update: {
           amount?: number
+          base_amount?: number | null
           created_at?: string
+          credit_amount?: number
           currency?: string
           external_order_id?: string | null
+          final_amount?: number | null
           id?: string
           plan?: string
+          pricing_reason?: string | null
           provider?: string
           provider_order_id?: string | null
           status?: string
           updated_at?: string
+          upgrade_from_subscription_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payment_orders_upgrade_from_subscription_id_fkey"
+            columns: ["upgrade_from_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { saveProfileDetails } from "@/lib/auth.functions";
-import { createBogCheckout } from "@/lib/bog.functions";
+import { createBogCheckout, getCheckoutEligibility } from "@/lib/bog.functions";
+import type { Eligibility } from "@/lib/checkout-eligibility";
 import { initializePaddle, getPaddlePriceId } from "@/lib/paddle";
 import {
   PROVIDER_KEY,

@@ -112,6 +112,22 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
           }
         }
 
+        // Prorated upgrade: the unused monthly value was already credited in the
+        // price, so the old entitlement ends now — its days are never re-added.
+        if (order.pricing_reason === "monthly_to_quarterly_proration" && order.upgrade_from_subscription_id) {
+          const { error: closeError } = await supabaseAdmin
+            .from("subscriptions")
+            .update({ status: "canceled", current_period_end: start.toISOString() })
+            .eq("id", order.upgrade_from_subscription_id)
+            .eq("user_id", order.user_id);
+          if (closeError) {
+            console.error("[BOG] could not close upgraded membership", closeError.message);
+            return new Response("Unable to close previous subscription", { status: 500 });
+          }
+        }
+
+
+
         const { error: orderUpdateError } = await supabaseAdmin
           .from("payment_orders")
           .update({ status: "completed" })

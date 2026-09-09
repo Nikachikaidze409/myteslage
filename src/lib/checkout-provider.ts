@@ -90,4 +90,5 @@ export async function startProviderCheckout(
       variant: "one-page",
     },
   });
+  return { status: "new_purchase" };
 }

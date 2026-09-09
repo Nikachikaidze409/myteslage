@@ -49,6 +49,26 @@ function Checkout() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [eligibility, setEligibility] = useState<Eligibility | null>(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(true);
+
+  const refreshEligibility = useCallback(async () => {
+    setCheckingEligibility(true);
+    try {
+      const result = await getCheckoutEligibility({ data: { provider, plan } });
+      setEligibility(result as Eligibility);
+    } catch {
+      setEligibility(null);
+    } finally {
+      setCheckingEligibility(false);
+    }
+  }, [provider, plan]);
+
+  useEffect(() => {
+    if (!userId) return;
+    void refreshEligibility();
+  }, [userId, refreshEligibility]);
+
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("payment") === "failed") {

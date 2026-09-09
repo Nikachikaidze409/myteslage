@@ -92,11 +92,30 @@ function Checkout() {
     try {
       await saveProfileDetails({ data: { fullName: fullName.trim(), phone: phone.trim() } });
       // The browser sends only the plan name — never a price.
-      const result = await createBogCheckout({ data: { plan } });
-      window.location.assign(result.redirectUrl);
+      await startProviderCheckout(
+        { provider, plan, userId, email },
+        {
+          createBogCheckout: (args) => createBogCheckout(args),
+          initializePaddle,
+          getPaddlePriceId,
+          openPaddleCheckout: (options) => window.Paddle?.Checkout.open(options),
+          assign: (url) => window.location.assign(url),
+          origin: window.location.origin,
+        },
+      );
+      if (provider === "paddle") setBusy(false);
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : "Checkout could not open. Please try again.");
       setBusy(false);
+    }
+  };
+
+  const chooseProvider = (next: PaymentProvider) => {
+    setProvider(next);
+    try {
+      window.localStorage.setItem(PROVIDER_KEY, next);
+    } catch {
+      /* storage unavailable — selection still applies for this visit */
     }
   };
 
@@ -105,6 +124,8 @@ function Checkout() {
   }
 
   const selectedPlan = PLANS[plan];
+  const price = providerPrice(provider, plan);
+
 
   return (
     <div className="min-h-screen bg-[#050708] text-white">

@@ -3,14 +3,24 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { saveProfileDetails } from "@/lib/auth.functions";
 import { createBogCheckout } from "@/lib/bog.functions";
+import { initializePaddle, getPaddlePriceId } from "@/lib/paddle";
+import {
+  PROVIDER_KEY,
+  PROVIDER_LABELS,
+  PROVIDER_NOTES,
+  checkoutButtonLabel,
+  providerPrice,
+  readStoredProvider,
+  startProviderCheckout,
+  type PaymentProvider,
+  type Plan,
+} from "@/lib/checkout-provider";
 import { AccountBar } from "@/components/AccountBar";
 
-type Plan = "monthly" | "quarterly";
-
 const PLAN_KEY = "tsl.pending-plan";
-const PLANS: Record<Plan, { label: string; price: string; period: string }> = {
-  monthly: { label: "Monthly", price: "8 ₾", period: "per month" },
-  quarterly: { label: "3 months · save 10%", price: "21.60 ₾", period: "every 3 months" },
+const PLANS: Record<Plan, { label: string; period: string }> = {
+  monthly: { label: "Monthly", period: "per month" },
+  quarterly: { label: "3 months · save 10%", period: "every 3 months" },
 };
 
 export const Route = createFileRoute("/checkout")({
@@ -30,6 +40,7 @@ export const Route = createFileRoute("/checkout")({
 function Checkout() {
   const navigate = useNavigate();
   const [plan, setPlan] = useState<Plan>("quarterly");
+  const [provider, setProvider] = useState<PaymentProvider>("bog");
   const [email, setEmail] = useState("");
   const [userId, setUserId] = useState("");
   const [fullName, setFullName] = useState("");
@@ -44,6 +55,8 @@ function Checkout() {
     }
     const stored = window.localStorage.getItem(PLAN_KEY);
     if (stored === "monthly" || stored === "quarterly") setPlan(stored);
+    setProvider(readStoredProvider(window.localStorage.getItem(PROVIDER_KEY)));
+
 
     supabase.auth.getSession().then(async ({ data }) => {
       const session = data.session;
@@ -79,11 +92,30 @@ function Checkout() {
     try {
       await saveProfileDetails({ data: { fullName: fullName.trim(), phone: phone.trim() } });
       // The browser sends only the plan name — never a price.
-      const result = await createBogCheckout({ data: { plan } });
-      window.location.assign(result.redirectUrl);
+      await startProviderCheckout(
+        { provider, plan, userId, email },
+        {
+          createBogCheckout: (args) => createBogCheckout(args),
+          initializePaddle,
+          getPaddlePriceId,
+          openPaddleCheckout: (options) => window.Paddle?.Checkout.open(options),
+          assign: (url) => window.location.assign(url),
+          origin: window.location.origin,
+        },
+      );
+      if (provider === "paddle") setBusy(false);
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : "Checkout could not open. Please try again.");
       setBusy(false);
+    }
+  };
+
+  const chooseProvider = (next: PaymentProvider) => {
+    setProvider(next);
+    try {
+      window.localStorage.setItem(PROVIDER_KEY, next);
+    } catch {
+      /* storage unavailable — selection still applies for this visit */
     }
   };
 
@@ -92,6 +124,8 @@ function Checkout() {
   }
 
   const selectedPlan = PLANS[plan];
+  const price = providerPrice(provider, plan);
+
 
   return (
     <div className="min-h-screen bg-[#050708] text-white">
@@ -109,7 +143,41 @@ function Checkout() {
         <AccountBar note="Paying for someone else's email? Sign out first and sign in with the email that should get the membership." />
         <div className="text-[11px] font-bold uppercase tracking-widest text-[#e9b149]">Almost there</div>
         <h1 className="font-display mt-2 text-4xl font-black">Confirm your subscription</h1>
-        <p className="mt-3 text-white/60">Secure checkout powered by Bank of Georgia. Card details are entered on the bank's own payment page.</p>
+        <p className="mt-3 text-white/60">Choose how you would like to pay. Card details are always entered on the payment provider's own secure page.</p>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {(["bog", "paddle"] as const).map((option) => {
+            const active = provider === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={active}
+                onClick={() => chooseProvider(option)}
+                className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors ${
+                  active ? "border-[#3b82f6] bg-[#3b82f6]/10" : "border-white/10 bg-white/[0.02] hover:border-white/25"
+                }`}
+              >
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/5 text-lg" aria-hidden>
+                  {option === "bog" ? "🏦" : "🌐"}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold">{PROVIDER_LABELS[option].label}</span>
+                  <span className="block text-xs text-white/55">{PROVIDER_LABELS[option].sublabel}</span>
+                </span>
+                <span
+                  className={`ml-auto grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[11px] ${
+                    active ? "border-[#3b82f6] bg-[#3b82f6] text-white" : "border-white/25 text-transparent"
+                  }`}
+                  aria-hidden
+                >
+                  ✓
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
 
         <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.02] p-6">
           <div className="text-[11px] font-bold uppercase tracking-widest text-white/50">Account</div>
@@ -149,7 +217,7 @@ function Checkout() {
             </div>
             <div className="text-right">
               <div className="text-[11px] font-bold uppercase tracking-widest text-white/50">Total</div>
-              <div className="font-display mt-1 text-3xl font-black">{selectedPlan.price}</div>
+              <div className="font-display mt-1 text-3xl font-black">{price}</div>
             </div>
           </div>
         </div>
@@ -162,9 +230,10 @@ function Checkout() {
           onClick={() => void startCheckout()}
           className="font-display mt-6 flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] text-base font-bold text-white shadow-[0_10px_40px_-10px_rgba(59,130,246,0.7)] hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
         >
-          {busy ? "Opening secure checkout…" : `Pay ${selectedPlan.price} →`}
+          {busy ? "Opening secure checkout…" : checkoutButtonLabel(provider, plan)}
         </button>
-        <p className="mt-3 text-center text-xs text-white/40">Your membership activates once the bank confirms the payment.</p>
+        <p className="mt-3 text-center text-xs text-white/40">{PROVIDER_NOTES[provider]}</p>
+        <p className="mt-1 text-center text-xs text-white/40">Your membership activates once the payment is confirmed.</p>
         <div className="mt-7 flex justify-center gap-3 text-xs text-white/40">
           <button type="button" onClick={() => setPlan("monthly")} className={plan === "monthly" ? "text-white" : "hover:text-white"}>Monthly</button>
           <span aria-hidden>·</span>

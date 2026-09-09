@@ -376,3 +376,33 @@ describe("pre-publish hardening", () => {
     expect(src("routes/api/public/payments/bog/callback.ts")).toContain("external_order_id");
   });
 });
+
+describe("callback recovery safety", () => {
+  const route = src("routes/api/public/payments/bog/callback.ts");
+
+  it("finishes settling the payment order when the subscription already exists", () => {
+    expect(route).toContain('.eq("provider_subscription_id", orderId)');
+    expect(route).toContain("if (!existingSub) {");
+    const lookupIdx = route.indexOf("existingSub, error: existingSubError");
+    const updateIdx = route.indexOf('.update({ status: "completed" })');
+    expect(lookupIdx).toBeGreaterThan(-1);
+    expect(updateIdx).toBeGreaterThan(lookupIdx);
+  });
+
+  it("returns 500 when the payment order status update fails", () => {
+    expect(route).toContain("orderUpdateError");
+    expect(route).toContain('return new Response("Unable to settle payment order", { status: 500 })');
+  });
+
+  it("does not create a duplicate subscription on a repeated callback", () => {
+    expect(route).toContain('if (order.status === "completed") return new Response("ok");');
+    const guardIdx = route.indexOf("if (!existingSub) {");
+    const insertIdx = route.indexOf('.from("subscriptions").insert(');
+    expect(insertIdx).toBeGreaterThan(guardIdx);
+  });
+
+  it("never accepts another user's subscription as proof of payment", () => {
+    expect(route).toContain("existingSub.user_id !== order.user_id");
+    expect(route).toContain('return new Response("Subscription owner mismatch", { status: 500 })');
+  });
+});

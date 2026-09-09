@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AccountMenu } from "@/components/AccountMenu";
 import heroImg from "@/assets/hero-dashboard.jpg";
 import pairingImg from "@/assets/feature-pairing.jpg";
 
@@ -214,6 +215,8 @@ function Landing() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setSignedIn(!!session));
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   const t = T[lang];
@@ -426,12 +429,15 @@ function Nav({
             </button>
           </div>
           {signedIn ? (
-            <Link
-              to="/map"
-              className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
-            >
-              {t.navOpenApp}
-            </Link>
+            <>
+              <Link
+                to="/map"
+                className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
+              >
+                {t.navOpenApp}
+              </Link>
+              <AccountMenu signOutLabel={lang === "ka" ? "გასვლა" : "Sign out"} />
+            </>
           ) : (
             <>
               <Link to="/auth" className="hidden text-sm text-white/70 hover:text-white sm:inline">

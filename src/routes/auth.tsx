@@ -25,7 +25,6 @@ function AuthPage() {
   const insertAt = () => {
     console.log("[insertAt] called, email=", email);
     const el = emailRef.current;
-    if (!el) {
       setEmail((email ?? "") + "@");
       return;
     }

@@ -173,11 +173,14 @@ function AuthPage() {
               </label>
             </>
           )}
-          <label className="block">
-            <span className="text-xs font-semibold text-muted-foreground">Email</span>
+          <div className="block">
+            <label htmlFor="auth-email" className="text-xs font-semibold text-muted-foreground">
+              Email
+            </label>
             <div className="relative mt-1">
               <input
                 ref={emailRef}
+                id="auth-email"
                 type="email"
                 required
                 autoComplete="email"
@@ -188,13 +191,14 @@ function AuthPage() {
               <button
                 type="button"
                 onClick={insertAt}
+                onMouseDown={(e) => e.preventDefault()}
                 aria-label="Insert at sign"
                 className="font-display absolute right-2 top-1/2 -translate-y-1/2 rounded-lg border border-input bg-background px-2 py-1 text-sm font-bold text-muted-foreground hover:bg-muted"
               >
                 @
               </button>
             </div>
-          </label>
+          </div>
           {mode !== "forgot" && (
             <label className="block">
               <span className="text-xs font-semibold text-muted-foreground">Password</span>

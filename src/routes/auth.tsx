@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { signupWithCode } from "@/lib/auth.functions";
 
@@ -20,6 +20,24 @@ function AuthPage() {
 
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const [kickedDevice, setKickedDevice] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  const insertAt = () => {
+    const el = emailRef.current;
+    if (!el) {
+      setEmail((email ?? "") + "@");
+      return;
+    }
+    const start = el.selectionStart ?? email.length;
+    const end = el.selectionEnd ?? email.length;
+    const next = email.slice(0, start) + "@" + email.slice(end);
+    setEmail(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + 1;
+      el.setSelectionRange(pos, pos);
+    });
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -155,17 +173,32 @@ function AuthPage() {
               </label>
             </>
           )}
-          <label className="block">
-            <span className="text-xs font-semibold text-muted-foreground">Email</span>
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 text-base"
-            />
-          </label>
+          <div className="block">
+            <label htmlFor="auth-email" className="text-xs font-semibold text-muted-foreground">
+              Email
+            </label>
+            <div className="relative mt-1">
+              <input
+                ref={emailRef}
+                id="auth-email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-12 w-full rounded-xl border border-input bg-background px-3 pr-12 text-base"
+              />
+              <button
+                type="button"
+                onClick={insertAt}
+                onMouseDown={(e) => e.preventDefault()}
+                aria-label="Insert at sign"
+                className="font-display absolute right-2 top-1/2 -translate-y-1/2 rounded-lg border border-input bg-background px-2 py-1 text-sm font-bold text-muted-foreground hover:bg-muted"
+              >
+                @
+              </button>
+            </div>
+          </div>
           {mode !== "forgot" && (
             <label className="block">
               <span className="text-xs font-semibold text-muted-foreground">Password</span>

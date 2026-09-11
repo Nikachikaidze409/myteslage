@@ -23,8 +23,8 @@ function AuthPage() {
   const emailRef = useRef<HTMLInputElement>(null);
 
   const insertAt = () => {
-    console.log("[insertAt] called, email=", email);
     const el = emailRef.current;
+    if (!el) {
       setEmail((email ?? "") + "@");
       return;
     }

@@ -191,6 +191,7 @@ function AuthPage() {
               <button
                 type="button"
                 onClick={insertAt}
+                onMouseDown={(e) => e.preventDefault()}
                 aria-label="Insert at sign"
                 className="font-display absolute right-2 top-1/2 -translate-y-1/2 rounded-lg border border-input bg-background px-2 py-1 text-sm font-bold text-muted-foreground hover:bg-muted"
               >

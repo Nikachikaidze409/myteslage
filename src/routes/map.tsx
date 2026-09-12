@@ -249,6 +249,30 @@ function Index() {
     selectorRef.current?.setHudMode(hudMode);
   }, [hudMode]);
 
+  // The phone ended the session or went silent past the dead threshold:
+  // never leave the Tesla stuck on a dead remote display — hand control back.
+  useEffect(() => {
+    if (!hudMode) return;
+    if (!shouldReturnToDirectMode(remoteState)) return;
+    setHudMode(false);
+    setNavigating(false);
+    setDestination(null);
+    setRoutes([]);
+    setRerouting(false);
+    setPairNote(
+      remoteState === "disconnected_by_user"
+        ? "Phone disconnected — you're back in direct control."
+        : "Phone connection lost — you're back in direct control.",
+    );
+  }, [remoteState, hudMode]);
+
+  // Auto-dismiss the phone-session notice.
+  useEffect(() => {
+    if (!pairNote) return;
+    const t = window.setTimeout(() => setPairNote(null), 6000);
+    return () => window.clearTimeout(t);
+  }, [pairNote]);
+
 
   // Session restore state
   const restoredRef = useRef(false);

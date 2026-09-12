@@ -1,25 +1,34 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { pairChannelName, type PairedFix, type PairedNavState } from "@/lib/pair-channel";
+import {
+  pairChannelName,
+  type PairedFix,
+  type PairedNavState,
+  type PairedView,
+} from "@/lib/pair-channel";
+import { HEARTBEAT_INTERVAL_MS } from "@/lib/remote-state";
 import { DestinationSearch, type Destination } from "@/components/DestinationSearch";
 import { computeRoute, type RouteResult } from "@/lib/routes.functions";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
 import { RouteProgressEngine } from "@/lib/maps/routeProgressEngine";
 import { decodePolyline } from "@/lib/geo";
+import { createMap } from "@/lib/maps/googleMapsService";
 
 
 export const Route = createFileRoute("/phone/$code")({
   head: () => ({
-    meta: [{ title: "Tesla nav - phone brain" }],
+    meta: [{ title: "Tesla nav - phone remote" }],
   }),
   component: PhoneRelay,
 });
 
+type PhoneStatus = "idle" | "starting" | "streaming" | "ended" | "error";
+
 function PhoneRelay() {
   const { code } = Route.useParams();
   const upperCode = code.toUpperCase();
-  const [status, setStatus] = useState<"idle" | "starting" | "streaming" | "error">("idle");
+  const [status, setStatus] = useState<PhoneStatus>("idle");
   const [channelStatus, setChannelStatus] = useState("not connected");
   const [error, setError] = useState<string | null>(null);
   const [last, setLast] = useState<PairedFix | null>(null);
@@ -30,6 +39,7 @@ function PhoneRelay() {
   const [routeError, setRouteError] = useState<string | null>(null);
   const [rerouting, setRerouting] = useState(false);
   const [wakeLockOn, setWakeLockOn] = useState(false);
+  const [mapControlOn, setMapControlOn] = useState(false);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const channelReadyRef = useRef(false);
@@ -38,20 +48,130 @@ function PhoneRelay() {
   // Set by the routing effect; called on every GPS fix to detect off-route.
   const onFixRef = useRef<((fix: PairedFix) => void) | null>(null);
   const wakeLockRef = useRef<any>(null);
+  const heartbeatRef = useRef<number | null>(null);
+  const reconnectTimerRef = useRef<number | null>(null);
+  // True after the user (or the Tesla) deliberately ended the session: no
+  // automatic channel re-creation until they explicitly reconnect.
+  const userEndedRef = useRef(false);
+
+  // Phone-side map control surface.
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const phoneGoogleRef = useRef<any>(null);
+  const phoneMapRef = useRef<any>(null);
+  const phoneMarkerRef = useRef<any>(null);
+  const phonePolylineRef = useRef<any>(null);
+  const phoneFollowRef = useRef(true);
+  const lastViewSentRef = useRef(0);
+  const sendViewRef = useRef<((follow: boolean) => void) | null>(null);
 
   const PHONE_KEY = `tesla-nav.phone-autostart.${upperCode}`;
   const DEST_KEY = `tesla-nav.phone-dest.${upperCode}`;
 
-  // Cleanup on unmount.
+  // Broadcast helper. Buffers if the channel isn't ready yet.
+  const broadcast = (
+    event: "fix" | "nav" | "nav_clear" | "view" | "heartbeat" | "disconnect",
+    payload: unknown,
+  ) => {
+    const ch = channelRef.current;
+    if (!ch || !channelReadyRef.current) return;
+    void ch.send({ type: "broadcast", event, payload });
+  };
+
+  const stopHeartbeat = () => {
+    if (heartbeatRef.current != null) {
+      window.clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
+  };
+
+  const teardownChannel = () => {
+    stopHeartbeat();
+    if (reconnectTimerRef.current != null) {
+      window.clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    if (channelRef.current) {
+      void supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+    channelReadyRef.current = false;
+  };
+
+  /**
+   * The realtime channel connects on page load — pairing is "live" as soon as
+   * the phone opens the link, even before GPS sharing starts. Supabase keeps
+   * the socket alive; on a hard close we re-create the channel once after a
+   * short delay unless the session was deliberately ended.
+   */
+  const connectChannel = () => {
+    if (channelRef.current) return;
+    const channel = supabase.channel(pairChannelName(upperCode), {
+      config: { broadcast: { self: false } },
+    });
+    channelRef.current = channel;
+    channel.on("broadcast", { event: "disconnect" }, () => {
+      // The Tesla ended the session: stop GPS and tell the driver.
+      userEndedRef.current = true;
+      if (watchRef.current != null) {
+        navigator.geolocation.clearWatch(watchRef.current);
+        watchRef.current = null;
+      }
+      if (typeof window !== "undefined") window.localStorage.removeItem(PHONE_KEY);
+      teardownChannel();
+      setStatus("ended");
+      setChannelStatus("disconnected by Tesla");
+    });
+    channel.subscribe((s) => {
+      if (s === "SUBSCRIBED") {
+        setChannelStatus("connected");
+        channelReadyRef.current = true;
+        // Liveness for the Tesla: ~every 2 s while this page is connected.
+        stopHeartbeat();
+        broadcast("heartbeat", { t: Date.now() });
+        heartbeatRef.current = window.setInterval(
+          () => broadcast("heartbeat", { t: Date.now() }),
+          HEARTBEAT_INTERVAL_MS,
+        );
+        const pending = lastFixRef.current;
+        if (pending) broadcast("fix", pending);
+      } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") {
+        channelReadyRef.current = false;
+        setChannelStatus("connection error");
+        setError(
+          "The live pairing channel could not connect. Check the phone's internet and reload both screens.",
+        );
+      } else if (s === "CLOSED") {
+        channelReadyRef.current = false;
+        stopHeartbeat();
+        setChannelStatus("closed");
+        if (!userEndedRef.current && reconnectTimerRef.current == null) {
+          setChannelStatus("reconnecting…");
+          reconnectTimerRef.current = window.setTimeout(() => {
+            reconnectTimerRef.current = null;
+            if (channelRef.current) {
+              void supabase.removeChannel(channelRef.current);
+              channelRef.current = null;
+            }
+            connectChannel();
+          }, 2000);
+        }
+      }
+    });
+  };
+
+  // Connect the channel on mount; full cleanup on unmount.
   useEffect(() => {
+    connectChannel();
     return () => {
+      userEndedRef.current = true;
       if (watchRef.current != null) navigator.geolocation.clearWatch(watchRef.current);
-      if (channelRef.current) void supabase.removeChannel(channelRef.current);
+      teardownChannel();
       if (wakeLockRef.current) {
         try { wakeLockRef.current.release?.(); } catch { /* ignore */ }
       }
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upperCode]);
 
   // Restore last destination for this code so a reload resumes the trip.
   useEffect(() => {
@@ -63,13 +183,6 @@ function PhoneRelay() {
       if (typeof d?.lat === "number" && typeof d?.lng === "number") setDestination(d);
     } catch { /* ignore */ }
   }, [DEST_KEY]);
-
-  // Broadcast helper. Buffers if the channel isn't ready yet.
-  const broadcast = (event: "fix" | "nav" | "nav_clear", payload: unknown) => {
-    const ch = channelRef.current;
-    if (!ch || !channelReadyRef.current) return;
-    void ch.send({ type: "broadcast", event, payload });
-  };
 
   const requestWakeLock = async () => {
     try {
@@ -88,44 +201,18 @@ function PhoneRelay() {
   // PERMISSION_DENIED without ever prompting.
   const start = () => {
     setError(null);
-    setChannelStatus("connecting");
+    userEndedRef.current = false;
     if (!("geolocation" in navigator)) {
       setStatus("error");
       setError("This browser has no geolocation.");
       return;
     }
+    connectChannel();
     if (watchRef.current != null) {
       navigator.geolocation.clearWatch(watchRef.current);
       watchRef.current = null;
     }
-    if (channelRef.current) {
-      void supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-    channelReadyRef.current = false;
     setStatus("starting");
-
-    // Kick off the realtime channel in parallel - do NOT await it before geolocation.
-    let pending: PairedFix | null = null;
-    const channel = supabase.channel(pairChannelName(upperCode));
-    channelRef.current = channel;
-    channel.subscribe((s) => {
-      if (s === "SUBSCRIBED") {
-        setChannelStatus("connected");
-        channelReadyRef.current = true;
-        if (pending) {
-          void channel.send({ type: "broadcast", event: "fix", payload: pending });
-          pending = null;
-        }
-      } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") {
-        setChannelStatus("connection error");
-        setError(
-          "Phone GPS is running, but the live pairing channel could not connect. Reload both screens.",
-        );
-      } else if (s === "CLOSED") {
-        setChannelStatus("closed");
-      }
-    });
 
     // Ask for screen wake-lock so the browser tab doesn't get suspended.
     void requestWakeLock();
@@ -146,11 +233,7 @@ function PhoneRelay() {
         setLast(fix);
         setSent((n) => n + 1);
         setStatus("streaming");
-        if (channelReadyRef.current) {
-          broadcast("fix", fix);
-        } else {
-          pending = fix;
-        }
+        broadcast("fix", fix);
         onFixRef.current?.(fix);
       },
 
@@ -171,6 +254,22 @@ function PhoneRelay() {
     );
   };
 
+  /** Hang up from the phone side: notify the Tesla, stop GPS, close the channel. */
+  const disconnect = () => {
+    userEndedRef.current = true;
+    broadcast("disconnect", { by: "phone" });
+    if (watchRef.current != null) {
+      navigator.geolocation.clearWatch(watchRef.current);
+      watchRef.current = null;
+    }
+    if (typeof window !== "undefined") window.localStorage.removeItem(PHONE_KEY);
+    // Give the disconnect message a tick to flush before closing the socket.
+    window.setTimeout(teardownChannel, 150);
+    setStatus("idle");
+    setMapControlOn(false);
+    setChannelStatus("disconnected");
+  };
+
   // Auto-resume streaming if this phone already gave permission for this code.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -185,6 +284,114 @@ function PhoneRelay() {
       .catch(() => { /* ignore */ });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [upperCode]);
+
+  // ---- phone-side map control surface -------------------------------------
+  // A small optional map: panning/zooming it drives the Tesla camera; the
+  // Tesla applies the view like a driver gesture (follow camera yields).
+  useEffect(() => {
+    if (!mapControlOn || !mapContainerRef.current) return;
+    let cancelled = false;
+    let listeners: any[] = [];
+    createMap(mapContainerRef.current)
+      .then(({ google, map }) => {
+        if (cancelled) return;
+        phoneGoogleRef.current = google;
+        phoneMapRef.current = map;
+        map.setOptions({
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: "greedy",
+          clickableIcons: false,
+        });
+        const c = lastFixRef.current;
+        if (c) {
+          map.setCenter({ lat: c.lat, lng: c.lng });
+          map.setZoom(16);
+        }
+        const sendView = (follow: boolean) => {
+          const now = Date.now();
+          if (!follow && now - lastViewSentRef.current < 150) return;
+          lastViewSentRef.current = now;
+          const ctr = map.getCenter?.();
+          if (!ctr) return;
+          broadcast("view", {
+            lat: ctr.lat(),
+            lng: ctr.lng(),
+            zoom: map.getZoom?.() ?? 16,
+            bearing: map.getHeading?.() ?? 0,
+            follow,
+            sentAt: now,
+          } satisfies PairedView);
+        };
+        sendViewRef.current = sendView;
+        listeners.push(
+          map.addListener("drag", () => {
+            phoneFollowRef.current = false;
+            sendView(false);
+          }),
+        );
+        listeners.push(map.addListener("zoom_changed", () => sendView(phoneFollowRef.current)));
+        listeners.push(map.addListener("heading_changed", () => sendView(false)));
+      })
+      .catch(() => { /* map control is optional; GPS/nav keep working */ });
+    return () => {
+      cancelled = true;
+      sendViewRef.current = null;
+      for (const l of listeners) {
+        try { l?.remove?.(); } catch { /* ignore */ }
+      }
+      phoneMapRef.current = null;
+      phoneGoogleRef.current = null;
+      phoneMarkerRef.current = null;
+      phonePolylineRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapControlOn]);
+
+  // Keep the phone map's own marker in step with GPS.
+  useEffect(() => {
+    const map = phoneMapRef.current;
+    const g = phoneGoogleRef.current;
+    if (!map || !g || !last) return;
+    const p = { lat: last.lat, lng: last.lng };
+    if (!phoneMarkerRef.current) {
+      phoneMarkerRef.current = new g.maps.Marker({ map, position: p, title: "You" });
+    } else {
+      phoneMarkerRef.current.setPosition(p);
+    }
+    if (phoneFollowRef.current) map.panTo(p);
+  }, [last, mapControlOn]);
+
+  // Draw the active route on the phone map.
+  useEffect(() => {
+    const map = phoneMapRef.current;
+    const g = phoneGoogleRef.current;
+    if (!map || !g) return;
+    if (!route) {
+      phonePolylineRef.current?.setMap(null);
+      phonePolylineRef.current = null;
+      return;
+    }
+    const path = decodePolyline(route.encodedPolyline);
+    if (!phonePolylineRef.current) {
+      phonePolylineRef.current = new g.maps.Polyline({
+        map,
+        path,
+        strokeColor: "#2563eb",
+        strokeWeight: 5,
+        strokeOpacity: 0.9,
+      });
+    } else {
+      phonePolylineRef.current.setPath(path);
+    }
+  }, [route, mapControlOn]);
+
+  const recenterOnCar = () => {
+    phoneFollowRef.current = true;
+    const fix = lastFixRef.current;
+    if (fix && phoneMapRef.current) phoneMapRef.current.panTo({ lat: fix.lat, lng: fix.lng });
+    sendViewRef.current?.(true);
+  };
 
   // Compute the route once a destination + first fix exist. Refresh only when
   // it can actually change anything: a few minutes apart, after real movement,
@@ -387,21 +594,64 @@ function PhoneRelay() {
   const km = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`);
   const min = (s: number) => `${Math.round(s / 60)} min`;
 
+  const connected = channelStatus === "connected";
+
   return (
     <div className="min-h-screen bg-background p-5 text-foreground">
       <div className="mx-auto max-w-md space-y-5">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
-            Phone brain · Tesla HUD
+            Phone remote · Tesla display
           </div>
           <h1 className="mt-1 text-2xl font-semibold">Pairing code {upperCode}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Your phone owns GPS + search + routing. The Tesla screen shows a big driver HUD driven
-            from here. Keep this tab open.
+            Your phone is the remote: GPS, search and routing happen here and the Tesla screen
+            mirrors it. Keep this tab open.
           </p>
         </div>
 
-        {status !== "streaming" && (
+        {/* Connection state, matching the Tesla display wording. */}
+        <div
+          className={
+            "flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-medium " +
+            (connected
+              ? "border-[color:var(--good)]/40 bg-[color:var(--good)]/10 text-[color:var(--good)]"
+              : "border-border bg-card text-muted-foreground")
+          }
+        >
+          <span className="flex items-center gap-2">
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ background: connected ? "var(--good)" : "var(--muted-foreground)" }}
+            />
+            {connected ? "Connected to Tesla" : `Tesla link: ${channelStatus}`}
+          </span>
+          {status === "streaming" && (
+            <button
+              onClick={disconnect}
+              className="rounded-lg border border-border bg-white px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+            >
+              Disconnect
+            </button>
+          )}
+        </div>
+
+        {status === "ended" && (
+          <div className="space-y-3 rounded-xl border border-border bg-card p-4 text-sm">
+            <div className="font-semibold text-foreground">Tesla ended this session</div>
+            <div className="text-muted-foreground">
+              The car went back to direct control. Reconnect to use the phone as the remote again.
+            </div>
+            <button
+              onClick={start}
+              className="h-11 w-full rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
+            >
+              Reconnect
+            </button>
+          </div>
+        )}
+
+        {(status === "idle" || status === "starting") && (
           <button
             onClick={start}
             disabled={status === "starting"}
@@ -463,6 +713,38 @@ function PhoneRelay() {
                 </button>
               </div>
             )}
+
+            <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Map control
+                </div>
+                <button
+                  onClick={() => setMapControlOn((v) => !v)}
+                  className="rounded-lg border border-border bg-white px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+                >
+                  {mapControlOn ? "Hide map" : "Show map"}
+                </button>
+              </div>
+              {mapControlOn && (
+                <>
+                  <div
+                    ref={mapContainerRef}
+                    className="h-64 w-full overflow-hidden rounded-lg border border-border"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Pan or zoom here and the Tesla screen follows. Tap recenter to hand the camera
+                    back to the car.
+                  </p>
+                  <button
+                    onClick={recenterOnCar}
+                    className="h-11 w-full rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
+                  >
+                    Recenter Tesla on the car
+                  </button>
+                </>
+              )}
+            </div>
           </>
         )}
 

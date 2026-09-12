@@ -122,8 +122,11 @@ export class NavigationEngine {
   /** Raised when the renderer cannot honour the requested 3D pitch. */
   onTilt3dUnsupported: (() => void) | null = null;
 
+  private readonly vector: boolean;
+
   constructor(map: any, google: any, vector: boolean) {
     this.map = map;
+    this.vector = vector;
     this.camera = new CameraEngine(map, google, { vector, headingUp: true });
     this.camera.onTiltUnsupported = () => this.onTilt3dUnsupported?.();
     this.vehicle = new VehicleRenderer(map, google, vector);
@@ -266,6 +269,30 @@ export class NavigationEngine {
   releaseFollow(): void {
     this.userReleased = true;
     this.setFollow(false);
+  }
+
+  /**
+   * Phone remote mode: the paired phone panned/zoomed its own map. Treat it
+   * exactly like a driver gesture — follow yields to the remote view until
+   * the phone (or the driver) recenters. While follow is active the remote
+   * view is ignored so it can never fight the navigation camera.
+   */
+  applyRemoteView(v: { lat: number; lng: number; zoom: number; bearing: number; follow: boolean }): void {
+    if (v.follow) {
+      this.recenter();
+      return;
+    }
+    if (this.follow) {
+      // A remote pan is an explicit camera takeover, same as a local drag.
+      this.userReleased = true;
+      this.setFollow(false);
+    }
+    if (this.vector && typeof this.map.moveCamera === "function") {
+      this.map.moveCamera({ center: { lat: v.lat, lng: v.lng }, zoom: v.zoom, heading: v.bearing });
+    } else {
+      this.map.setCenter({ lat: v.lat, lng: v.lng });
+      if (this.map.getZoom?.() !== v.zoom) this.map.setZoom(v.zoom);
+    }
   }
 
   /** Flat top-down (false) or navigation perspective (true). */

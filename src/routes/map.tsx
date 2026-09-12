@@ -51,6 +51,14 @@ import { reverseGeocode, placeDetails } from "@/lib/search.functions";
 import { searchNearby, type NearbyPlace } from "@/lib/places.functions";
 import { NavDebugPanel } from "@/components/NavDebugPanel";
 import type { NavDebug } from "@/lib/maps/navigationEngine";
+import { RemoteDebugPanel } from "@/components/RemoteDebugPanel";
+import type { PairControls, PairDiag } from "@/components/PairPhonePanel";
+import {
+  shouldReturnToDirectMode,
+  remoteStateLabel,
+  type RemoteState,
+} from "@/lib/remote-state";
+import type { PairedView } from "@/lib/pair-channel";
 
 
 const MapView = lazy(() =>
@@ -203,6 +211,23 @@ function Index() {
   // HUD mode: driven entirely by the phone. Tesla becomes a big display.
   const [hudMode, setHudMode] = useState(false);
   const [muted, setMuted] = useState(false);
+  // Phone remote session state (both ends share the same state machine).
+  const [remoteState, setRemoteState] = useState<RemoteState>("disconnected");
+  const pairControlsRef = useRef<PairControls | null>(null);
+  // Remote camera view pushed from the phone; seq increments per message.
+  const remoteViewSeqRef = useRef(0);
+  const [remoteView, setRemoteView] = useState<{ view: PairedView; seq: number } | null>(null);
+  const handleRemoteView = useCallback((v: PairedView) => {
+    remoteViewSeqRef.current += 1;
+    setRemoteView({ view: v, seq: remoteViewSeqRef.current });
+  }, []);
+  // Brief notice when the phone session ends and the car takes back control.
+  const [pairNote, setPairNote] = useState<string | null>(null);
+  // Remote-session diagnostics: opt-in via ?remotedebug=1, client memory only.
+  const remoteDebugEnabled =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("remotedebug");
+  const [pairDiag, setPairDiag] = useState<PairDiag | null>(null);
   const [recenterSignal, setRecenterSignal] = useState(0);
   // Sidebar collapse so the map can fill the full screen.
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -223,6 +248,30 @@ function Index() {
   useEffect(() => {
     selectorRef.current?.setHudMode(hudMode);
   }, [hudMode]);
+
+  // The phone ended the session or went silent past the dead threshold:
+  // never leave the Tesla stuck on a dead remote display — hand control back.
+  useEffect(() => {
+    if (!hudMode) return;
+    if (!shouldReturnToDirectMode(remoteState)) return;
+    setHudMode(false);
+    setNavigating(false);
+    setDestination(null);
+    setRoutes([]);
+    setRerouting(false);
+    setPairNote(
+      remoteState === "disconnected_by_user"
+        ? "Phone disconnected — you're back in direct control."
+        : "Phone connection lost — you're back in direct control.",
+    );
+  }, [remoteState, hudMode]);
+
+  // Auto-dismiss the phone-session notice.
+  useEffect(() => {
+    if (!pairNote) return;
+    const t = window.setTimeout(() => setPairNote(null), 6000);
+    return () => window.clearTimeout(t);
+  }, [pairNote]);
 
 
   // Session restore state
@@ -763,6 +812,10 @@ function Index() {
               });
             }}
             onPairedNav={applyPairedNav}
+            onRemoteView={handleRemoteView}
+            onConnectionState={setRemoteState}
+            controlsRef={pairControlsRef}
+            onDiag={remoteDebugEnabled ? setPairDiag : undefined}
           />
 
           {error && (
@@ -822,6 +875,10 @@ function Index() {
                 });
               }}
               onPairedNav={applyPairedNav}
+              onRemoteView={handleRemoteView}
+              onConnectionState={setRemoteState}
+              controlsRef={pairControlsRef}
+              onDiag={remoteDebugEnabled ? setPairDiag : undefined}
             />
           </div>
         )}
@@ -838,6 +895,19 @@ function Index() {
             >
               <span className="text-lg leading-none">☰</span>
               Panel
+            </button>
+          )}
+          {/* Entry point for phone remote mode — always reachable while driving direct. */}
+          {!hudMode && !sidebarOpen && (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Connect phone"
+              title="Use your phone as the remote control"
+              className="absolute bottom-20 right-4 z-40 flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur hover:bg-white"
+            >
+              <span aria-hidden>📱</span>
+              {remoteState === "connected" ? "Phone connected" : "Connect phone"}
             </button>
           )}
           {!navigating && !hudMode && (
@@ -951,6 +1021,30 @@ function Index() {
             />
           )}
 
+          {hudMode && (
+            <div className="pointer-events-auto absolute left-4 top-4 z-40 flex items-center gap-3 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{
+                  background:
+                    remoteState === "connected"
+                      ? "var(--good)"
+                      : remoteState === "reconnecting"
+                        ? "var(--warn, #d97706)"
+                        : "var(--muted-foreground)",
+                }}
+              />
+              {remoteStateLabel(remoteState)}
+              <button
+                type="button"
+                onClick={() => pairControlsRef.current?.disconnect()}
+                className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+              >
+                Disconnect
+              </button>
+            </div>
+          )}
+
           {hudMode && rerouting && (
             <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
               <div className="flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-1.5 text-sm font-medium text-foreground shadow-lg backdrop-blur">
@@ -976,6 +1070,22 @@ function Index() {
               muted={muted}
               onToggleMute={() => setMuted((m) => !m)}
             />
+          )}
+
+          {pairNote && !hudMode && (
+            <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-30 flex justify-center px-4">
+              <div className="flex items-center gap-3 rounded-full border border-border bg-white/95 px-4 py-2 text-sm shadow-lg backdrop-blur">
+                <span className="text-lg" aria-hidden>📱</span>
+                <span className="font-medium text-foreground">{pairNote}</span>
+                <button
+                  type="button"
+                  onClick={() => setPairNote(null)}
+                  className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
           )}
 
           {resumedName && (
@@ -1045,6 +1155,7 @@ function Index() {
                 alternates={alternates}
                 onSelectAlternate={setSelectedRouteIdx}
                 recenterSignal={recenterSignal}
+                remoteView={remoteView}
                 preview={preview}
                 pois={pois}
                 onPickPoi={(p) =>
@@ -1059,6 +1170,7 @@ function Index() {
               {debugEnabled && navDebug ? (
                 <NavDebugPanel debug={navDebug.debug} state={navDebug.state} timing={rerouteTiming} />
               ) : null}
+              {remoteDebugEnabled ? <RemoteDebugPanel diag={pairDiag} /> : null}
               {gpsDebugEnabled && gpsDebugState ? (
                 <div className="pointer-events-none absolute left-3 top-3 z-30 max-h-[80%] overflow-hidden rounded-xl bg-black/75 p-3 font-mono text-[11px] leading-4 text-white">
                   <div>

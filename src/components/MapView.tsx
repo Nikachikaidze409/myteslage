@@ -51,6 +51,11 @@ interface Props {
   onCapabilities?: (c: { vector: boolean }) => void;
   /** Fired when the renderer refuses the requested 3D pitch. */
   onTilt3dUnsupported?: () => void;
+  /**
+   * Phone remote mode: a camera view pushed from the paired phone. `seq`
+   * increments per message; the engine applies it like a driver gesture.
+   */
+  remoteView?: { view: import("@/lib/pair-channel").PairedView; seq: number } | null;
 }
 
 export function MapView({
@@ -77,6 +82,7 @@ export function MapView({
   onMapClick,
   onCapabilities,
   onTilt3dUnsupported,
+  remoteView,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -429,6 +435,17 @@ export function MapView({
     if (recenterSignal == null) return;
     recenterOnMe();
   }, [recenterSignal, recenterOnMe]);
+
+  // ---- phone remote camera -------------------------------------------------
+  // A paired phone pushed a map view. The engine decides whether to honour it
+  // (follow camera wins while it is active); this never creates work per GPS
+  // fix — only per remote message.
+  const remoteViewSeq = remoteView?.seq ?? 0;
+  useEffect(() => {
+    if (!remoteViewSeq || !remoteView) return;
+    engineRef.current?.applyRemoteView(remoteView.view);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remoteViewSeq, mapReady]);
 
   // ---- traffic overlay ---------------------------------------------------
   useEffect(() => {

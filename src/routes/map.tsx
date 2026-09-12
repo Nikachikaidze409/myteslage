@@ -1139,6 +1139,7 @@ function Index() {
                 alternates={alternates}
                 onSelectAlternate={setSelectedRouteIdx}
                 recenterSignal={recenterSignal}
+                remoteView={remoteView}
                 preview={preview}
                 pois={pois}
                 onPickPoi={(p) =>
@@ -1153,6 +1154,7 @@ function Index() {
               {debugEnabled && navDebug ? (
                 <NavDebugPanel debug={navDebug.debug} state={navDebug.state} timing={rerouteTiming} />
               ) : null}
+              {remoteDebugEnabled ? <RemoteDebugPanel diag={pairDiag} /> : null}
               {gpsDebugEnabled && gpsDebugState ? (
                 <div className="pointer-events-none absolute left-3 top-3 z-30 max-h-[80%] overflow-hidden rounded-xl bg-black/75 p-3 font-mono text-[11px] leading-4 text-white">
                   <div>

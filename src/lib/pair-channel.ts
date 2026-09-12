@@ -23,6 +23,31 @@ export interface PairedNavState {
   updatedAt: number;
 }
 
+/**
+ * Camera view broadcast from the phone's map-control surface. The Tesla
+ * applies it only when its follow camera is not driving the view, so remote
+ * panning can never fight active navigation following. `follow: true` is the
+ * phone's "recenter on the car" command.
+ */
+export interface PairedView {
+  lat: number;
+  lng: number;
+  zoom: number;
+  bearing: number;
+  follow: boolean;
+  sentAt: number;
+}
+
+/** Events on a pair channel beyond the original fix/nav payloads. */
+export interface PairExtraHandlers {
+  /** Phone liveness ping (~every 2 s). Payload: { t: number } (phone clock). */
+  onHeartbeat?: (t: number) => void;
+  /** Phone changed the map view. */
+  onView?: (v: PairedView) => void;
+  /** Either side deliberately ended the session. */
+  onDisconnect?: () => void;
+}
+
 export function pairChannelName(code: string) {
   return `pair-${code.toLowerCase()}`;
 }
@@ -32,6 +57,7 @@ export function subscribePair(
   onFix: (f: PairedFix) => void,
   onStatus?: (status: "connecting" | "subscribed" | "receiving" | "error" | "closed") => void,
   onNav?: (n: PairedNavState) => void,
+  extra?: PairExtraHandlers,
 ) {
   onStatus?.("connecting");
   const channel = supabase.channel(pairChannelName(code), {
@@ -59,6 +85,17 @@ export function subscribePair(
       isRerouting: false,
       updatedAt: Date.now(),
     });
+  });
+  channel.on("broadcast", { event: "heartbeat" }, (msg) => {
+    const t = (msg.payload as { t?: number })?.t;
+    extra?.onHeartbeat?.(typeof t === "number" ? t : Date.now());
+  });
+  channel.on("broadcast", { event: "view" }, (msg) => {
+    const p = msg.payload as PairedView;
+    if (p && typeof p.lat === "number" && typeof p.lng === "number") extra?.onView?.(p);
+  });
+  channel.on("broadcast", { event: "disconnect" }, () => {
+    extra?.onDisconnect?.();
   });
   channel.subscribe((status) => {
     if (status === "SUBSCRIBED") onStatus?.("subscribed");

@@ -875,6 +875,10 @@ function Index() {
                 });
               }}
               onPairedNav={applyPairedNav}
+              onRemoteView={handleRemoteView}
+              onConnectionState={setRemoteState}
+              controlsRef={pairControlsRef}
+              onDiag={remoteDebugEnabled ? setPairDiag : undefined}
             />
           </div>
         )}

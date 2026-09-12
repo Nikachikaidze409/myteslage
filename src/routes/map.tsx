@@ -51,6 +51,14 @@ import { reverseGeocode, placeDetails } from "@/lib/search.functions";
 import { searchNearby, type NearbyPlace } from "@/lib/places.functions";
 import { NavDebugPanel } from "@/components/NavDebugPanel";
 import type { NavDebug } from "@/lib/maps/navigationEngine";
+import { RemoteDebugPanel } from "@/components/RemoteDebugPanel";
+import type { PairControls, PairDiag } from "@/components/PairPhonePanel";
+import {
+  shouldReturnToDirectMode,
+  remoteStateLabel,
+  type RemoteState,
+} from "@/lib/remote-state";
+import type { PairedView } from "@/lib/pair-channel";
 
 
 const MapView = lazy(() =>
@@ -203,6 +211,23 @@ function Index() {
   // HUD mode: driven entirely by the phone. Tesla becomes a big display.
   const [hudMode, setHudMode] = useState(false);
   const [muted, setMuted] = useState(false);
+  // Phone remote session state (both ends share the same state machine).
+  const [remoteState, setRemoteState] = useState<RemoteState>("disconnected");
+  const pairControlsRef = useRef<PairControls | null>(null);
+  // Remote camera view pushed from the phone; seq increments per message.
+  const remoteViewSeqRef = useRef(0);
+  const [remoteView, setRemoteView] = useState<{ view: PairedView; seq: number } | null>(null);
+  const handleRemoteView = useCallback((v: PairedView) => {
+    remoteViewSeqRef.current += 1;
+    setRemoteView({ view: v, seq: remoteViewSeqRef.current });
+  }, []);
+  // Brief notice when the phone session ends and the car takes back control.
+  const [pairNote, setPairNote] = useState<string | null>(null);
+  // Remote-session diagnostics: opt-in via ?remotedebug=1, client memory only.
+  const remoteDebugEnabled =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("remotedebug");
+  const [pairDiag, setPairDiag] = useState<PairDiag | null>(null);
   const [recenterSignal, setRecenterSignal] = useState(0);
   // Sidebar collapse so the map can fill the full screen.
   const [sidebarOpen, setSidebarOpen] = useState(true);

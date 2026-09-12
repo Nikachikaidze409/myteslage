@@ -287,7 +287,7 @@ export class NavigationEngine {
       this.userReleased = true;
       this.setFollow(false);
     }
-    if (this.camera.vector && typeof this.map.moveCamera === "function") {
+    if (this.vector && typeof this.map.moveCamera === "function") {
       this.map.moveCamera({ center: { lat: v.lat, lng: v.lng }, zoom: v.zoom, heading: v.bearing });
     } else {
       this.map.setCenter({ lat: v.lat, lng: v.lng });

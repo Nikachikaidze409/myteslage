@@ -22,7 +22,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PhoneCodeRouteImport } from './routes/phone.$code'
-import { Route as MirrorTestSendRouteImport } from './routes/mirror-test.send'
+import { Route as MirrorTestSendRouteImport } from './routes/mirror-test_.send'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaymentsBogProcessRenewalsRouteImport } from './routes/api/public/payments/bog/process-renewals'
@@ -94,9 +94,9 @@ const PhoneCodeRoute = PhoneCodeRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const MirrorTestSendRoute = MirrorTestSendRouteImport.update({
-  id: '/send',
-  path: '/send',
-  getParentRoute: () => MirrorTestRoute,
+  id: '/mirror-test_/send',
+  path: '/mirror-test/send',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
   id: '/success',
@@ -129,7 +129,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRouteWithChildren
   '/drive': typeof DriveRoute
   '/map': typeof MapRoute
-  '/mirror-test': typeof MirrorTestRouteWithChildren
+  '/mirror-test': typeof MirrorTestRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund': typeof RefundRoute
@@ -149,7 +149,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRouteWithChildren
   '/drive': typeof DriveRoute
   '/map': typeof MapRoute
-  '/mirror-test': typeof MirrorTestRouteWithChildren
+  '/mirror-test': typeof MirrorTestRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund': typeof RefundRoute
@@ -170,14 +170,14 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRouteWithChildren
   '/drive': typeof DriveRoute
   '/map': typeof MapRoute
-  '/mirror-test': typeof MirrorTestRouteWithChildren
+  '/mirror-test': typeof MirrorTestRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
   '/checkout/success': typeof CheckoutSuccessRoute
-  '/mirror-test/send': typeof MirrorTestSendRoute
+  '/mirror-test_/send': typeof MirrorTestSendRoute
   '/phone/$code': typeof PhoneCodeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/payments/bog/callback': typeof ApiPublicPaymentsBogCallbackRoute
@@ -239,7 +239,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/terms'
     | '/checkout/success'
-    | '/mirror-test/send'
+    | '/mirror-test_/send'
     | '/phone/$code'
     | '/api/public/payments/webhook'
     | '/api/public/payments/bog/callback'
@@ -253,12 +253,13 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRouteWithChildren
   DriveRoute: typeof DriveRoute
   MapRoute: typeof MapRoute
-  MirrorTestRoute: typeof MirrorTestRouteWithChildren
+  MirrorTestRoute: typeof MirrorTestRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   RefundRoute: typeof RefundRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
+  MirrorTestSendRoute: typeof MirrorTestSendRoute
   PhoneCodeRoute: typeof PhoneCodeRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicPaymentsBogCallbackRoute: typeof ApiPublicPaymentsBogCallbackRoute
@@ -358,12 +359,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PhoneCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/mirror-test/send': {
-      id: '/mirror-test/send'
-      path: '/send'
+    '/mirror-test_/send': {
+      id: '/mirror-test_/send'
+      path: '/mirror-test/send'
       fullPath: '/mirror-test/send'
       preLoaderRoute: typeof MirrorTestSendRouteImport
-      parentRoute: typeof MirrorTestRoute
+      parentRoute: typeof rootRouteImport
     }
     '/checkout/success': {
       id: '/checkout/success'
@@ -408,18 +409,6 @@ const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
   CheckoutRouteChildren,
 )
 
-interface MirrorTestRouteChildren {
-  MirrorTestSendRoute: typeof MirrorTestSendRoute
-}
-
-const MirrorTestRouteChildren: MirrorTestRouteChildren = {
-  MirrorTestSendRoute: MirrorTestSendRoute,
-}
-
-const MirrorTestRouteWithChildren = MirrorTestRoute._addFileChildren(
-  MirrorTestRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
@@ -427,12 +416,13 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRouteWithChildren,
   DriveRoute: DriveRoute,
   MapRoute: MapRoute,
-  MirrorTestRoute: MirrorTestRouteWithChildren,
+  MirrorTestRoute: MirrorTestRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   RefundRoute: RefundRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
+  MirrorTestSendRoute: MirrorTestSendRoute,
   PhoneCodeRoute: PhoneCodeRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicPaymentsBogCallbackRoute: ApiPublicPaymentsBogCallbackRoute,

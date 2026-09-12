@@ -7,7 +7,7 @@ import {
   type MirrorSignal,
 } from "@/lib/mirror-signal";
 
-export const Route = createFileRoute("/mirror-test/send")({
+export const Route = createFileRoute("/mirror-test_/send")({
   component: MirrorSender,
   head: () => ({
     meta: [

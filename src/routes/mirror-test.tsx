@@ -215,7 +215,9 @@ function MirrorReceiver() {
             {qrUrl && (
               <img src={qrUrl} alt="QR code linking to the sender page" className="mb-2 h-40 w-40 rounded bg-white" />
             )}
-            <p className="break-all text-xs text-muted-foreground">{senderUrl}</p>
+            <a href={senderUrl} className="block break-all text-xs text-primary underline">
+              {senderUrl}
+            </a>
             <p className="mt-2 text-xs text-muted-foreground">Room code: {room}</p>
           </div>
 

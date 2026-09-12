@@ -897,6 +897,19 @@ function Index() {
               Panel
             </button>
           )}
+          {/* Entry point for phone remote mode — always reachable while driving direct. */}
+          {!hudMode && !sidebarOpen && (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Connect phone"
+              title="Use your phone as the remote control"
+              className="absolute bottom-20 right-4 z-40 flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur hover:bg-white"
+            >
+              <span aria-hidden>📱</span>
+              {remoteState === "connected" ? "Phone connected" : "Connect phone"}
+            </button>
+          )}
           {!navigating && !hudMode && (
             <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-3 p-6">
               <div className="pointer-events-auto w-full max-w-2xl">
@@ -1006,6 +1019,30 @@ function Index() {
               alongMeters={progress?.along}
 
             />
+          )}
+
+          {hudMode && (
+            <div className="pointer-events-auto absolute left-4 top-4 z-40 flex items-center gap-3 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{
+                  background:
+                    remoteState === "connected"
+                      ? "var(--good)"
+                      : remoteState === "reconnecting"
+                        ? "var(--warn, #d97706)"
+                        : "var(--muted-foreground)",
+                }}
+              />
+              {remoteStateLabel(remoteState)}
+              <button
+                type="button"
+                onClick={() => pairControlsRef.current?.disconnect()}
+                className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+              >
+                Disconnect
+              </button>
+            </div>
           )}
 
           {hudMode && rerouting && (

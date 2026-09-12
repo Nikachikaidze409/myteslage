@@ -51,6 +51,11 @@ interface Props {
   onCapabilities?: (c: { vector: boolean }) => void;
   /** Fired when the renderer refuses the requested 3D pitch. */
   onTilt3dUnsupported?: () => void;
+  /**
+   * Phone remote mode: a camera view pushed from the paired phone. `seq`
+   * increments per message; the engine applies it like a driver gesture.
+   */
+  remoteView?: { view: import("@/lib/pair-channel").PairedView; seq: number } | null;
 }
 
 export function MapView({

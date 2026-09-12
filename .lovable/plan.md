@@ -55,14 +55,17 @@ The one real iOS caveat: when the phone screen sleeps or Safari goes to the back
 
 **Stage 3** — diagnostics panel and reconnect hardening.
 
-## Cost estimate
+## Cost estimate (in credits, not tokens)
 
-You asked for a token estimate. Rough ranges for this codebase, including reading the existing pairing and map code, implementing, and testing:
+Lovable doesn't meter tokens directly. Build mode charges are usage-based and depend on task complexity and how many back-and-forth messages a feature needs; plan mode (where we are now) costs 1 credit per message. Because of that, an exact credit total can't be predicted in advance.
 
-- Stage 1 prototype: ~250k–400k tokens (roughly 6–10 messages of work)
-- Stage 2 map sync: ~150k–250k tokens
-- Stage 3 diagnostics + hardening: ~100k–180k tokens
+What I can say honestly:
 
-Total if all three stages are built: roughly **500k–830k tokens**. Because the pairing backbone already exists, this is far cheaper than building the feature from scratch — a from-zero version of this spec would be several times that.
+- This feature is cheaper than it looks, because the pairing backbone (QR code, phone page, realtime channel, HUD mode) already exists. We are extending working code, not building from zero.
+- Stage 1 prototype is a small-to-medium build task; stages 2 and 3 are each smaller than stage 1.
+- Expect the whole three-stage feature to take a handful of build-mode messages if the prototype goes smoothly — each message carries a usage-based charge scaled to the work in it.
+- The best way to control cost is to approve this plan and build one stage at a time, checking the result after each stage before continuing.
+
+You can watch your live balance and per-message usage any time via the credit bar (click the project name, top left) or Settings → Plans & credits.
 
 One correction to your brief: this app uses Google Maps, not MapLibre/TomTom. Everything above is written against the Google Maps engines actually in the project.

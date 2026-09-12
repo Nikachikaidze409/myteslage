@@ -122,8 +122,11 @@ export class NavigationEngine {
   /** Raised when the renderer cannot honour the requested 3D pitch. */
   onTilt3dUnsupported: (() => void) | null = null;
 
+  private readonly vector: boolean;
+
   constructor(map: any, google: any, vector: boolean) {
     this.map = map;
+    this.vector = vector;
     this.camera = new CameraEngine(map, google, { vector, headingUp: true });
     this.camera.onTiltUnsupported = () => this.onTilt3dUnsupported?.();
     this.vehicle = new VehicleRenderer(map, google, vector);

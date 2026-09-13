@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
  * separate from the pair-channel used by navigation so it cannot affect it.
  */
 export type MirrorSignal =
+  | { kind: "hello" }
   | { kind: "ready" }
   | { kind: "offer"; sdp: string }
   | { kind: "answer"; sdp: string }

@@ -67,11 +67,19 @@ function MirrorSender() {
           setPhase((p) => (p === "idle" ? "ready" : p));
           link.send({ kind: "hello" });
         }
-        if (s === "error") setPhase("failed");
+        // Transient transport errors self-recover; don't latch a failure here.
       },
     );
     linkRef.current = link;
+    // Re-announce until the Tesla answers, in case it joined later.
+    const beacon = window.setInterval(() => {
+      setReceiverReady((ready) => {
+        if (!ready) linkRef.current?.send({ kind: "hello" });
+        return ready;
+      });
+    }, 2000);
     return () => {
+      window.clearInterval(beacon);
       link.send({ kind: "bye" });
       link.close();
       linkRef.current = null;

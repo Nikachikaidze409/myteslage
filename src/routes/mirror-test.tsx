@@ -144,12 +144,22 @@ function MirrorReceiver() {
         setPhase((p) => (p === "idle" ? "waiting" : p));
         link.send({ kind: "ready" });
       }
-      if (s === "error") setPhase("failed");
+      // A transient transport hiccup is not a fatal failure: the client
+      // reconnects on its own, so keep waiting instead of latching "failed".
     });
     linkRef.current = link;
 
+    // Keep announcing readiness so a sender that joins later always hears us.
+    const beacon = window.setInterval(() => {
+      setPhase((p) => {
+        if (p === "idle" || p === "waiting") linkRef.current?.send({ kind: "ready" });
+        return p;
+      });
+    }, 2000);
+
     return () => {
       disposed = true;
+      window.clearInterval(beacon);
       link.send({ kind: "bye" });
       link.close();
       pc.close();

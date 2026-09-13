@@ -116,7 +116,10 @@ function MirrorReceiver() {
 
     const handle = async (msg: MirrorSignal) => {
       if (disposed) return;
-      if (msg.kind === "offer") {
+      if (msg.kind === "hello") {
+        addLog("sender joined");
+        linkRef.current?.send({ kind: "ready" });
+      } else if (msg.kind === "offer") {
         addLog("offer received");
         setPhase("connecting");
         await pc.setRemoteDescription({ type: "offer", sdp: msg.sdp });

@@ -63,7 +63,10 @@ function MirrorSender() {
         else if (msg.kind === "bye") setPhase("stopped");
       },
       (s) => {
-        if (s === "joined") setPhase((p) => (p === "idle" ? "ready" : p));
+        if (s === "joined") {
+          setPhase((p) => (p === "idle" ? "ready" : p));
+          link.send({ kind: "hello" });
+        }
         if (s === "error") setPhase("failed");
       },
     );

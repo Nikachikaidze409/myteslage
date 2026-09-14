@@ -254,6 +254,7 @@ function Index() {
     new URLSearchParams(window.location.search).has("perfdebug");
   const perf = usePerformanceProfile(perfDebugEnabled);
   const trafficAvailable = settingsFor(perf.profile).trafficToggleAvailable;
+  const tiltAvailable = vector3dAvailable && settingsFor(perf.profile).allowTilt;
 
   // HUD mode means the phone is the navigation brain, so it leads there.
   useEffect(() => {
@@ -990,6 +991,7 @@ function Index() {
 
           {!hudMode && (
           <div className="absolute right-4 top-4 z-30">
+            {trafficAvailable && (
             <button
               type="button"
               onClick={() => setShowTraffic((v) => !v)}
@@ -1001,21 +1003,22 @@ function Index() {
             >
               {showTraffic ? "Traffic on" : "Traffic off"}
             </button>
+            )}
             <button
               type="button"
-              disabled={!vector3dAvailable}
-              onClick={() => vector3dAvailable && setTilt3d((v) => !v)}
+              disabled={!tiltAvailable}
+              onClick={() => tiltAvailable && setTilt3d((v) => !v)}
               aria-label="Toggle 3D or 2D map view"
-              title={vector3dAvailable ? "Switch between 3D and 2D" : "3D view is not supported on this screen"}
+              title={tiltAvailable ? "Switch between 3D and 2D" : "3D view is not supported on this screen"}
               className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
-                !vector3dAvailable
+                !tiltAvailable
                   ? "cursor-not-allowed border-border bg-white/70 text-muted-foreground"
                   : tilt3d
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-white/90 text-foreground hover:bg-white"
               }`}
             >
-              {tilt3d && vector3dAvailable ? "3D" : "2D"}
+              {tilt3d && tiltAvailable ? "3D" : "2D"}
             </button>
 
           </div>

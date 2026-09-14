@@ -3,7 +3,6 @@
 // automatic raster fallback otherwise.
 
 import { loadGoogleMaps } from "@/lib/maps-loader";
-import { PROFILES, type ProfileSettings } from "@/lib/perf/profileConfig";
 
 /** Cloud-configured vector Map ID. Override per environment if needed. */
 export const MAP_ID: string =
@@ -40,23 +39,12 @@ export interface CreatedMap {
   map: any;
   /** true when Google is rendering vectors (tilt, heading and WebGL overlays) */
   vector: boolean;
-  /** How long map creation took, used by the capability detector. */
-  initMs: number;
 }
 
-/**
- * The rendering type is requested EXPLICITLY per profile: raster is forced
- * with RenderingType.RASTER, never by simply omitting the Map ID.
- */
-export async function createMap(
-  container: HTMLElement,
-  settings: ProfileSettings = PROFILES.STANDARD,
-): Promise<CreatedMap> {
+export async function createMap(container: HTMLElement): Promise<CreatedMap> {
   const google = await loadGoogleMaps();
-  const startedAt = performance.now();
 
   const start = lastCenter();
-  const raster = settings.rendering === "raster";
   const options: Record<string, unknown> = {
     center: start ?? DEFAULT_CENTER,
     zoom: start ? 15 : 7,
@@ -68,29 +56,20 @@ export async function createMap(
     scrollwheel: false,
     // Double-tap / double-click zoom is a gesture too: only +/- may zoom.
     disableDoubleClickZoom: true,
-    clickableIcons: settings.clickableIcons,
+    clickableIcons: true,
     keyboardShortcuts: false,
     maxZoom: 20,
     minZoom: 4,
-    isFractionalZoomEnabled: !raster,
+    isFractionalZoomEnabled: true,
     backgroundColor: "#f1f5f9",
+    mapId: MAP_ID,
   };
-
-  if (raster) {
-    // Lightest path: raster tiles, no Map ID, reduced label/POI styling.
-    if (google.maps.RenderingType?.RASTER) {
-      options.renderingType = google.maps.RenderingType.RASTER;
-    }
-    options.styles = styleFor(settings.labelDensity);
-  } else {
-    options.mapId = MAP_ID;
-    if (google.maps.RenderingType?.VECTOR) {
-      options.renderingType = google.maps.RenderingType.VECTOR;
-    }
+  if (google.maps.RenderingType?.VECTOR) {
+    options.renderingType = google.maps.RenderingType.VECTOR;
     // Gesture-driven tilt / rotate are off: display mode owns pitch and the
     // navigation camera owns heading.
     options.tiltInteractionEnabled = false;
-    options.headingInteractionEnabled = settings.allowTilt ? false : false;
+    options.headingInteractionEnabled = false;
   }
 
   let map: any;
@@ -99,19 +78,12 @@ export async function createMap(
   } catch {
     // A bad / raster-only Map ID must never leave the driver without a map.
     delete options.mapId;
-    if (google.maps.RenderingType?.RASTER) {
-      options.renderingType = google.maps.RenderingType.RASTER;
-    } else {
-      delete options.renderingType;
-    }
-    map = new google.maps.Map(container, {
-      ...options,
-      styles: styleFor(settings.labelDensity),
-    });
+    delete options.renderingType;
+    map = new google.maps.Map(container, { ...options, styles: LIGHT_STYLE });
   }
 
-  const vector = raster ? false : detectVector(google, map);
-  return { google, map, vector, initMs: performance.now() - startedAt };
+  const vector = detectVector(google, map);
+  return { google, map, vector };
 }
 
 function detectVector(google: any, map: any): boolean {
@@ -123,27 +95,6 @@ function detectVector(google: any, map: any): boolean {
   } catch {
     return false;
   }
-}
-
-/**
- * Raster styling per profile: fewer labels and POIs mean fewer tiles to draw
- * and fewer DOM/label passes on weak renderers.
- */
-function styleFor(density: ProfileSettings["labelDensity"]): unknown[] {
-  if (density === "full") return LIGHT_STYLE;
-  const trimmed: unknown[] = [
-    ...LIGHT_STYLE,
-    { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
-    { featureType: "transit", stylers: [{ visibility: "off" }] },
-  ];
-  if (density === "minimal") {
-    trimmed.push(
-      { featureType: "road.local", elementType: "labels", stylers: [{ visibility: "off" }] },
-      { featureType: "administrative.neighborhood", stylers: [{ visibility: "off" }] },
-      { featureType: "landscape.man_made", stylers: [{ visibility: "off" }] },
-    );
-  }
-  return trimmed;
 }
 
 /** Only used when the Map ID cannot be applied (raster fallback). */

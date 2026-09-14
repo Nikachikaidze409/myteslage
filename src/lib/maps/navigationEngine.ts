@@ -8,7 +8,6 @@
 
 import { pointAtAlong, remainingMeters, bearingBetween, type Projection } from "@/lib/route-progress";
 import type { RouteStep } from "@/lib/routes.functions";
-import { PROFILES, type ProfileSettings } from "@/lib/perf/profileConfig";
 import { CameraEngine } from "./cameraEngine";
 import { rememberCenter } from "./googleMapsService";
 import { GpsEngine, type GpsState, type RawFix } from "./gpsEngine";
@@ -125,20 +124,12 @@ export class NavigationEngine {
 
   private readonly vector: boolean;
 
-  constructor(map: any, google: any, vector: boolean, perf: ProfileSettings = PROFILES.STANDARD) {
+  constructor(map: any, google: any, vector: boolean) {
     this.map = map;
     this.vector = vector;
-    this.camera = new CameraEngine(map, google, {
-      vector,
-      headingUp: true,
-      tilt3d: perf.allowTilt,
-      minWriteIntervalMs: perf.cameraMinIntervalMs,
-    });
+    this.camera = new CameraEngine(map, google, { vector, headingUp: true });
     this.camera.onTiltUnsupported = () => this.onTilt3dUnsupported?.();
-    this.vehicle = new VehicleRenderer(map, google, vector, {
-      rotationDeg: perf.markerRotationThresholdDeg,
-      moveDeg: perf.markerMoveThresholdDeg,
-    });
+    this.vehicle = new VehicleRenderer(map, google, vector);
     this.route = new RouteRenderer(map, google);
     this.raf = requestAnimationFrame(this.step);
   }

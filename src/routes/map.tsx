@@ -45,9 +45,6 @@ import {
 } from "@/lib/maps/routeRequestController";
 import { countApi } from "@/lib/maps/apiUsage";
 import type { LiveProgress } from "@/components/MapView";
-import { PerfDebugPanel } from "@/components/PerfDebugPanel";
-import { usePerformanceProfile } from "@/lib/perf/usePerformanceProfile";
-import { settingsFor } from "@/lib/perf/profileConfig";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
 import { AuthGate, signOutAndReturn } from "@/components/AuthGate";
 import { reverseGeocode, placeDetails } from "@/lib/search.functions";
@@ -203,8 +200,7 @@ function Index() {
   const [routeError, setRouteError] = useState<string | null>(null);
   const [navigating, setNavigating] = useState(false);
   const [offRoute, setOffRoute] = useState(false);
-  // The visible traffic overlay is off by default in every profile.
-  const [showTraffic, setShowTraffic] = useState(false);
+  const [showTraffic, setShowTraffic] = useState(true);
   const [tilt3d, setTilt3d] = useState(true);
   // 3D perspective needs vector (WebGL) rendering. Older in-car GPUs fall back
   // to raster: the toggle is then hidden and the map stays flat 2D.
@@ -247,14 +243,6 @@ function Index() {
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).has("gpsdebug");
   gpsDebugRef.current = gpsDebugEnabled;
-
-  // Map-rendering capability profile: silent, client-side, no API calls.
-  const perfDebugEnabled =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).has("perfdebug");
-  const perf = usePerformanceProfile(perfDebugEnabled);
-  const trafficAvailable = settingsFor(perf.profile).trafficToggleAvailable;
-  const tiltAvailable = vector3dAvailable && settingsFor(perf.profile).allowTilt;
 
   // HUD mode means the phone is the navigation brain, so it leads there.
   useEffect(() => {
@@ -991,7 +979,6 @@ function Index() {
 
           {!hudMode && (
           <div className="absolute right-4 top-4 z-30">
-            {trafficAvailable && (
             <button
               type="button"
               onClick={() => setShowTraffic((v) => !v)}
@@ -1003,22 +990,21 @@ function Index() {
             >
               {showTraffic ? "Traffic on" : "Traffic off"}
             </button>
-            )}
             <button
               type="button"
-              disabled={!tiltAvailable}
-              onClick={() => tiltAvailable && setTilt3d((v) => !v)}
+              disabled={!vector3dAvailable}
+              onClick={() => vector3dAvailable && setTilt3d((v) => !v)}
               aria-label="Toggle 3D or 2D map view"
-              title={tiltAvailable ? "Switch between 3D and 2D" : "3D view is not supported on this screen"}
+              title={vector3dAvailable ? "Switch between 3D and 2D" : "3D view is not supported on this screen"}
               className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
-                !tiltAvailable
+                !vector3dAvailable
                   ? "cursor-not-allowed border-border bg-white/70 text-muted-foreground"
                   : tilt3d
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-white/90 text-foreground hover:bg-white"
               }`}
             >
-              {tilt3d && tiltAvailable ? "3D" : "2D"}
+              {tilt3d && vector3dAvailable ? "3D" : "2D"}
             </button>
 
           </div>
@@ -1146,11 +1132,7 @@ function Index() {
                 encodedPolyline={route?.encodedPolyline ?? null}
                 steps={route?.steps ?? []}
                 navigating={navigating}
-                tilt3d={tilt3d && tiltAvailable}
-                profile={perf.profile}
-                onMapInit={perf.reportMapInit}
-                onRendererFailure={perf.reportRendererFailure}
-                onContextLost={perf.reportContextLoss}
+                tilt3d={tilt3d && vector3dAvailable}
                 onCapabilities={({ vector }) => {
                   // Only a hard "no vector renderer" answer disables 3D; an
                   // undetermined result leaves the control fully usable.
@@ -1189,9 +1171,6 @@ function Index() {
                 <NavDebugPanel debug={navDebug.debug} state={navDebug.state} timing={rerouteTiming} />
               ) : null}
               {remoteDebugEnabled ? <RemoteDebugPanel diag={pairDiag} /> : null}
-              {perfDebugEnabled ? (
-                <PerfDebugPanel diag={perf.diagnostics} onReset={perf.resetProfile} />
-              ) : null}
               {gpsDebugEnabled && gpsDebugState ? (
                 <div className="pointer-events-none absolute left-3 top-3 z-30 max-h-[80%] overflow-hidden rounded-xl bg-black/75 p-3 font-mono text-[11px] leading-4 text-white">
                   <div>

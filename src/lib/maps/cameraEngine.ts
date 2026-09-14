@@ -18,11 +18,6 @@ export interface CameraOptions {
   headingUp: boolean;
   /** false = flat top-down 2D view (pitch 0) */
   tilt3d?: boolean;
-  /**
-   * Minimum gap between camera writes, set by the active map profile
-   * (see src/lib/perf/profileConfig.ts). Defaults to ~30fps.
-   */
-  minWriteIntervalMs?: number;
 }
 
 /** Navigation pitch used whenever 3D display mode is active. */
@@ -177,7 +172,7 @@ export class CameraEngine {
     this.cur.zoom = lerp(this.cur.zoom, wantZoom, kZoom);
 
     // Skip work when nothing meaningfully changed (parked at a light).
-    if (now - this.lastApplied < (this.opts.minWriteIntervalMs ?? 33)) return;
+    if (now - this.lastApplied < 33) return;
 
     const center = { lat: this.cur.lat, lng: this.cur.lng };
     const prev = this.applied;

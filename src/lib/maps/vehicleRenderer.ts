@@ -16,20 +16,10 @@ export class VehicleRenderer {
   private pos: LatLng | null = null;
   private circle: { lat: number; lng: number; r: number } | null = null;
   private headingListener: any = null;
-  /** Redraw thresholds come from the active map profile (perf/profileConfig). */
-  private rotationThresholdDeg: number;
-  private moveThresholdDeg: number;
 
-  constructor(
-    map: any,
-    google: any,
-    _vector: boolean,
-    thresholds?: { rotationDeg?: number; moveDeg?: number },
-  ) {
+  constructor(map: any, google: any, _vector: boolean) {
     this.map = map;
     this.google = google;
-    this.rotationThresholdDeg = thresholds?.rotationDeg ?? 1.5;
-    this.moveThresholdDeg = thresholds?.moveDeg ?? 2e-6;
     this.marker = new google.maps.Marker({
       map,
       title: "You",
@@ -47,9 +37,7 @@ export class VehicleRenderer {
     this.heading = heading;
     // Sub-centimetre moves cost a Maps redraw and change nothing on screen.
     const moved =
-      !this.pos ||
-      Math.abs(this.pos.lat - lat) > this.moveThresholdDeg ||
-      Math.abs(this.pos.lng - lng) > this.moveThresholdDeg;
+      !this.pos || Math.abs(this.pos.lat - lat) > 2e-6 || Math.abs(this.pos.lng - lng) > 2e-6;
     if (moved) {
       this.pos = { lat, lng };
       this.marker.setPosition({ lat, lng });
@@ -61,7 +49,7 @@ export class VehicleRenderer {
     if (!this.marker) return;
     const mapHeading = this.map.getHeading?.() ?? 0;
     const screen = ((this.heading - mapHeading) % 360 + 360) % 360;
-    if (Math.abs(shortestDelta(screen, this.iconRotation)) < this.rotationThresholdDeg) return;
+    if (Math.abs(shortestDelta(screen, this.iconRotation)) < 1.5) return;
     this.iconRotation = screen;
     this.marker.setIcon(arrowIcon(this.google, screen));
   }

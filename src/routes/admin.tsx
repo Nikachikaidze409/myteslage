@@ -362,3 +362,12 @@ function csvCell(value: string): string {
   }
   return value;
 }
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-white/40">{label}</div>
+      <div className="mt-1 text-xl font-bold text-white">{value}</div>
+    </div>
+  );
+}

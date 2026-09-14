@@ -145,6 +145,17 @@ export function MapView({
   onCapabilitiesRef.current = onCapabilities;
   const onTiltUnsupportedRef = useRef(onTilt3dUnsupported);
   onTiltUnsupportedRef.current = onTilt3dUnsupported;
+  const onMapInitRef = useRef(onMapInit);
+  onMapInitRef.current = onMapInit;
+  const onRendererFailureRef = useRef(onRendererFailure);
+  onRendererFailureRef.current = onRendererFailure;
+  const onContextLostRef = useRef(onContextLost);
+  onContextLostRef.current = onContextLost;
+  // The profile decides the rendering type, so it is read at boot time only.
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+  const bootedRenderingRef = useRef<"vector" | "raster" | null>(null);
+  const contextLossCleanupRef = useRef<(() => void) | null>(null);
 
   const recenterOnMe = useCallback(() => {
     engineRef.current?.recenter();

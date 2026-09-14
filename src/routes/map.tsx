@@ -327,6 +327,10 @@ function Index() {
   const snappedDestRef = useRef<{ key: string; lat: number; lng: number } | null>(null);
 
   const route = routes[selectedRouteIdx] ?? null;
+  // Read inside async callbacks: React state there is stale.
+  const routesRef = useRef<RouteResult[]>(routes);
+  routesRef.current = routes;
+
   // Stable prop identity: rebuilding this array on every GPS fix forced the
   // map to re-diff the alternate polylines.
   const alternates = useMemo(

@@ -1,6 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireMapAccess } from "@/lib/map-access.middleware";
 import { googleKey, ROUTES_API } from "@/lib/google-api";
+import {
+  normalizeRouteFingerprint,
+  rateLimitMessage,
+  validateRouteInput,
+} from "@/lib/route-guard";
+
 
 export interface LatLng {
   lat: number;

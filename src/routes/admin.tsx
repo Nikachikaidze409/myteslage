@@ -3,7 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { listRegistrations, type RegistrationRow } from "@/lib/admin.functions";
+import {
+  listRegistrations,
+  bogSubscriptionOverview,
+  type RegistrationRow,
+  type BogOverview,
+} from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,

@@ -61,6 +61,7 @@ function AdminPage() {
       }
       setGate("ok");
       void refetch();
+      void refetchBog();
     })();
     return () => {
       alive = false;
@@ -149,7 +150,10 @@ function AdminPage() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => void refetch()}
+              onClick={() => {
+                void refetch();
+                void refetchBog();
+              }}
               className="rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
             >
               Refresh

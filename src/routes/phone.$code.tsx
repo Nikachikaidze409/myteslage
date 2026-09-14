@@ -499,6 +499,7 @@ function PhoneRelay() {
         // New geometry accepted: this is the only reroute SUCCESS path.
         progress.setRoute(decodePolyline(primary.encodedPolyline), primary.steps);
         if (purpose === "reroute") progress.markRerouted();
+        rerouteRetry = resetRetry();
         lastComputeAt = Date.now();
         lastOrigin = { lat: fix.lat, lng: fix.lng };
         broadcast("nav", {
@@ -511,12 +512,19 @@ function PhoneRelay() {
           updatedAt: Date.now(),
         } satisfies PairedNavState);
       } catch (e) {
+        const message = e instanceof Error ? e.message : "Route failed";
+        const limited = parseRateLimit(message);
         if (!cancelled && seq === requestSeq) {
-          setRouteError(e instanceof Error ? e.message : "Route failed");
+          setRouteError(
+            limited && activeRoute ? null : limited ? "Route service is busy." : message,
+          );
         }
         // The request failed: no new route exists, so the engine must stay
         // eligible instead of believing the deviation was resolved.
-        if (purpose === "reroute") progress.markRerouteFailed();
+        if (purpose === "reroute") {
+          rerouteRetry = registerRerouteFailure(rerouteRetry, Date.now(), limited?.retryAfterMs);
+          progress.markRerouteFailed();
+        }
       } finally {
         if (seq === requestSeq) {
           inFlight = false;

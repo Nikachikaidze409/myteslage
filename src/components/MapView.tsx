@@ -475,9 +475,10 @@ export function MapView({
     engineRef.current?.setNavigating(!!navigating);
   }, [navigating, mapReady]);
 
+  // Only the HIGH profile may use a tilted camera; lighter profiles stay flat.
   useEffect(() => {
-    engineRef.current?.setTilt3d(tilt3d);
-  }, [tilt3d, mapReady]);
+    engineRef.current?.setTilt3d(tilt3d && settingsFor(profile).allowTilt);
+  }, [tilt3d, profile, mapReady]);
 
   // A reroute is resolved only when new geometry reaches setRoute(). The
   // `rerouting` flag going false can also mean "the request failed", so it is
@@ -504,11 +505,13 @@ export function MapView({
   }, [remoteViewSeq, mapReady]);
 
   // ---- traffic overlay ---------------------------------------------------
+  // The VISIBLE traffic layer is off unless the profile allows it (HIGH only).
+  // Traffic-aware route calculation is unaffected by this.
   useEffect(() => {
     const g = googleRef.current;
     const map = mapRef.current;
     if (!g || !map) return;
-    if (showTraffic) {
+    if (showTraffic && settingsFor(profile).trafficToggleAvailable) {
       if (!trafficLayerRef.current) trafficLayerRef.current = new g.maps.TrafficLayer();
       trafficLayerRef.current.setMap(map);
     } else {

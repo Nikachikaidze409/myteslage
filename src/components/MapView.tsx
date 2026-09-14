@@ -93,6 +93,10 @@ export function MapView({
   onCapabilities,
   onTilt3dUnsupported,
   remoteView,
+  profile = "STANDARD",
+  onMapInit,
+  onRendererFailure,
+  onContextLost,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);

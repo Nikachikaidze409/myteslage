@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { onMapsAuthFailure, clearMapsAuthFailure, resetMapsLoader } from "@/lib/maps-loader";
 import { createMap } from "@/lib/maps/googleMapsService";
 import { NavigationEngine, type NavDebug, type NavSnapshot } from "@/lib/maps/navigationEngine";
+import { settingsFor, type PerfProfile } from "@/lib/perf/profileConfig";
+import { watchContextLoss } from "@/lib/perf/webglProbe";
 import type { RouteStep } from "@/lib/routes.functions";
 import type { Fix } from "./StatusPanel";
 
@@ -56,6 +58,14 @@ interface Props {
    * increments per message; the engine applies it like a driver gesture.
    */
   remoteView?: { view: import("@/lib/pair-channel").PairedView; seq: number } | null;
+  /** Active map-rendering profile (see src/lib/perf/profileConfig.ts). */
+  profile?: PerfProfile;
+  /** Map creation finished: how long it took and what Google actually renders. */
+  onMapInit?: (ms: number, renderingType: "vector" | "raster") => void;
+  /** The map could not be created at all. */
+  onRendererFailure?: () => void;
+  /** The WebGL context backing the map was lost. */
+  onContextLost?: () => void;
 }
 
 export function MapView({

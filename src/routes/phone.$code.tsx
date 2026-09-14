@@ -428,6 +428,9 @@ function PhoneRelay() {
     // detection, adaptive thresholds, fast path and anti-flapping. The phone
     // stays the routing brain; only the algorithm is shared.
     const progress = new RouteProgressEngine();
+    // Failure backoff so a systemic routing failure cannot turn every GPS fix
+    // into a paid Google Routes call. The first reroute is never delayed.
+    let rerouteRetry: RetryState = resetRetry();
 
     const MIN_REFRESH_MS = 240_000;
     const MIN_MOVE_M = 2_000;

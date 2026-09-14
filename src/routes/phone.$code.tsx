@@ -12,6 +12,13 @@ import { DestinationSearch, type Destination } from "@/components/DestinationSea
 import { computeRoute, type RouteResult } from "@/lib/routes.functions";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
 import { RouteProgressEngine } from "@/lib/maps/routeProgressEngine";
+import { parseRateLimit } from "@/lib/route-guard";
+import {
+  canAttempt,
+  registerRerouteFailure,
+  resetRetry,
+  type RetryState,
+} from "@/lib/route-retry";
 import { decodePolyline } from "@/lib/geo";
 import { createMap } from "@/lib/maps/googleMapsService";
 
@@ -421,6 +428,9 @@ function PhoneRelay() {
     // detection, adaptive thresholds, fast path and anti-flapping. The phone
     // stays the routing brain; only the algorithm is shared.
     const progress = new RouteProgressEngine();
+    // Failure backoff so a systemic routing failure cannot turn every GPS fix
+    // into a paid Google Routes call. The first reroute is never delayed.
+    let rerouteRetry: RetryState = resetRetry();
 
     const MIN_REFRESH_MS = 240_000;
     const MIN_MOVE_M = 2_000;
@@ -489,6 +499,7 @@ function PhoneRelay() {
         // New geometry accepted: this is the only reroute SUCCESS path.
         progress.setRoute(decodePolyline(primary.encodedPolyline), primary.steps);
         if (purpose === "reroute") progress.markRerouted();
+        rerouteRetry = resetRetry();
         lastComputeAt = Date.now();
         lastOrigin = { lat: fix.lat, lng: fix.lng };
         broadcast("nav", {
@@ -501,12 +512,19 @@ function PhoneRelay() {
           updatedAt: Date.now(),
         } satisfies PairedNavState);
       } catch (e) {
+        const message = e instanceof Error ? e.message : "Route failed";
+        const limited = parseRateLimit(message);
         if (!cancelled && seq === requestSeq) {
-          setRouteError(e instanceof Error ? e.message : "Route failed");
+          setRouteError(
+            limited && activeRoute ? null : limited ? "Route service is busy." : message,
+          );
         }
         // The request failed: no new route exists, so the engine must stay
         // eligible instead of believing the deviation was resolved.
-        if (purpose === "reroute") progress.markRerouteFailed();
+        if (purpose === "reroute") {
+          rerouteRetry = registerRerouteFailure(rerouteRetry, Date.now(), limited?.retryAfterMs);
+          progress.markRerouteFailed();
+        }
       } finally {
         if (seq === requestSeq) {
           inFlight = false;
@@ -541,6 +559,11 @@ function PhoneRelay() {
         return;
       }
       if (metersBetween(fix, destination) < 60) {
+        progress.markRerouteFailed();
+        return;
+      }
+      // Only after a previous reroute failure: never delays the first one.
+      if (!canAttempt(rerouteRetry, Date.now())) {
         progress.markRerouteFailed();
         return;
       }

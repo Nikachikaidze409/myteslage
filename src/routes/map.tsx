@@ -28,6 +28,16 @@ import {
   type PipelineDiag,
 } from "@/lib/maps/gpsDiagnostics";
 import { computeRoute, type RouteResult, type AvoidOption } from "@/lib/routes.functions";
+import { parseRateLimit } from "@/lib/route-guard";
+import {
+  canAttempt,
+  needsManualRetry,
+  registerInitialFailure,
+  registerRerouteFailure,
+  resetRetry,
+  type RetryState,
+} from "@/lib/route-retry";
+
 import {
   pushRecent,
   cacheLastRoute,
@@ -288,6 +298,23 @@ function Index() {
   const lastLiveRouteAtRef = useRef(0);
   const offRouteSinceRef = useRef<number | null>(null);
   const lastRerouteAtRef = useRef(0);
+  // Failure backoff. A moving GPS fix must never reset these: only a real
+  // success, a new destination / settings change, or an explicit user retry.
+  const initialRetryRef = useRef<RetryState>(resetRetry());
+  const rerouteRetryRef = useRef<RetryState>(resetRetry());
+  const [manualRetry, setManualRetry] = useState(false);
+  // Bumped by a backoff timer so a waiting retry can fire even if GPS stalls.
+  const [retryTick, setRetryTick] = useState(0);
+  const retryTimerRef = useRef<number | null>(null);
+  const scheduleRetryWake = useCallback((delayMs: number) => {
+    if (!Number.isFinite(delayMs)) return;
+    if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = window.setTimeout(
+      () => setRetryTick((n) => n + 1),
+      Math.max(250, delayMs + 100),
+    );
+  }, []);
+
   const [rerouteTiming, setRerouteTiming] = useState({
     detectedAt: null as number | null,
     requestedAt: null as number | null,
@@ -300,6 +327,10 @@ function Index() {
   const snappedDestRef = useRef<{ key: string; lat: number; lng: number } | null>(null);
 
   const route = routes[selectedRouteIdx] ?? null;
+  // Read inside async callbacks: React state there is stale.
+  const routesRef = useRef<RouteResult[]>(routes);
+  routesRef.current = routes;
+
   // Stable prop identity: rebuilding this array on every GPS fix forced the
   // map to re-diff the alternate polylines.
   const alternates = useMemo(
@@ -465,6 +496,11 @@ function Index() {
              }
            }
           lastRouteOriginRef.current = originFix;
+          // A route was actually installed: every failure counter clears.
+          initialRetryRef.current = resetRetry();
+          rerouteRetryRef.current = resetRetry();
+          setManualRetry(false);
+          setRouteError(null);
           setOffRoute(false);
           offRouteSinceRef.current = null;
           setOfflineCache(false);
@@ -486,14 +522,45 @@ function Index() {
         })
         .catch((e: unknown) => {
           if (!routeCtl.current.isCurrent(requestId)) return;
-           setRouteError(e instanceof Error ? e.message : "Route failed");
-           // A failed reroute must never leave the screen stuck on "Rerouting".
-           if (options?.reroute) {
-             setRerouting(false);
-             // No geometry arrived: tell the engine this was a FAILURE.
-             setRerouteFailedSignal((n) => n + 1);
-           }
-           const cached = loadCachedRoute();
+          const message = e instanceof Error ? e.message : "Route failed";
+          const limited = parseRateLimit(message);
+          const now = Date.now();
+
+          if (options?.reroute) {
+            // Backoff only AFTER a failure: the first reroute is never delayed.
+            rerouteRetryRef.current = registerRerouteFailure(
+              rerouteRetryRef.current,
+              now,
+              limited?.retryAfterMs,
+            );
+            scheduleRetryWake(rerouteRetryRef.current.nextRetryAt - now);
+            // A failed reroute must never leave the screen stuck on "Rerouting".
+            setRerouting(false);
+            // No geometry arrived: tell the engine this was a FAILURE.
+            setRerouteFailedSignal((n) => n + 1);
+          } else if (!options?.traffic) {
+            initialRetryRef.current = registerInitialFailure(
+              initialRetryRef.current,
+              now,
+              limited?.retryAfterMs,
+            );
+            scheduleRetryWake(initialRetryRef.current.nextRetryAt - now);
+            if (needsManualRetry(initialRetryRef.current)) setManualRetry(true);
+          }
+
+          // Never clear a route the driver is currently following, and never
+          // show a scary provider string for a temporary rate limit.
+          const hasLiveRoute = routesRef.current.length > 0;
+          setRouteError(
+            limited
+              ? hasLiveRoute
+                ? null
+                : "Route service is busy — retrying shortly."
+              : message,
+          );
+          if (hasLiveRoute) return;
+
+          const cached = loadCachedRoute();
           if (
             cached &&
             Math.abs(cached.destination.lat - nextDestination.lat) < 1e-4 &&
@@ -519,8 +586,9 @@ function Index() {
         });
       return true;
     },
-    [avoid, waypoints, prefs.avoidUnpaved],
+    [avoid, waypoints, prefs.avoidUnpaved, scheduleRetryWake],
   );
+
 
   // New destination selected
   useEffect(() => {
@@ -535,6 +603,10 @@ function Index() {
     setNavigating(false);
     setOffRoute(false);
     lastRouteOriginRef.current = null;
+    // A genuinely new destination is a fresh start for the retry policy.
+    initialRetryRef.current = resetRetry();
+    rerouteRetryRef.current = resetRetry();
+    setManualRetry(false);
     if (!destination) {
       setRouteError(null);
       return;
@@ -555,16 +627,33 @@ function Index() {
     if (hudMode) return;
     const routeFix = lastRouteUsableFixRef.current;
     if (!destination || !routeFix) return;
+    // A deliberate settings change is also a fresh start.
+    initialRetryRef.current = resetRetry();
+    setManualRetry(false);
     requestRoute(routeFix, destination, { silent: true, avoid, waypoints });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avoid, waypoints, prefs.avoidUnpaved]);
 
+  // Initial route missing: retry, but on an explicit backoff schedule.
+  // `fix` is a dependency, so without the guard below this effect would fire a
+  // paid Google request on EVERY GPS update whenever a request failed.
   useEffect(() => {
     if (hudMode) return;
     const routeFix = lastRouteUsableFixRef.current;
     if (!destination || !routeFix || route || routeLoading) return;
+    if (!canAttempt(initialRetryRef.current, Date.now())) return;
     requestRoute(routeFix, destination);
-  }, [destination, fix, route, routeLoading, requestRoute]);
+  }, [destination, fix, route, routeLoading, requestRoute, retryTick, hudMode]);
+
+  // Explicit driver action after automatic retries stopped.
+  const retryRouteNow = useCallback(() => {
+    const routeFix = lastRouteUsableFixRef.current;
+    if (!destination || !routeFix) return;
+    initialRetryRef.current = resetRetry();
+    setManualRetry(false);
+    requestRoute(routeFix, destination);
+  }, [destination, requestRoute]);
+
 
   // The map engine owns off-route detection (it matches against the real
   // route geometry every frame and calls onRerouteNeeded). This effect only
@@ -614,7 +703,15 @@ function Index() {
     // re-arms instead of silently swallowing a confirmed deviation.
     if (!navigating || !destination || !routeFix) return false;
     const detectedAt = Date.now();
+    // The FIRST reroute is never delayed. This only applies once a reroute
+    // request has already failed, so a systemic failure cannot produce one
+    // paid Google call per GPS fix.
+    if (!canAttempt(rerouteRetryRef.current, detectedAt)) {
+      scheduleRetryWake(rerouteRetryRef.current.nextRetryAt - detectedAt);
+      return false;
+    }
     lastRerouteAtRef.current = detectedAt;
+
     offRouteSinceRef.current = detectedAt;
     if (debugEnabledRef.current)
       setRerouteTiming((t) => ({
@@ -636,7 +733,7 @@ function Index() {
     }
     setRerouting(true);
     return true;
-  }, [destination, fix, hudMode, navigating, requestRoute]);
+  }, [destination, fix, hudMode, navigating, requestRoute, scheduleRetryWake]);
 
   useEffect(() => {
     if (!rerouting && offRoute) setOffRoute(false);
@@ -849,6 +946,7 @@ function Index() {
               destinationName={destination?.name ?? null}
               loading={routeLoading}
               error={routeError}
+              onRetry={manualRetry ? retryRouteNow : null}
               offRoute={offRoute}
               offline={offlineCache}
             />

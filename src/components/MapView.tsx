@@ -376,6 +376,9 @@ export function MapView({
             return;
           }
           setRetrying(false);
+          // The renderer could not be created: the capability detector falls
+          // back to the lightest profile, which reboots the map below.
+          onRendererFailureRef.current?.();
           setMapError(
             "Map is taking longer than usual to load. Check the car's internet connection and try again.",
           );
@@ -411,6 +414,8 @@ export function MapView({
       }
       gestureGuardRef.current?.();
       gestureGuardRef.current = null;
+      contextLossCleanupRef.current?.();
+      contextLossCleanupRef.current = null;
       resizeObsRef.current?.disconnect();
       resizeObsRef.current = null;
 

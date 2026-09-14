@@ -12,6 +12,13 @@ import { DestinationSearch, type Destination } from "@/components/DestinationSea
 import { computeRoute, type RouteResult } from "@/lib/routes.functions";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
 import { RouteProgressEngine } from "@/lib/maps/routeProgressEngine";
+import { parseRateLimit } from "@/lib/route-guard";
+import {
+  canAttempt,
+  registerRerouteFailure,
+  resetRetry,
+  type RetryState,
+} from "@/lib/route-retry";
 import { decodePolyline } from "@/lib/geo";
 import { createMap } from "@/lib/maps/googleMapsService";
 

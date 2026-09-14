@@ -496,6 +496,11 @@ function Index() {
              }
            }
           lastRouteOriginRef.current = originFix;
+          // A route was actually installed: every failure counter clears.
+          initialRetryRef.current = resetRetry();
+          rerouteRetryRef.current = resetRetry();
+          setManualRetry(false);
+          setRouteError(null);
           setOffRoute(false);
           offRouteSinceRef.current = null;
           setOfflineCache(false);
@@ -517,14 +522,45 @@ function Index() {
         })
         .catch((e: unknown) => {
           if (!routeCtl.current.isCurrent(requestId)) return;
-           setRouteError(e instanceof Error ? e.message : "Route failed");
-           // A failed reroute must never leave the screen stuck on "Rerouting".
-           if (options?.reroute) {
-             setRerouting(false);
-             // No geometry arrived: tell the engine this was a FAILURE.
-             setRerouteFailedSignal((n) => n + 1);
-           }
-           const cached = loadCachedRoute();
+          const message = e instanceof Error ? e.message : "Route failed";
+          const limited = parseRateLimit(message);
+          const now = Date.now();
+
+          if (options?.reroute) {
+            // Backoff only AFTER a failure: the first reroute is never delayed.
+            rerouteRetryRef.current = registerRerouteFailure(
+              rerouteRetryRef.current,
+              now,
+              limited?.retryAfterMs,
+            );
+            scheduleRetryWake(rerouteRetryRef.current.nextRetryAt - now);
+            // A failed reroute must never leave the screen stuck on "Rerouting".
+            setRerouting(false);
+            // No geometry arrived: tell the engine this was a FAILURE.
+            setRerouteFailedSignal((n) => n + 1);
+          } else if (!options?.traffic) {
+            initialRetryRef.current = registerInitialFailure(
+              initialRetryRef.current,
+              now,
+              limited?.retryAfterMs,
+            );
+            scheduleRetryWake(initialRetryRef.current.nextRetryAt - now);
+            if (needsManualRetry(initialRetryRef.current)) setManualRetry(true);
+          }
+
+          // Never clear a route the driver is currently following, and never
+          // show a scary provider string for a temporary rate limit.
+          const hasLiveRoute = routesRef.current.length > 0;
+          setRouteError(
+            limited
+              ? hasLiveRoute
+                ? null
+                : "Route service is busy — retrying shortly."
+              : message,
+          );
+          if (hasLiveRoute) return;
+
+          const cached = loadCachedRoute();
           if (
             cached &&
             Math.abs(cached.destination.lat - nextDestination.lat) < 1e-4 &&
@@ -550,8 +586,9 @@ function Index() {
         });
       return true;
     },
-    [avoid, waypoints, prefs.avoidUnpaved],
+    [avoid, waypoints, prefs.avoidUnpaved, scheduleRetryWake],
   );
+
 
   // New destination selected
   useEffect(() => {

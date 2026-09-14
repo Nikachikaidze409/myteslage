@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { onMapsAuthFailure, clearMapsAuthFailure, resetMapsLoader } from "@/lib/maps-loader";
 import { createMap } from "@/lib/maps/googleMapsService";
 import { NavigationEngine, type NavDebug, type NavSnapshot } from "@/lib/maps/navigationEngine";
+import { settingsFor, type PerfProfile } from "@/lib/perf/profileConfig";
+import { watchContextLoss } from "@/lib/perf/webglProbe";
 import type { RouteStep } from "@/lib/routes.functions";
 import type { Fix } from "./StatusPanel";
 
@@ -56,6 +58,14 @@ interface Props {
    * increments per message; the engine applies it like a driver gesture.
    */
   remoteView?: { view: import("@/lib/pair-channel").PairedView; seq: number } | null;
+  /** Active map-rendering profile (see src/lib/perf/profileConfig.ts). */
+  profile?: PerfProfile;
+  /** Map creation finished: how long it took and what Google actually renders. */
+  onMapInit?: (ms: number, renderingType: "vector" | "raster") => void;
+  /** The map could not be created at all. */
+  onRendererFailure?: () => void;
+  /** The WebGL context backing the map was lost. */
+  onContextLost?: () => void;
 }
 
 export function MapView({
@@ -83,6 +93,10 @@ export function MapView({
   onCapabilities,
   onTilt3dUnsupported,
   remoteView,
+  profile = "STANDARD",
+  onMapInit,
+  onRendererFailure,
+  onContextLost,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -131,6 +145,17 @@ export function MapView({
   onCapabilitiesRef.current = onCapabilities;
   const onTiltUnsupportedRef = useRef(onTilt3dUnsupported);
   onTiltUnsupportedRef.current = onTilt3dUnsupported;
+  const onMapInitRef = useRef(onMapInit);
+  onMapInitRef.current = onMapInit;
+  const onRendererFailureRef = useRef(onRendererFailure);
+  onRendererFailureRef.current = onRendererFailure;
+  const onContextLostRef = useRef(onContextLost);
+  onContextLostRef.current = onContextLost;
+  // The profile decides the rendering type, so it is read at boot time only.
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+  const bootedRenderingRef = useRef<"vector" | "raster" | null>(null);
+  const contextLossCleanupRef = useRef<(() => void) | null>(null);
 
   const recenterOnMe = useCallback(() => {
     engineRef.current?.recenter();
@@ -146,15 +171,25 @@ export function MapView({
   useEffect(() => {
     let cancelled = false;
 
+    const perf = settingsFor(profileRef.current);
+
     const boot = (tries: number) => {
       if (!containerRef.current) return;
-      createMap(containerRef.current)
-        .then(({ google, map, vector }) => {
+      createMap(containerRef.current, perf)
+        .then(({ google, map, vector, initMs }) => {
           if (cancelled) {
             return;
           }
           googleRef.current = google;
           mapRef.current = map;
+          bootedRenderingRef.current = perf.rendering;
+          onMapInitRef.current?.(initMs, vector ? "vector" : "raster");
+          if (containerRef.current) {
+            contextLossCleanupRef.current?.();
+            contextLossCleanupRef.current = watchContextLoss(containerRef.current, () =>
+              onContextLostRef.current?.(),
+            );
+          }
           clearMapsAuthFailure();
           if (authTimerRef.current != null) {
             window.clearTimeout(authTimerRef.current);
@@ -199,7 +234,7 @@ export function MapView({
             };
           }
 
-          const engine = new NavigationEngine(map, google, vector);
+          const engine = new NavigationEngine(map, google, vector, perf);
           engine.onTilt3dUnsupported = () => onTiltUnsupportedRef.current?.();
           engineRef.current = engine;
           engine.onFollowChange = (v) => setFollowUi(v);
@@ -341,6 +376,9 @@ export function MapView({
             return;
           }
           setRetrying(false);
+          // The renderer could not be created: the capability detector falls
+          // back to the lightest profile, which reboots the map below.
+          onRendererFailureRef.current?.();
           setMapError(
             "Map is taking longer than usual to load. Check the car's internet connection and try again.",
           );
@@ -376,6 +414,8 @@ export function MapView({
       }
       gestureGuardRef.current?.();
       gestureGuardRef.current = null;
+      contextLossCleanupRef.current?.();
+      contextLossCleanupRef.current = null;
       resizeObsRef.current?.disconnect();
       resizeObsRef.current = null;
 
@@ -398,6 +438,22 @@ export function MapView({
     };
   }, [bootAttempt]);
 
+  // ---- controlled renderer fallback --------------------------------------
+  // Google cannot switch rendering type on a live map, so a vector -> raster
+  // downgrade performs exactly ONE clean reinitialization: the effect above
+  // tears down engine, renderers and listeners, the map is recreated with the
+  // new rendering type, and every navigation input (route polyline, steps,
+  // destination, waypoints, alternates, current fix, navigating flag) is
+  // re-applied by the effects below because they all depend on `mapReady`.
+  // No Routes or Places request is made by this: only local state is replayed.
+  useEffect(() => {
+    const want = settingsFor(profile).rendering;
+    if (!bootedRenderingRef.current || bootedRenderingRef.current === want) return;
+    setRetrying(true);
+    setMapError(null);
+    setBootAttempt((n) => n + 1);
+  }, [profile]);
+
   // ---- engine inputs -----------------------------------------------------
   useEffect(() => {
     if (!fix) return;
@@ -419,9 +475,10 @@ export function MapView({
     engineRef.current?.setNavigating(!!navigating);
   }, [navigating, mapReady]);
 
+  // Only the HIGH profile may use a tilted camera; lighter profiles stay flat.
   useEffect(() => {
-    engineRef.current?.setTilt3d(tilt3d);
-  }, [tilt3d, mapReady]);
+    engineRef.current?.setTilt3d(tilt3d && settingsFor(profile).allowTilt);
+  }, [tilt3d, profile, mapReady]);
 
   // A reroute is resolved only when new geometry reaches setRoute(). The
   // `rerouting` flag going false can also mean "the request failed", so it is
@@ -448,17 +505,19 @@ export function MapView({
   }, [remoteViewSeq, mapReady]);
 
   // ---- traffic overlay ---------------------------------------------------
+  // The VISIBLE traffic layer is off unless the profile allows it (HIGH only).
+  // Traffic-aware route calculation is unaffected by this.
   useEffect(() => {
     const g = googleRef.current;
     const map = mapRef.current;
     if (!g || !map) return;
-    if (showTraffic) {
+    if (showTraffic && settingsFor(profile).trafficToggleAvailable) {
       if (!trafficLayerRef.current) trafficLayerRef.current = new g.maps.TrafficLayer();
       trafficLayerRef.current.setMap(map);
     } else {
       trafficLayerRef.current?.setMap(null);
     }
-  }, [showTraffic, mapReady]);
+  }, [showTraffic, profile, mapReady]);
 
   // ---- alternates --------------------------------------------------------
   useEffect(() => {

@@ -1150,7 +1150,7 @@ function Index() {
                 profile={perf.profile}
                 onMapInit={perf.reportMapInit}
                 onRendererFailure={perf.reportRendererFailure}
-                onContextLost={perf.reportContextLost}
+                onContextLost={perf.reportContextLoss}
                 onCapabilities={({ vector }) => {
                   // Only a hard "no vector renderer" answer disables 3D; an
                   // undetermined result leaves the control fully usable.

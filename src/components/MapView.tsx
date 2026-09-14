@@ -171,15 +171,25 @@ export function MapView({
   useEffect(() => {
     let cancelled = false;
 
+    const perf = settingsFor(profileRef.current);
+
     const boot = (tries: number) => {
       if (!containerRef.current) return;
-      createMap(containerRef.current)
-        .then(({ google, map, vector }) => {
+      createMap(containerRef.current, perf)
+        .then(({ google, map, vector, initMs }) => {
           if (cancelled) {
             return;
           }
           googleRef.current = google;
           mapRef.current = map;
+          bootedRenderingRef.current = perf.rendering;
+          onMapInitRef.current?.(initMs, vector ? "vector" : "raster");
+          if (containerRef.current) {
+            contextLossCleanupRef.current?.();
+            contextLossCleanupRef.current = watchContextLoss(containerRef.current, () =>
+              onContextLostRef.current?.(),
+            );
+          }
           clearMapsAuthFailure();
           if (authTimerRef.current != null) {
             window.clearTimeout(authTimerRef.current);

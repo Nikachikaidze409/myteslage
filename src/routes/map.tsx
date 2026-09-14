@@ -703,7 +703,15 @@ function Index() {
     // re-arms instead of silently swallowing a confirmed deviation.
     if (!navigating || !destination || !routeFix) return false;
     const detectedAt = Date.now();
+    // The FIRST reroute is never delayed. This only applies once a reroute
+    // request has already failed, so a systemic failure cannot produce one
+    // paid Google call per GPS fix.
+    if (!canAttempt(rerouteRetryRef.current, detectedAt)) {
+      scheduleRetryWake(rerouteRetryRef.current.nextRetryAt - detectedAt);
+      return false;
+    }
     lastRerouteAtRef.current = detectedAt;
+
     offRouteSinceRef.current = detectedAt;
     if (debugEnabledRef.current)
       setRerouteTiming((t) => ({

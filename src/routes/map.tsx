@@ -733,7 +733,7 @@ function Index() {
     }
     setRerouting(true);
     return true;
-  }, [destination, fix, hudMode, navigating, requestRoute]);
+  }, [destination, fix, hudMode, navigating, requestRoute, scheduleRetryWake]);
 
   useEffect(() => {
     if (!rerouting && offRoute) setOffRoute(false);
@@ -946,6 +946,7 @@ function Index() {
               destinationName={destination?.name ?? null}
               loading={routeLoading}
               error={routeError}
+              onRetry={manualRetry ? retryRouteNow : null}
               offRoute={offRoute}
               offline={offlineCache}
             />

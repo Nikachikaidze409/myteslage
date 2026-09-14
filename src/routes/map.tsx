@@ -298,6 +298,23 @@ function Index() {
   const lastLiveRouteAtRef = useRef(0);
   const offRouteSinceRef = useRef<number | null>(null);
   const lastRerouteAtRef = useRef(0);
+  // Failure backoff. A moving GPS fix must never reset these: only a real
+  // success, a new destination / settings change, or an explicit user retry.
+  const initialRetryRef = useRef<RetryState>(resetRetry());
+  const rerouteRetryRef = useRef<RetryState>(resetRetry());
+  const [manualRetry, setManualRetry] = useState(false);
+  // Bumped by a backoff timer so a waiting retry can fire even if GPS stalls.
+  const [retryTick, setRetryTick] = useState(0);
+  const retryTimerRef = useRef<number | null>(null);
+  const scheduleRetryWake = useCallback((delayMs: number) => {
+    if (!Number.isFinite(delayMs)) return;
+    if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = window.setTimeout(
+      () => setRetryTick((n) => n + 1),
+      Math.max(250, delayMs + 100),
+    );
+  }, []);
+
   const [rerouteTiming, setRerouteTiming] = useState({
     detectedAt: null as number | null,
     requestedAt: null as number | null,

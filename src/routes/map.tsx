@@ -1146,7 +1146,11 @@ function Index() {
                 encodedPolyline={route?.encodedPolyline ?? null}
                 steps={route?.steps ?? []}
                 navigating={navigating}
-                tilt3d={tilt3d && vector3dAvailable}
+                tilt3d={tilt3d && tiltAvailable}
+                profile={perf.profile}
+                onMapInit={perf.reportMapInit}
+                onRendererFailure={perf.reportRendererFailure}
+                onContextLost={perf.reportContextLost}
                 onCapabilities={({ vector }) => {
                   // Only a hard "no vector renderer" answer disables 3D; an
                   // undetermined result leaves the control fully usable.

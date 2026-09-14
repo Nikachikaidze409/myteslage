@@ -517,7 +517,7 @@ export function MapView({
     } else {
       trafficLayerRef.current?.setMap(null);
     }
-  }, [showTraffic, mapReady]);
+  }, [showTraffic, profile, mapReady]);
 
   // ---- alternates --------------------------------------------------------
   useEffect(() => {

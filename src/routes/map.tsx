@@ -45,6 +45,9 @@ import {
 } from "@/lib/maps/routeRequestController";
 import { countApi } from "@/lib/maps/apiUsage";
 import type { LiveProgress } from "@/components/MapView";
+import { PerfDebugPanel } from "@/components/PerfDebugPanel";
+import { usePerformanceProfile } from "@/lib/perf/usePerformanceProfile";
+import { settingsFor } from "@/lib/perf/profileConfig";
 import { saveSession, loadSession, clearSession } from "@/lib/session";
 import { AuthGate, signOutAndReturn } from "@/components/AuthGate";
 import { reverseGeocode, placeDetails } from "@/lib/search.functions";

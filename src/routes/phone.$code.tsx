@@ -562,6 +562,11 @@ function PhoneRelay() {
         progress.markRerouteFailed();
         return;
       }
+      // Only after a previous reroute failure: never delays the first one.
+      if (!canAttempt(rerouteRetry, Date.now())) {
+        progress.markRerouteFailed();
+        return;
+      }
       void compute("reroute");
     };
     onFixRef.current = evaluateFix;

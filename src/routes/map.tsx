@@ -200,7 +200,8 @@ function Index() {
   const [routeError, setRouteError] = useState<string | null>(null);
   const [navigating, setNavigating] = useState(false);
   const [offRoute, setOffRoute] = useState(false);
-  const [showTraffic, setShowTraffic] = useState(true);
+  // The visible traffic overlay is off by default in every profile.
+  const [showTraffic, setShowTraffic] = useState(false);
   const [tilt3d, setTilt3d] = useState(true);
   // 3D perspective needs vector (WebGL) rendering. Older in-car GPUs fall back
   // to raster: the toggle is then hidden and the map stays flat 2D.
@@ -243,6 +244,13 @@ function Index() {
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).has("gpsdebug");
   gpsDebugRef.current = gpsDebugEnabled;
+
+  // Map-rendering capability profile: silent, client-side, no API calls.
+  const perfDebugEnabled =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("perfdebug");
+  const perf = usePerformanceProfile(perfDebugEnabled);
+  const trafficAvailable = settingsFor(perf.profile).trafficToggleAvailable;
 
   // HUD mode means the phone is the navigation brain, so it leads there.
   useEffect(() => {

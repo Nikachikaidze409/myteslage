@@ -1,73 +1,95 @@
-# Automatic device-performance profiles for the map
+# Runtime map-rendering capability detection and map profiles
 
-## Audit first: what the app actually uses
+This is runtime browser/map-rendering capability detection. No vehicle, processor or GPU identification, no user-agent guessing, no fingerprinting, nothing leaves the browser.
 
-The app does **not** use MapLibre or Leaflet. The map is Google Maps JavaScript API:
+## Audit: what the app actually uses
 
-- `src/lib/maps-loader.ts` — loads the Google Maps script once (key fetched from the server).
-- `src/lib/maps/googleMapsService.ts` — `createMap()` creates the map: vector (WebGL) rendering with a Map ID, automatic raster fallback, and it already reports `vector: true/false`.
-- `src/components/MapView.tsx` — owns the map instance, the navigation engine, the traffic layer and the 2D/3D switch.
-- `src/lib/maps/cameraEngine.ts` — camera follow, currently capped near 30 fps internally.
-- `src/lib/maps/vehicleRenderer.ts`, `routeRenderer.ts` — car arrow and route line.
-- `src/routes/map.tsx` — route, destination, ETA, turn list, rerouting state.
+The app uses the Google Maps JavaScript API — not MapLibre, not Leaflet, and none will be added.
 
-So "load Leaflet in the legacy profile" is not the right move here: Google Maps already has a built-in light path (raster, no tilt, no heading). The three profiles will be built on top of that, with no second map library added and no change to routing, search, GPS or navigation logic.
+- `src/lib/maps-loader.ts` — loads the Maps script once.
+- `src/lib/maps/googleMapsService.ts` — `createMap()` builds the map (Map ID + vector, raster fallback) and reports `vector`.
+- `src/components/MapView.tsx` — owns the map, navigation engine, traffic layer, 2D/3D switch.
+- `src/lib/maps/cameraEngine.ts` — follow camera, currently a hardcoded 33 ms write gate.
+- `src/lib/maps/vehicleRenderer.ts` / `routeRenderer.ts` — car arrow and route line.
+- `src/routes/map.tsx` — destination, route, steps, ETA, rerouting state.
 
-## The three profiles
+## Profiles and forced rendering type
 
-| | HIGH | STANDARD | LEGACY |
+| | HIGH | STANDARD (start here) | LEGACY |
 |---|---|---|---|
-| Rendering | vector + Map ID | vector, flat | raster (no Map ID) |
-| Tilt / heading-up 3D | allowed | off | off |
-| Traffic layer | allowed | off by default | off, control hidden |
-| Camera updates | ~30 fps (today) | ~10 fps | ~6 fps |
-| Car marker | smooth rAF | smooth rAF | smooth, lower redraw rate |
-| POI / label density | full | reduced | minimal |
+| Rendering | explicit `RenderingType.VECTOR` + Map ID | explicit `RenderingType.VECTOR` + Map ID | explicit `RenderingType.RASTER`, no Map ID |
+| Tilt / heading-up | allowed | off (flat 2D) | off |
+| Labels / POIs | full, `clickableIcons` on | reduced | minimal |
+| Camera write cap | ~30 fps | ~10 fps | ~6 fps |
+| Car marker | rAF interpolation | rAF interpolation | rAF, larger redraw threshold |
+| Visible traffic layer | off by default, user toggle available | off, toggle hidden | off, toggle hidden |
 
-Every navigation feature — route line, car, destination, ETA, turn list, off-route detection, rerouting, recenter — stays fully working in all three.
+Raster is forced by `renderingType`, never by omitting the Map ID alone. Traffic-aware route *calculation* is unchanged in all profiles — only the visible traffic overlay is gated.
 
-## How the device is judged (silent, client-side only)
+## Decision rules (all thresholds in one config file)
 
-A new `PerformanceProfileDetector`:
+Signals: WebGL2 / WebGL1 / none, `hardwareConcurrency`, `deviceMemory`, `prefers-reduced-motion`, map init time, and a passive rAF interval sample. No stress loops, no canvas fingerprint, no Google API calls.
 
-1. Before the map loads: probe WebGL2, then WebGL1, on a throwaway 1x1 canvas, plus `hardwareConcurrency`, `deviceMemory`, `prefers-reduced-motion`. No WebGL at all → LEGACY immediately.
-2. Start with a safe default (STANDARD) while the map initialises, so nothing is delayed.
-3. Measure map init time, then sample animation-frame intervals for ~1.5 s after first render (a passive rAF counter, no stress work).
-4. Classify HIGH / STANDARD / LEGACY and apply. If the map later drops frames badly or the WebGL context is lost, downgrade once — never upgrade again in the same session (no flapping).
-5. Persist the result in `localStorage` under a versioned key so return visits skip the assessment; a version bump or the developer reset re-runs it.
+Pre-init (before the map is created):
+- No WebGL context at all → LEGACY immediately.
+- Otherwise → STANDARD, unless a persisted profile from a previous session says HIGH (then HIGH), or says LEGACY (then LEGACY).
 
-No hardware identification, no fingerprinting, no data leaves the browser, no new routing or search API calls. A profile change never recreates the route or re-requests directions.
+Runtime sample (about 1.5 s of rAF intervals after first render, plus map init time):
+- avg frame interval ≤ 20 ms, no long frames over 60 ms, WebGL2, init ≤ 2500 ms, cores ≥ 4 → HIGH-capable.
+- avg ≤ 45 ms → stay STANDARD.
+- avg > 45 ms sustained over two consecutive samples, or renderer failure, or `webglcontextlost` → LEGACY.
 
-## Downgrade while navigating
+Direction rules:
+- HIGH is never applied mid-session; it is persisted and used on the next visit (or applied before the map finishes initialising, if the verdict lands that early).
+- The first response to poor performance is always visual reduction inside the current renderer: traffic off, flat 2D, lower camera cap, fewer labels.
+- Raster (LEGACY) only after sustained poor performance, renderer init failure, or WebGL context loss.
+- One downgrade step per session, never an upgrade mid-session — no flapping.
+- Persisted in `localStorage` under a versioned key; a version bump or the developer reset re-runs detection.
 
-Vector → raster cannot be toggled on a live Google map, so a downgrade to LEGACY recreates only the map canvas: the normal branded loading state shows briefly, the new map is created, and the active route, destination, car position and camera are restored from existing state in `map.tsx`. The navigation session and its route object are untouched. STANDARD downgrades need no recreation — they only change camera rate, tilt and traffic.
+## Controlled reinitialization on a vector→raster downgrade
 
-## What users see
+Rendering type cannot be changed on a live Google map, so LEGACY performs exactly one controlled reinit:
 
-Nothing new. Normal loading state, then the map. No benchmark screen, no warning, no mention of WebGL or device strength anywhere in the normal UI.
+1. Snapshot from existing state: destination, route polyline and steps, snapped current position, heading, speed, ETA, remaining distance, current maneuver, off-route state, reroute cooldown/in-flight state.
+2. Pause the animation loop; destroy camera engine, vehicle renderer, route renderer, navigation engine; remove every Maps listener; clear the container.
+3. Create the raster map with `renderingType: RASTER`.
+4. Rebuild the renderers and re-apply the snapshot: same route polyline redrawn from the stored geometry, car placed at the stored position, camera restored, navigation resumed from the same progress state.
+5. Resume the loop.
 
-Developer-only: `?perfdebug=1` shows a small panel with selected profile, reasons, WebGL version, map init time, average frame interval/FPS, dropped-frame estimate, active renderer, whether a fallback happened, and persistence state — plus a reset button that clears the stored profile and re-runs detection.
+No Routes API call, no reroute, no search call is triggered by a profile change. The user sees only the normal short branded loading state.
 
-## File-by-file plan
+## Files
 
-New:
-- `src/lib/perf/profileConfig.ts` — the single config file: all thresholds (frame-interval limits, init-time limits, core/memory minimums, sample duration) and the per-profile settings (renderer, tilt, traffic, camera fps cap, label density, antialias, marker behaviour, fallback policy).
-- `src/lib/perf/profileClassifier.ts` — pure functions: `classifyStatic(caps)` and `classifyRuntime(caps, samples)`. Fully unit-testable, no DOM.
-- `src/lib/perf/webglProbe.ts` — safe WebGL2/WebGL1 detection and context-loss listener wiring.
-- `src/lib/perf/PerformanceProfileDetector.ts` — controller: refs only, rAF sampling, timers cancelled on stop, persistence with versioned key, single-downgrade rule.
-- `src/lib/perf/usePerformanceProfile.ts` — thin React hook exposing the current profile (state changes only on profile change, never per frame).
-- `src/components/PerfDebugPanel.tsx` — developer panel + reset, mounted only with `?perfdebug=1`.
-- `src/lib/perf/profileClassifier.test.ts` — classification tests.
+New (`src/lib/perf/`):
+- `profileConfig.ts` — the single source of thresholds and per-profile settings (rendering type, tilt, label density, camera fps cap, marker redraw threshold, traffic toggle availability, sample duration, persistence version), each documented.
+- `webglProbe.ts` — safe WebGL2/WebGL1 probe on a throwaway canvas + context-loss listener wiring.
+- `frameSampler.ts` — ref-based rAF interval sampler, cancels cleanly.
+- `profileClassifier.ts` — pure `classifyPreInit()` / `classifyRuntime()`, no DOM, unit-tested.
+- `PerformanceProfileDetector.ts` — controller: pre-init verdict, runtime sampling, one-step downgrade rule, persistence, reasons log.
+- `usePerformanceProfile.ts` — hook; React state updates only when the profile changes, never per frame.
+- `profileClassifier.test.ts` — classification tests.
+- `src/components/PerfDebugPanel.tsx` — `?perfdebug=1` only.
 
 Changed:
-- `src/lib/maps/googleMapsService.ts` — accept a profile so `createMap` picks vector vs raster, antialias-equivalent options, tilt/heading interaction and label density.
-- `src/components/MapView.tsx` — take the profile as a prop, pass it to `createMap`, gate the traffic layer and tilt, hand the camera fps cap to the camera engine, register context-loss handling, and handle the controlled map recreation on downgrade while restoring route/car/camera.
-- `src/lib/maps/cameraEngine.ts` — replace the fixed ~33 ms gate with a configurable minimum interval from the profile.
-- `src/lib/maps/vehicleRenderer.ts` — honour the profile's marker redraw rate (rotation/redraw threshold), same visual behaviour at HIGH.
-- `src/routes/map.tsx` — run the detector, pass the profile down, mount the debug panel behind `?perfdebug=1`, keep 3D/traffic controls consistent with the profile.
+- `googleMapsService.ts` — `createMap(container, profile)`: explicit `RenderingType`, Map ID only for vector, label/POI and `clickableIcons` settings per profile.
+- `MapView.tsx` — accept the profile, pass it to `createMap`, gate the traffic overlay and tilt, feed the camera fps cap, wire context-loss, and run the snapshot/teardown/rebuild/restore reinit on downgrade.
+- `cameraEngine.ts` — replace the fixed 33 ms gate with the profile's configured minimum write interval.
+- `vehicleRenderer.ts` — profile-configurable redraw threshold; HIGH behaves exactly as today.
+- `map.tsx` — run the detector, pass the profile down, mount the debug panel behind `?perfdebug=1`, hide the traffic toggle outside HIGH.
 
 Untouched: routing, search, GPS engine, route progress, off-route detection, rerouting, pairing/HUD, payments.
 
-## Test checklist delivered with the work
+## Developer diagnostics
 
-WebGL2 desktop browser; WebGL1-only; WebGL disabled; simulated slow frames; forced context loss; downgrade during an active route; return visit with persisted profile. Plus unit tests on the classifier, a typecheck and a production build.
+`?perfdebug=1` shows: selected profile and reasons, WebGL version detected, rendering type actually in use, map init time, average frame interval and estimated FPS, dropped/long-frame count, camera write FPS, WebGL context-loss events, whether a fallback happened, persistence state — plus a reset button that clears the stored profile and re-runs detection. Normal users see none of this and no message about device capability anywhere.
+
+## Testing
+
+- Unit tests on the classifier for HIGH / STANDARD / LEGACY inputs and the no-upgrade / one-downgrade rules.
+- HIGH: desktop WebGL2 browser, confirm vector rendering and persisted HIGH on reload.
+- STANDARD: first visit with no persisted profile — confirm vector, flat, traffic off, ~10 fps camera writes.
+- LEGACY: WebGL disabled in the browser — confirm `RenderingType.RASTER` and full navigation.
+- Context loss: force it via `WEBGL_lose_context` and confirm a single clean reinit into raster.
+- Slow frames: throttle CPU in DevTools and confirm reduction first, raster only after sustained poor frames.
+- Downgrade during active navigation: start a route, force the downgrade, confirm route, steps, ETA and car position survive and that no Routes/search request is issued (network panel).
+- Plus typecheck and a production build.

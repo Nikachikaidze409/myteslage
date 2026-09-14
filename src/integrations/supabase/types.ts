@@ -200,6 +200,66 @@ export type Database = {
         }
         Relationships: []
       }
+      route_api_claims: {
+        Row: {
+          claimed_at: string
+          fingerprint_hash: string
+          purpose: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          fingerprint_hash: string
+          purpose: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          fingerprint_hash?: string
+          purpose?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      route_api_events: {
+        Row: {
+          created_at: string
+          decision: string
+          duration_ms: number | null
+          fingerprint_hash: string | null
+          google_called: boolean
+          google_status: number | null
+          id: string
+          purpose: string
+          reason: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          decision: string
+          duration_ms?: number | null
+          fingerprint_hash?: string | null
+          google_called?: boolean
+          google_status?: number | null
+          id?: string
+          purpose: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          decision?: string
+          duration_ms?: number | null
+          fingerprint_hash?: string | null
+          google_called?: boolean
+          google_status?: number | null
+          id?: string
+          purpose?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           auto_renew: boolean
@@ -301,6 +361,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_route_api_events: { Args: never; Returns: undefined }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
@@ -311,6 +372,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      route_guard_claim: {
+        Args: { _fingerprint_hash: string; _purpose: string; _user_id: string }
+        Returns: Json
       }
     }
     Enums: {

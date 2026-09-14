@@ -28,6 +28,16 @@ import {
   type PipelineDiag,
 } from "@/lib/maps/gpsDiagnostics";
 import { computeRoute, type RouteResult, type AvoidOption } from "@/lib/routes.functions";
+import { parseRateLimit } from "@/lib/route-guard";
+import {
+  canAttempt,
+  needsManualRetry,
+  registerInitialFailure,
+  registerRerouteFailure,
+  resetRetry,
+  type RetryState,
+} from "@/lib/route-retry";
+
 import {
   pushRecent,
   cacheLastRoute,

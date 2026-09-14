@@ -234,7 +234,7 @@ export function MapView({
             };
           }
 
-          const engine = new NavigationEngine(map, google, vector);
+          const engine = new NavigationEngine(map, google, vector, perf);
           engine.onTilt3dUnsupported = () => onTiltUnsupportedRef.current?.();
           engineRef.current = engine;
           engine.onFollowChange = (v) => setFollowUi(v);

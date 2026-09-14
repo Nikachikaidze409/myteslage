@@ -30,6 +30,12 @@ function AdminPage() {
     queryFn: () => list(),
     enabled: false,
   });
+  const overviewFn = useServerFn(bogSubscriptionOverview);
+  const { data: bog, refetch: refetchBog } = useQuery<BogOverview>({
+    queryKey: ["admin", "bog-subscriptions"],
+    queryFn: () => overviewFn(),
+    enabled: false,
+  });
 
   // Client-side gate: must be signed in AND admin. Server function re-checks
   // the role, so this only controls UX.

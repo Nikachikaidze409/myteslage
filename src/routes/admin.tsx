@@ -66,7 +66,7 @@ function AdminPage() {
     return () => {
       alive = false;
     };
-  }, [navigate, refetch]);
+  }, [navigate, refetch, refetchBog]);
 
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => {
@@ -228,6 +228,109 @@ function AdminPage() {
               </tbody>
             </table>
           </div>
+        )}
+        {bog && (
+          <section className="mt-12">
+            <h2 className="text-xl font-bold">Bank of Georgia subscriptions</h2>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+              <Stat label="Active" value={bog.counts.activeMemberships} />
+              <Stat label="Auto-renew ON" value={bog.counts.autoRenewOn} />
+              <Stat label="Auto-renew OFF" value={bog.counts.autoRenewOff} />
+              <Stat label="Past due" value={bog.counts.pastDue} />
+              <Stat label="Failed" value={bog.counts.failed} />
+              <Stat label="Canceled" value={bog.counts.canceled} />
+              <Stat label="Due in 7 days" value={bog.counts.dueNext7Days} />
+            </div>
+
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-white/[0.03] text-left text-white/60">
+                    <th className="px-4 py-3 font-semibold">User</th>
+                    <th className="px-4 py-3 font-semibold">Plan</th>
+                    <th className="px-4 py-3 font-semibold">Valid until</th>
+                    <th className="px-4 py-3 font-semibold">Auto-renew</th>
+                    <th className="px-4 py-3 font-semibold">Next billing</th>
+                    <th className="px-4 py-3 font-semibold">Renewal status</th>
+                    <th className="px-4 py-3 font-semibold">Attempts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bog.members.map((m) => (
+                    <tr key={m.userId} className="border-t border-white/5">
+                      <td className="px-4 py-3 text-white/80">
+                        {m.fullName || m.email || m.userId.slice(0, 8)}
+                      </td>
+                      <td className="px-4 py-3 text-white/80">{m.plan}</td>
+                      <td className="px-4 py-3 text-white/60">{formatDate(m.validUntil)}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            m.autoRenew
+                              ? "bg-emerald-500/15 text-emerald-300"
+                              : "bg-white/10 text-white/60"
+                          }`}
+                        >
+                          {m.autoRenew ? "ON" : "OFF"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-white/60">{formatDate(m.nextBillingAt)}</td>
+                      <td className="px-4 py-3 text-white/60">
+                        {m.cancelAtPeriodEnd ? "canceled" : (m.renewalStatus ?? "—")}
+                      </td>
+                      <td className="px-4 py-3 text-white/60">{m.renewalAttempts}</td>
+                    </tr>
+                  ))}
+                  {!bog.members.length && (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-white/40">
+                        No Bank of Georgia memberships.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="mt-8 text-lg font-semibold">Recent renewal charges</h3>
+            <div className="mt-3 overflow-x-auto rounded-2xl border border-white/10">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-white/[0.03] text-left text-white/60">
+                    <th className="px-4 py-3 font-semibold">User</th>
+                    <th className="px-4 py-3 font-semibold">Plan</th>
+                    <th className="px-4 py-3 font-semibold">Amount</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Attempt</th>
+                    <th className="px-4 py-3 font-semibold">Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bog.recentRenewalOrders.map((o) => (
+                    <tr key={o.id} className="border-t border-white/5">
+                      <td className="px-4 py-3 text-white/80">
+                        {o.email || o.userId.slice(0, 8)}
+                      </td>
+                      <td className="px-4 py-3 text-white/80">{o.plan}</td>
+                      <td className="px-4 py-3 text-white/80">
+                        {o.amount.toFixed(2)} {o.currency}
+                      </td>
+                      <td className="px-4 py-3 text-white/60">{o.status}</td>
+                      <td className="px-4 py-3 text-white/60">{o.attemptNo}</td>
+                      <td className="px-4 py-3 text-white/60">{formatDate(o.createdAt)}</td>
+                    </tr>
+                  ))}
+                  {!bog.recentRenewalOrders.length && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-white/40">
+                        No renewal charges yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
         )}
       </main>
     </div>

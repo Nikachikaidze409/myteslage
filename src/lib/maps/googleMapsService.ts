@@ -125,6 +125,27 @@ function detectVector(google: any, map: any): boolean {
   }
 }
 
+/**
+ * Raster styling per profile: fewer labels and POIs mean fewer tiles to draw
+ * and fewer DOM/label passes on weak renderers.
+ */
+function styleFor(density: ProfileSettings["labelDensity"]): unknown[] {
+  if (density === "full") return LIGHT_STYLE;
+  const trimmed: unknown[] = [
+    ...LIGHT_STYLE,
+    { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
+    { featureType: "transit", stylers: [{ visibility: "off" }] },
+  ];
+  if (density === "minimal") {
+    trimmed.push(
+      { featureType: "road.local", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "administrative.neighborhood", stylers: [{ visibility: "off" }] },
+      { featureType: "landscape.man_made", stylers: [{ visibility: "off" }] },
+    );
+  }
+  return trimmed;
+}
+
 /** Only used when the Map ID cannot be applied (raster fallback). */
 const LIGHT_STYLE = [
   { elementType: "geometry", stylers: [{ color: "#f1f5f9" }] },

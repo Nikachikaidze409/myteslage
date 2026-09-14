@@ -603,6 +603,10 @@ function Index() {
     setNavigating(false);
     setOffRoute(false);
     lastRouteOriginRef.current = null;
+    // A genuinely new destination is a fresh start for the retry policy.
+    initialRetryRef.current = resetRetry();
+    rerouteRetryRef.current = resetRetry();
+    setManualRetry(false);
     if (!destination) {
       setRouteError(null);
       return;
@@ -623,16 +627,33 @@ function Index() {
     if (hudMode) return;
     const routeFix = lastRouteUsableFixRef.current;
     if (!destination || !routeFix) return;
+    // A deliberate settings change is also a fresh start.
+    initialRetryRef.current = resetRetry();
+    setManualRetry(false);
     requestRoute(routeFix, destination, { silent: true, avoid, waypoints });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avoid, waypoints, prefs.avoidUnpaved]);
 
+  // Initial route missing: retry, but on an explicit backoff schedule.
+  // `fix` is a dependency, so without the guard below this effect would fire a
+  // paid Google request on EVERY GPS update whenever a request failed.
   useEffect(() => {
     if (hudMode) return;
     const routeFix = lastRouteUsableFixRef.current;
     if (!destination || !routeFix || route || routeLoading) return;
+    if (!canAttempt(initialRetryRef.current, Date.now())) return;
     requestRoute(routeFix, destination);
-  }, [destination, fix, route, routeLoading, requestRoute]);
+  }, [destination, fix, route, routeLoading, requestRoute, retryTick, hudMode]);
+
+  // Explicit driver action after automatic retries stopped.
+  const retryRouteNow = useCallback(() => {
+    const routeFix = lastRouteUsableFixRef.current;
+    if (!destination || !routeFix) return;
+    initialRetryRef.current = resetRetry();
+    setManualRetry(false);
+    requestRoute(routeFix, destination);
+  }, [destination, requestRoute]);
+
 
   // The map engine owns off-route detection (it matches against the real
   // route geometry every frame and calls onRerouteNeeded). This effect only

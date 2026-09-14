@@ -8,6 +8,7 @@
 
 import { pointAtAlong, remainingMeters, bearingBetween, type Projection } from "@/lib/route-progress";
 import type { RouteStep } from "@/lib/routes.functions";
+import { PROFILES, type ProfileSettings } from "@/lib/perf/profileConfig";
 import { CameraEngine } from "./cameraEngine";
 import { rememberCenter } from "./googleMapsService";
 import { GpsEngine, type GpsState, type RawFix } from "./gpsEngine";

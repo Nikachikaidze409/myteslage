@@ -7,6 +7,7 @@ export function RoutePreview({
   error,
   offRoute,
   offline,
+  onRetry,
 }: {
   route: RouteResult | null;
   destinationName: string | null;
@@ -14,6 +15,8 @@ export function RoutePreview({
   error: string | null;
   offRoute?: boolean;
   offline?: boolean;
+  /** Shown only after automatic retries stopped: the driver asks explicitly. */
+  onRetry?: (() => void) | null;
 }) {
   if (!destinationName && !loading && !route && !error) return null;
   return (
@@ -24,6 +27,16 @@ export function RoutePreview({
         </div>
       )}
       {error && <div className="text-sm text-[color:var(--bad)]">{error}</div>}
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-3 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+        >
+          Try again
+        </button>
+      )}
+
       {route && (
         <>
           <div className="flex items-end justify-between">

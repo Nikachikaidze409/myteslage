@@ -438,6 +438,22 @@ export function MapView({
     };
   }, [bootAttempt]);
 
+  // ---- controlled renderer fallback --------------------------------------
+  // Google cannot switch rendering type on a live map, so a vector -> raster
+  // downgrade performs exactly ONE clean reinitialization: the effect above
+  // tears down engine, renderers and listeners, the map is recreated with the
+  // new rendering type, and every navigation input (route polyline, steps,
+  // destination, waypoints, alternates, current fix, navigating flag) is
+  // re-applied by the effects below because they all depend on `mapReady`.
+  // No Routes or Places request is made by this: only local state is replayed.
+  useEffect(() => {
+    const want = settingsFor(profile).rendering;
+    if (!bootedRenderingRef.current || bootedRenderingRef.current === want) return;
+    setRetrying(true);
+    setMapError(null);
+    setBootAttempt((n) => n + 1);
+  }, [profile]);
+
   // ---- engine inputs -----------------------------------------------------
   useEffect(() => {
     if (!fix) return;

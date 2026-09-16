@@ -14,7 +14,7 @@ export const Route = createFileRoute("/pricing")({
       {
         name: "description",
         content:
-          "8 ₾/month or 21.60 ₾ every 3 months (save 10%). Live navigation for imported Teslas in Georgia.",
+          "8 ₾/month, 21.60 ₾ every 3 months, or 85 ₾ a year. Live navigation for imported Teslas in Georgia.",
       },
     ],
   }),
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/pricing")({
 
 function PricingPage() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState<Plan>("quarterly");
+  const [selected, setSelected] = useState<Plan>("annual");
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [noMembership, setNoMembership] = useState(false);
 

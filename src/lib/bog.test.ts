@@ -55,7 +55,7 @@ describe("order payload is built server-side only", () => {
 
   it("the checkout input schema accepts only a plan name", () => {
     const fn = src("lib/bog.functions.ts");
-    expect(fn).toContain('z.object({ plan: z.enum(["monthly", "quarterly"]) })');
+    expect(fn).toContain('z.object({ plan: z.enum(["monthly", "quarterly", "annual"]) })');
     expect(fn).not.toMatch(/amount:\s*z\./);
     expect(fn).not.toMatch(/currency:\s*z\./);
   });

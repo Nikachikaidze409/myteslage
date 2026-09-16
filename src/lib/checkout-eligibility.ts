@@ -8,16 +8,17 @@
 
 import { isMembershipRowValid, type MembershipRow, type PaddleEnv } from "./membership";
 
-export type PlanKey = "monthly" | "quarterly";
+export type PlanKey = "monthly" | "quarterly" | "annual";
 export type Provider = "bog" | "paddle";
 
 /** Trusted GEL price list (mirrors BOG_PLANS; kept pure for tests). */
 export const PLAN_PRICES_GEL: Record<PlanKey, number> = {
   monthly: 8.0,
   quarterly: 21.6,
+  annual: 85.0,
 };
 
-const PLAN_RANK: Record<PlanKey, number> = { monthly: 1, quarterly: 2 };
+const PLAN_RANK: Record<PlanKey, number> = { monthly: 1, quarterly: 2, annual: 3 };
 
 /** How long a pending checkout blocks a second one before it is abandoned. */
 export const PENDING_CHECKOUT_TTL_MS = 30 * 60 * 1000;
@@ -31,6 +32,7 @@ export function planFromProductId(productId: string | null | undefined): PlanKey
   if (!productId) return null;
   if (productId.endsWith("monthly")) return "monthly";
   if (productId.endsWith("quarterly")) return "quarterly";
+  if (productId.endsWith("annual")) return "annual";
   return null;
 }
 

@@ -16,6 +16,7 @@ function planLabel(priceId: string | null): string {
   if (!priceId) return "None";
   if (priceId.includes("monthly")) return "Monthly";
   if (priceId.includes("quarterly")) return "3 months";
+  if (priceId.includes("annual")) return "1 year";
   return priceId;
 }
 

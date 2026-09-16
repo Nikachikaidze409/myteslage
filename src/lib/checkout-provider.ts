@@ -5,18 +5,19 @@
  */
 
 export type PaymentProvider = "bog" | "paddle";
-export type Plan = "monthly" | "quarterly";
+export type Plan = "monthly" | "quarterly" | "annual";
 
 export const PROVIDER_KEY = "tsl.payment-provider";
 
 export const PROVIDER_PRICES: Record<PaymentProvider, Record<Plan, string>> = {
-  bog: { monthly: "8 ₾", quarterly: "21.60 ₾" },
-  paddle: { monthly: "$2.99", quarterly: "$7.99" },
+  bog: { monthly: "8 ₾", quarterly: "21.60 ₾", annual: "85 ₾" },
+  paddle: { monthly: "$2.99", quarterly: "$7.99", annual: "$31.99" },
 };
 
 export const PADDLE_PRICE_IDS: Record<Plan, string> = {
   monthly: "tesla_map_georgia_monthly",
   quarterly: "tesla_map_georgia_quarterly",
+  annual: "tesla_map_georgia_annual",
 };
 
 export const PROVIDER_LABELS: Record<PaymentProvider, { label: string; sublabel: string }> = {

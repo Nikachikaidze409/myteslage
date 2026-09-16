@@ -105,6 +105,18 @@ const T = {
       "პრიორიტეტული მხარდაჭერა",
     ],
     quarterlyCta: "დაზოგე 10% →",
+    annualTitle: "1 წელი წინასწარ",
+    annualTotal: " სულ",
+    annualSub: "7.08 ₾/თვე · დაზოგე 11%",
+    annualTag: "საუკეთესო ღირებულება",
+    annualFeatures: [
+      "ყველაფერი Monthly-დან",
+      "11% ფასდაკლება ყოველთვიურთან შედარებით",
+      "ერთი გადახდა, მთელი წელი",
+      "პრიორიტეტული მხარდაჭერა",
+    ],
+    annualCta: "დაზოგე 11% →",
+    annualBadge: "დაზოგე 11%",
     saveBadge: "დაზოგე 10%",
     pricingFoot:
       "შედარება: Tesla Premium Connectivity ≈ 300 ₾/წელი და მაინც არ მარშრუტდება საქართველოში.",
@@ -183,6 +195,18 @@ const T = {
       "Priority support",
     ],
     quarterlyCta: "Save 10% →",
+    annualTitle: "1 year upfront",
+    annualTotal: " total",
+    annualSub: "7.08 ₾/mo · save 11%",
+    annualTag: "Best value",
+    annualFeatures: [
+      "Everything in Monthly",
+      "11% off vs paying month-to-month",
+      "One payment, a full year",
+      "Priority support",
+    ],
+    annualCta: "Save 11% →",
+    annualBadge: "Save 11%",
     saveBadge: "Save 10%",
     pricingFoot:
       "Compare: Tesla Premium Connectivity ≈ 300 ₾/year and still doesn't route Georgia.",
@@ -334,7 +358,7 @@ function Landing() {
             </h2>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid gap-5 md:grid-cols-3">
             <PricingCard
               title={t.monthlyTitle}
               price="8 ₾"
@@ -345,7 +369,6 @@ function Landing() {
               to="/pricing"
             />
             <PricingCard
-              highlighted
               title={t.quarterlyTitle}
               price="21.60 ₾"
               period={t.quarterlyTotal}
@@ -354,6 +377,18 @@ function Landing() {
               features={t.quarterlyFeatures}
               cta={t.quarterlyCta}
               badgeLabel={t.saveBadge}
+              to="/pricing"
+            />
+            <PricingCard
+              highlighted
+              title={t.annualTitle}
+              price="85 ₾"
+              period={t.annualTotal}
+              subprice={t.annualSub}
+              tag={t.annualTag}
+              features={t.annualFeatures}
+              cta={t.annualCta}
+              badgeLabel={t.annualBadge}
               to="/pricing"
             />
           </div>

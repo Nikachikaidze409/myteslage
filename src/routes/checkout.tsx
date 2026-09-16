@@ -22,6 +22,7 @@ const PLAN_KEY = "tsl.pending-plan";
 const PLANS: Record<Plan, { label: string; period: string }> = {
   monthly: { label: "Monthly", period: "per month" },
   quarterly: { label: "3 months · save 10%", period: "every 3 months" },
+  annual: { label: "1 year · save 11%", period: "per year" },
 };
 
 export const Route = createFileRoute("/checkout")({
@@ -75,7 +76,7 @@ function Checkout() {
       setError("The payment was not completed. You can try again below.");
     }
     const stored = window.localStorage.getItem(PLAN_KEY);
-    if (stored === "monthly" || stored === "quarterly") setPlan(stored);
+    if (stored === "monthly" || stored === "quarterly" || stored === "annual") setPlan(stored);
     setProvider(readStoredProvider(window.localStorage.getItem(PROVIDER_KEY)));
 
 
@@ -318,6 +319,8 @@ function Checkout() {
           <button type="button" onClick={() => setPlan("monthly")} className={plan === "monthly" ? "text-white" : "hover:text-white"}>Monthly</button>
           <span aria-hidden>·</span>
           <button type="button" onClick={() => setPlan("quarterly")} className={plan === "quarterly" ? "text-white" : "hover:text-white"}>3 months</button>
+          <span aria-hidden>·</span>
+          <button type="button" onClick={() => setPlan("annual")} className={plan === "annual" ? "text-white" : "hover:text-white"}>1 year</button>
         </div>
       </main>
     </div>

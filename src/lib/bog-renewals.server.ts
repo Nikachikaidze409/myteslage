@@ -333,5 +333,6 @@ function planOf(productId: string | null): PlanKey | null {
   if (!productId) return null;
   if (productId.endsWith("monthly")) return "monthly";
   if (productId.endsWith("quarterly")) return "quarterly";
+  if (productId.endsWith("annual")) return "annual";
   return null;
 }

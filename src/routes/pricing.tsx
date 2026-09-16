@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AccountBar } from "@/components/AccountBar";
 
-type Plan = "monthly" | "quarterly";
+type Plan = "monthly" | "quarterly" | "annual";
 const PLAN_KEY = "tsl.pending-plan";
 
 export const Route = createFileRoute("/pricing")({
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/pricing")({
       {
         name: "description",
         content:
-          "8 ₾/month or 21.60 ₾ every 3 months (save 10%). Live navigation for imported Teslas in Georgia.",
+          "8 ₾/month, 21.60 ₾ every 3 months, or 85 ₾ a year. Live navigation for imported Teslas in Georgia.",
       },
     ],
   }),
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/pricing")({
 
 function PricingPage() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState<Plan>("quarterly");
+  const [selected, setSelected] = useState<Plan>("annual");
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [noMembership, setNoMembership] = useState(false);
 
@@ -79,7 +79,7 @@ function PricingPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-5 md:grid-cols-2">
+        <div className="mt-12 grid gap-5 md:grid-cols-3">
           <PlanCard
             plan="monthly"
             selected={selected === "monthly"}
@@ -97,8 +97,19 @@ function PricingPage() {
             title="3 months"
             price="21.60 ₾"
             period="every 3 months"
-            subtitle="10% off - best value"
+            subtitle="10% off"
             perMonth="7.20 ₾/mo"
+          />
+          <PlanCard
+            plan="annual"
+            selected={selected === "annual"}
+            onSelect={() => setSelected("annual")}
+            title="1 year"
+            price="85 ₾"
+            period="per year"
+            subtitle="Best value - one payment a year"
+            perMonth="7.08 ₾/mo"
+            badge="Save 11%"
             highlighted
           />
         </div>
@@ -157,6 +168,7 @@ function PlanCard({
   period,
   subtitle,
   perMonth,
+  badge,
   highlighted,
 }: {
   plan: Plan;
@@ -167,6 +179,7 @@ function PlanCard({
   period: string;
   subtitle: string;
   perMonth: string;
+  badge?: string;
   highlighted?: boolean;
 }) {
   return (
@@ -179,9 +192,9 @@ function PlanCard({
           : "border-white/10 bg-white/[0.02] hover:border-white/25"
       }`}
     >
-      {highlighted && (
+      {(badge ?? (highlighted ? "Save 10%" : null)) && (
         <div className="absolute -top-3 left-6 rounded-full bg-[#e9b149] px-3 py-1 text-[11px] font-black uppercase tracking-widest text-black">
-          Save 10%
+          {badge ?? "Save 10%"}
         </div>
       )}
       <div className="flex items-start justify-between">

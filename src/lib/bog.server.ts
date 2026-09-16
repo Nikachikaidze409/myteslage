@@ -29,7 +29,7 @@ export const BOG_FAIL_URL = "https://teslanavi.online/checkout?payment=failed";
  * Trusted plan configuration. The browser may only name a plan key.
  * ------------------------------------------------------------------ */
 
-export type PlanKey = "monthly" | "quarterly";
+export type PlanKey = "monthly" | "quarterly" | "annual";
 
 export interface BogPlan {
   id: string;
@@ -54,10 +54,17 @@ export const BOG_PLANS: Record<PlanKey, BogPlan> = {
     durationMonths: 3,
     description: "TeslaNavi membership — 3 months",
   },
+  annual: {
+    id: "tesla_map_georgia_annual",
+    amount: 85.0,
+    currency: "GEL",
+    durationMonths: 12,
+    description: "TeslaNavi membership — 1 year",
+  },
 };
 
 export function isPlanKey(value: unknown): value is PlanKey {
-  return value === "monthly" || value === "quarterly";
+  return value === "monthly" || value === "quarterly" || value === "annual";
 }
 
 /** Formats an amount the way BOG expects it in JSON (2 decimals, number). */
@@ -430,6 +437,7 @@ export function verifyCallbackSignature(rawBody: string, signature: string | nul
 export const BOG_RECURRING_AMOUNTS: Record<PlanKey, number> = {
   monthly: 8.0,
   quarterly: 21.6,
+  annual: 85.0,
 };
 
 /**

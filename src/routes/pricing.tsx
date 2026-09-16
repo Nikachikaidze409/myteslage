@@ -168,6 +168,7 @@ function PlanCard({
   period,
   subtitle,
   perMonth,
+  badge,
   highlighted,
 }: {
   plan: Plan;
@@ -178,6 +179,7 @@ function PlanCard({
   period: string;
   subtitle: string;
   perMonth: string;
+  badge?: string;
   highlighted?: boolean;
 }) {
   return (
@@ -190,9 +192,9 @@ function PlanCard({
           : "border-white/10 bg-white/[0.02] hover:border-white/25"
       }`}
     >
-      {highlighted && (
+      {(badge ?? (highlighted ? "Save 10%" : null)) && (
         <div className="absolute -top-3 left-6 rounded-full bg-[#e9b149] px-3 py-1 text-[11px] font-black uppercase tracking-widest text-black">
-          Save 10%
+          {badge ?? "Save 10%"}
         </div>
       )}
       <div className="flex items-start justify-between">

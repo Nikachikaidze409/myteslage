@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AccountBar } from "@/components/AccountBar";
 
-type Plan = "monthly" | "quarterly";
+type Plan = "monthly" | "quarterly" | "annual";
 const PLAN_KEY = "tsl.pending-plan";
 
 export const Route = createFileRoute("/pricing")({
@@ -79,7 +79,7 @@ function PricingPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-5 md:grid-cols-2">
+        <div className="mt-12 grid gap-5 md:grid-cols-3">
           <PlanCard
             plan="monthly"
             selected={selected === "monthly"}
@@ -97,8 +97,19 @@ function PricingPage() {
             title="3 months"
             price="21.60 ₾"
             period="every 3 months"
-            subtitle="10% off - best value"
+            subtitle="10% off"
             perMonth="7.20 ₾/mo"
+          />
+          <PlanCard
+            plan="annual"
+            selected={selected === "annual"}
+            onSelect={() => setSelected("annual")}
+            title="1 year"
+            price="85 ₾"
+            period="per year"
+            subtitle="Best value - one payment a year"
+            perMonth="7.08 ₾/mo"
+            badge="Save 11%"
             highlighted
           />
         </div>

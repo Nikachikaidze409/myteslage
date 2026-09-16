@@ -95,7 +95,7 @@ function AuthPage() {
   function nextDest(): "/checkout" | "/map" {
     if (typeof window === "undefined") return "/map";
     const p = window.localStorage.getItem("tsl.pending-plan");
-    return p === "monthly" || p === "quarterly" ? "/checkout" : "/map";
+    return p === "monthly" || p === "quarterly" || p === "annual" ? "/checkout" : "/map";
   }
 
   return (

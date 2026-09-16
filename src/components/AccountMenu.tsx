@@ -155,7 +155,11 @@ export function AccountMenu({ signOutLabel = "Sign out" }: { signOutLabel?: stri
               <div>
                 <span className="text-white/50">გეგმა: </span>
                 <span className="font-semibold text-white">
-                  {membership.plan === "quarterly" ? "3 თვე" : "1 თვე"}
+                  {membership.plan === "annual"
+                    ? "1 წელი"
+                    : membership.plan === "quarterly"
+                      ? "3 თვე"
+                      : "1 თვე"}
                 </span>
               </div>
               <div>

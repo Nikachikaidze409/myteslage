@@ -358,7 +358,7 @@ function Landing() {
             </h2>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid gap-5 md:grid-cols-3">
             <PricingCard
               title={t.monthlyTitle}
               price="8 ₾"
@@ -369,7 +369,6 @@ function Landing() {
               to="/pricing"
             />
             <PricingCard
-              highlighted
               title={t.quarterlyTitle}
               price="21.60 ₾"
               period={t.quarterlyTotal}
@@ -378,6 +377,18 @@ function Landing() {
               features={t.quarterlyFeatures}
               cta={t.quarterlyCta}
               badgeLabel={t.saveBadge}
+              to="/pricing"
+            />
+            <PricingCard
+              highlighted
+              title={t.annualTitle}
+              price="85 ₾"
+              period={t.annualTotal}
+              subprice={t.annualSub}
+              tag={t.annualTag}
+              features={t.annualFeatures}
+              cta={t.annualCta}
+              badgeLabel={t.annualBadge}
               to="/pricing"
             />
           </div>

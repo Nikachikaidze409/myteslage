@@ -13,16 +13,16 @@ import type {
  * The browser may only name a plan and a provider. Amounts, credits, currency
  * and product ids all come from the trusted server-side tables.
  */
-const planSchema = z.object({ plan: z.enum(["monthly", "quarterly"]) });
+const planSchema = z.object({ plan: z.enum(["monthly", "quarterly", "annual"]) });
 const eligibilitySchema = z.object({
   provider: z.enum(["bog", "paddle"]),
-  plan: z.enum(["monthly", "quarterly"]),
+  plan: z.enum(["monthly", "quarterly", "annual"]),
 });
 
 /** Loads the trusted membership + pending-checkout state and decides. */
 async function resolveEligibility(
   context: { supabase: SupabaseClient<Database>; userId: string },
-  input: { provider: "bog" | "paddle"; plan: "monthly" | "quarterly" },
+  input: { provider: "bog" | "paddle"; plan: "monthly" | "quarterly" | "annual" },
 ): Promise<Eligibility> {
   const { decideCheckoutEligibility, PENDING_CHECKOUT_TTL_MS } =
     await import("@/lib/checkout-eligibility");

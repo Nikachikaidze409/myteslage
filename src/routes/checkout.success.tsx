@@ -18,6 +18,19 @@ export const Route = createFileRoute("/checkout/success")({
   }),
 });
 
+/** Display price of the plan the visitor chose, in USD, for Paddle reporting. */
+function paddlePlanValue(): number {
+  let plan: Plan = "quarterly";
+  try {
+    const stored = window.localStorage.getItem("tsl.pending-plan");
+    if (stored === "monthly" || stored === "quarterly" || stored === "annual") plan = stored;
+  } catch {
+    /* storage unavailable — fall back to the default plan price */
+  }
+  const parsed = Number(PROVIDER_PRICES.paddle[plan].replace(/[^0-9.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function CheckoutSuccess() {
   // The redirect back from the bank is not proof of payment — only the
   // verified callback, reflected in our own database, activates a membership.

@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { getBogPaymentState, getMembershipState } from "@/lib/bog.functions";
+import { paddlePurchaseRecentlyTracked, trackPurchaseOnce } from "@/lib/meta-pixel";
+import { PROVIDER_PRICES, type Plan } from "@/lib/checkout-provider";
 
 export const Route = createFileRoute("/checkout/success")({
   component: CheckoutSuccess,

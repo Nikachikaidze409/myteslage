@@ -210,9 +210,9 @@ describe("receipt parsing and renewal verification", () => {
     });
     expect(d.statusKey).toBe("completed");
     expect(d.savedCardType).toBeNull();
-    // The callback activates membership and only then decides auto-renew.
+    // Every successful first payment enables auto-renew (prorated upgrades excluded).
     const cb = src("routes/api/public/payments/bog/callback.ts");
-    expect(cb).toContain('details.savedCardType === "subscription"');
+    expect(cb).toContain("canBeAutoRenewParent(order.pricing_reason");
     expect(cb).toContain("auto_renew: autoRenew");
     expect(cb).toContain("provider_parent_order_id: autoRenew ? orderId : null");
   });

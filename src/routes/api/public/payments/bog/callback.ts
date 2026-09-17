@@ -110,12 +110,9 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
         const planConfig = BOG_PLANS[plan];
         const periodEnd = computePeriodEnd(plan, start);
 
-        // Auto-renew is NEVER inferred from the save-card 202: only BOG's own
-        // receipt proves a saved-card subscription exists. A prorated upgrade is
-        // never allowed to become a parent — BOG would reuse its discounted amount.
-        const autoRenew =
-          details.savedCardType === "subscription" &&
-          canBeAutoRenewParent(order.pricing_reason, Number(order.amount), plan);
+        // Every successful first payment enables auto-renew. A prorated upgrade is
+        // still never allowed to become a parent — BOG would reuse its discounted amount.
+        const autoRenew = canBeAutoRenewParent(order.pricing_reason, Number(order.amount), plan);
 
         // Recovery-safe: a previous attempt may have inserted the subscription and then
         // failed before the payment order was settled. Never insert twice, and never

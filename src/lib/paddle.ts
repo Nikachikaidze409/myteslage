@@ -1,5 +1,6 @@
 import { resolvePaddlePrice } from "@/lib/payments.functions";
 import { resolvePaddleEnvironment } from "@/lib/membership";
+import { trackPurchaseOnce } from "@/lib/meta-pixel";
 
 const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
 

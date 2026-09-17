@@ -40,7 +40,7 @@ export function AccountMenu({ signOutLabel = "Sign out" }: { signOutLabel?: stri
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [membership, setMembership] = useState<SubscriptionSummary | null>(null);
-  const [canceling, setCanceling] = useState(false);
+  
   const boxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {

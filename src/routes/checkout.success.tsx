@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { getBogPaymentState, getMembershipState } from "@/lib/bog.functions";
+import { paddlePurchaseRecentlyTracked, trackPurchaseOnce } from "@/lib/meta-pixel";
+import { PROVIDER_PRICES, type Plan } from "@/lib/checkout-provider";
 
 export const Route = createFileRoute("/checkout/success")({
   component: CheckoutSuccess,
@@ -15,6 +17,19 @@ export const Route = createFileRoute("/checkout/success")({
     ],
   }),
 });
+
+/** Display price of the plan the visitor chose, in USD, for Paddle reporting. */
+function paddlePlanValue(): number {
+  let plan: Plan = "quarterly";
+  try {
+    const stored = window.localStorage.getItem("tsl.pending-plan");
+    if (stored === "monthly" || stored === "quarterly" || stored === "annual") plan = stored;
+  } catch {
+    /* storage unavailable — fall back to the default plan price */
+  }
+  const parsed = Number(PROVIDER_PRICES.paddle[plan].replace(/[^0-9.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 function CheckoutSuccess() {
   // The redirect back from the bank is not proof of payment — only the
@@ -41,6 +56,13 @@ function CheckoutSuccess() {
           const result = await getBogPaymentState({ data: { externalOrderId } });
           if (cancelled) return;
           if (result.state === "completed") {
+            // Verified by the bank and reflected in our own database: this is
+            // the exact moment the membership becomes active in the browser.
+            trackPurchaseOnce(
+              `bog:${externalOrderId}`,
+              Number(result.amount ?? 0),
+              result.currency ?? "GEL",
+            );
             setState("active");
             return;
           }
@@ -54,6 +76,12 @@ function CheckoutSuccess() {
           const result = await getMembershipState({ data: { provider: "paddle" } });
           if (cancelled) return;
           if (result.active) {
+            // Backup for the Paddle overlay callback: only fires when the
+            // overlay event did not already report this payment.
+            if (!paddlePurchaseRecentlyTracked()) {
+              const value = paddlePlanValue();
+              if (value > 0) trackPurchaseOnce(`paddle-membership:${Date.now()}`, value, "USD");
+            }
             setState("active");
             return;
           }

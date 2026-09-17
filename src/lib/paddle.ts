@@ -1,5 +1,6 @@
 import { resolvePaddlePrice } from "@/lib/payments.functions";
 import { resolvePaddleEnvironment } from "@/lib/membership";
+import { trackPurchaseOnce } from "@/lib/meta-pixel";
 
 const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
 
@@ -30,7 +31,20 @@ export function initializePaddle(): Promise<void> {
         return;
       }
       window.Paddle.Environment.set(getPaddleEnvironment() === "sandbox" ? "sandbox" : "production");
-      window.Paddle.Initialize({ token: clientToken });
+      window.Paddle.Initialize({
+        token: clientToken,
+        // Paddle tells us the moment the overlay payment completes, so the
+        // Purchase event is reported even if the user never reaches the
+        // success page. trackPurchaseOnce de-duplicates by transaction id.
+        eventCallback: (event: any) => {
+          if (event?.name !== "checkout.completed") return;
+          const data = event.data ?? {};
+          const value = Number(data.totals?.total ?? data.totals?.grand_total);
+          const currency = String(data.currency_code ?? "USD");
+          const id = String(data.transaction_id ?? data.id ?? "");
+          if (id && Number.isFinite(value)) trackPurchaseOnce(`paddle:${id}`, value, currency);
+        },
+      });
       paddleInitialized = true;
       resolve();
     };

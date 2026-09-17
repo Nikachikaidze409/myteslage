@@ -63,6 +63,12 @@ function CheckoutSuccess() {
           const result = await getMembershipState({ data: { provider: "paddle" } });
           if (cancelled) return;
           if (result.active) {
+            // Backup for the Paddle overlay callback: only fires when the
+            // overlay event did not already report this payment.
+            if (!paddlePurchaseRecentlyTracked()) {
+              const value = paddlePlanValue();
+              if (value > 0) trackPurchaseOnce(`paddle-membership:${Date.now()}`, value, "USD");
+            }
             setState("active");
             return;
           }

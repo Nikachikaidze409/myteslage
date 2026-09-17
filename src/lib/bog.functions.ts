@@ -214,16 +214,22 @@ export const getBogPaymentState = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: row } = await context.supabase
       .from("payment_orders")
-      .select("status")
+      .select("status, amount, final_amount, currency")
       .eq("user_id", context.userId)
       .eq("provider", "bog")
       .eq("external_order_id", data.externalOrderId)
       .maybeSingle();
 
-    if (!row) return { state: "pending" as const };
+    if (!row) return { state: "pending" as const, amount: null, currency: null };
     const status =
       row.status === "completed" ? "completed" : row.status === "failed" ? "failed" : "pending";
-    return { state: status as "pending" | "completed" | "failed" };
+    // Amount actually charged (server-trusted), used for conversion reporting.
+    const charged = Number(row.final_amount ?? row.amount);
+    return {
+      state: status as "pending" | "completed" | "failed",
+      amount: Number.isFinite(charged) ? charged : null,
+      currency: (row.currency as string | null) ?? "GEL",
+    };
   });
 
 /**

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { cancelBogAutoRenew, getBogSubscriptionSummary } from "@/lib/bog.functions";
+import { getBogSubscriptionSummary } from "@/lib/bog.functions";
 
 interface SubscriptionSummary {
   active: boolean;

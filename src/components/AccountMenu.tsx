@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { cancelBogAutoRenew, getBogSubscriptionSummary } from "@/lib/bog.functions";
+import { getBogSubscriptionSummary } from "@/lib/bog.functions";
 
 interface SubscriptionSummary {
   active: boolean;
@@ -40,7 +40,7 @@ export function AccountMenu({ signOutLabel = "Sign out" }: { signOutLabel?: stri
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [membership, setMembership] = useState<SubscriptionSummary | null>(null);
-  const [canceling, setCanceling] = useState(false);
+  
   const boxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -175,23 +175,6 @@ export function AccountMenu({ signOutLabel = "Sign out" }: { signOutLabel?: stri
                 <>
                   <div>ავტომატური განახლება: ჩართულია</div>
                   <div>შემდეგი გადახდა: {geoDate(membership.nextBillingAt)}</div>
-                  <button
-                    type="button"
-                    disabled={canceling}
-                    onClick={() => {
-                      setCanceling(true);
-                      void cancelBogAutoRenew()
-                        .then(() =>
-                          setMembership((m) =>
-                            m ? { ...m, autoRenew: false, canceled: true, nextBillingAt: null } : m,
-                          ),
-                        )
-                        .finally(() => setCanceling(false));
-                    }}
-                    className="mt-2 w-full rounded-lg border border-white/15 px-3 py-1.5 font-semibold text-white hover:bg-white/10 disabled:opacity-60"
-                  >
-                    {canceling ? "…" : "ავტომატური განახლების გაუქმება"}
-                  </button>
                 </>
               ) : membership.canceled ? (
                 <>

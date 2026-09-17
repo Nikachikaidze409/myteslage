@@ -43,6 +43,13 @@ function CheckoutSuccess() {
           const result = await getBogPaymentState({ data: { externalOrderId } });
           if (cancelled) return;
           if (result.state === "completed") {
+            // Verified by the bank and reflected in our own database: this is
+            // the exact moment the membership becomes active in the browser.
+            trackPurchaseOnce(
+              `bog:${externalOrderId}`,
+              Number(result.amount ?? 0),
+              result.currency ?? "GEL",
+            );
             setState("active");
             return;
           }

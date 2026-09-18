@@ -106,11 +106,12 @@ function AdminPage() {
       setGate("ok");
       void refetch();
       void refetchBog();
+      void refetchSubs();
     })();
     return () => {
       alive = false;
     };
-  }, [navigate, refetch, refetchBog]);
+  }, [navigate, refetch, refetchBog, refetchSubs]);
 
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => {
@@ -197,6 +198,7 @@ function AdminPage() {
               onClick={() => {
                 void refetch();
                 void refetchBog();
+                void refetchSubs();
               }}
               className="rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
             >

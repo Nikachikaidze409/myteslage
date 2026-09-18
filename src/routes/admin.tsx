@@ -6,8 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   listRegistrations,
   bogSubscriptionOverview,
+  listSubscribers,
+  cancelSubscriptionAtPeriodEnd,
   type RegistrationRow,
   type BogOverview,
+  type SubscriberRow,
 } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin")({

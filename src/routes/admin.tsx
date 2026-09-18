@@ -6,8 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   listRegistrations,
   bogSubscriptionOverview,
+  listSubscribers,
+  cancelSubscriptionAtPeriodEnd,
   type RegistrationRow,
   type BogOverview,
+  type SubscriberRow,
 } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin")({
@@ -36,6 +39,47 @@ function AdminPage() {
     queryFn: () => overviewFn(),
     enabled: false,
   });
+  const subsFn = useServerFn(listSubscribers);
+  const {
+    data: subscribers,
+    refetch: refetchSubs,
+    isFetching: subsLoading,
+  } = useQuery<SubscriberRow[]>({
+    queryKey: ["admin", "subscribers"],
+    queryFn: () => subsFn(),
+    enabled: false,
+  });
+  const cancelFn = useServerFn(cancelSubscriptionAtPeriodEnd);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [subQuery, setSubQuery] = useState("");
+
+  const handleCancel = async (row: SubscriberRow) => {
+    const who = row.email || row.fullName || row.userId.slice(0, 8);
+    if (!window.confirm(`გაუქმდეს ${who}-ის გამოწერა პერიოდის ბოლოს?`)) return;
+    setBusyId(row.id);
+    setCancelError(null);
+    try {
+      await cancelFn({ data: { subscriptionId: row.id } });
+      await refetchSubs();
+      void refetchBog();
+    } catch (e) {
+      setCancelError(e instanceof Error ? e.message : "Cancellation failed.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const filteredSubs = useMemo(() => {
+    const q = subQuery.trim().toLowerCase();
+    const rows = subscribers ?? [];
+    if (!q) return rows;
+    return rows.filter((r) =>
+      [r.email, r.fullName, r.provider, r.plan, r.status]
+        .filter(Boolean)
+        .some((v) => v!.toLowerCase().includes(q)),
+    );
+  }, [subscribers, subQuery]);
 
   // Client-side gate: must be signed in AND admin. Server function re-checks
   // the role, so this only controls UX.
@@ -62,11 +106,12 @@ function AdminPage() {
       setGate("ok");
       void refetch();
       void refetchBog();
+      void refetchSubs();
     })();
     return () => {
       alive = false;
     };
-  }, [navigate, refetch, refetchBog]);
+  }, [navigate, refetch, refetchBog, refetchSubs]);
 
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => {
@@ -153,6 +198,7 @@ function AdminPage() {
               onClick={() => {
                 void refetch();
                 void refetchBog();
+                void refetchSubs();
               }}
               className="rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
             >
@@ -229,6 +275,95 @@ function AdminPage() {
             </table>
           </div>
         )}
+        <section className="mt-12">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-bold">All subscriptions</h2>
+            <span className="text-sm text-white/50">
+              {filteredSubs.length} shown
+              {subscribers && filteredSubs.length !== subscribers.length
+                ? ` of ${subscribers.length}`
+                : ""}
+            </span>
+          </div>
+
+          <input
+            type="search"
+            value={subQuery}
+            onChange={(e) => setSubQuery(e.target.value)}
+            placeholder="Search subscriber, provider, plan…"
+            className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder-white/40 outline-none focus:border-[#3b82f6]"
+          />
+
+          {cancelError && (
+            <div className="mt-3 rounded-2xl border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-300">
+              {cancelError}
+            </div>
+          )}
+
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-white/[0.03] text-left text-white/60">
+                  <th className="px-4 py-3 font-semibold">Subscriber</th>
+                  <th className="px-4 py-3 font-semibold">Paid with</th>
+                  <th className="px-4 py-3 font-semibold">Plan</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Valid until</th>
+                  <th className="px-4 py-3 font-semibold">Renews</th>
+                  <th className="px-4 py-3 font-semibold text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSubs.map((s) => (
+                  <tr key={s.id} className="border-t border-white/5">
+                    <td className="px-4 py-3 text-white/80">
+                      {s.email || s.fullName || s.userId.slice(0, 8)}
+                    </td>
+                    <td className="px-4 py-3 text-white/60">
+                      {s.provider === "bog" ? "Bank of Georgia" : "Paddle"}
+                    </td>
+                    <td className="px-4 py-3 text-white/80">{s.plan}</td>
+                    <td className="px-4 py-3">
+                      <PaymentBadge status={s.status} />
+                    </td>
+                    <td className="px-4 py-3 text-white/60">{formatDate(s.validUntil)}</td>
+                    <td className="px-4 py-3 text-white/60">
+                      {s.cancelAtPeriodEnd
+                        ? "Ends at period end"
+                        : s.provider === "bog"
+                          ? s.autoRenew
+                            ? "Yes"
+                            : "No"
+                          : "Yes"}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {s.canCancel ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleCancel(s)}
+                          disabled={busyId === s.id}
+                          className="rounded-xl border border-red-400/40 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/10 disabled:opacity-50"
+                        >
+                          {busyId === s.id ? "Canceling…" : "Cancel at period end"}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-white/30">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {!filteredSubs.length && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-white/40">
+                      {subsLoading ? "Loading…" : "No subscriptions found."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         {bog && (
           <section className="mt-12">
             <h2 className="text-xl font-bold">Bank of Georgia subscriptions</h2>

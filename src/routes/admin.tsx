@@ -39,6 +39,47 @@ function AdminPage() {
     queryFn: () => overviewFn(),
     enabled: false,
   });
+  const subsFn = useServerFn(listSubscribers);
+  const {
+    data: subscribers,
+    refetch: refetchSubs,
+    isFetching: subsLoading,
+  } = useQuery<SubscriberRow[]>({
+    queryKey: ["admin", "subscribers"],
+    queryFn: () => subsFn(),
+    enabled: false,
+  });
+  const cancelFn = useServerFn(cancelSubscriptionAtPeriodEnd);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [subQuery, setSubQuery] = useState("");
+
+  const handleCancel = async (row: SubscriberRow) => {
+    const who = row.email || row.fullName || row.userId.slice(0, 8);
+    if (!window.confirm(`გაუქმდეს ${who}-ის გამოწერა პერიოდის ბოლოს?`)) return;
+    setBusyId(row.id);
+    setCancelError(null);
+    try {
+      await cancelFn({ data: { subscriptionId: row.id } });
+      await refetchSubs();
+      void refetchBog();
+    } catch (e) {
+      setCancelError(e instanceof Error ? e.message : "Cancellation failed.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const filteredSubs = useMemo(() => {
+    const q = subQuery.trim().toLowerCase();
+    const rows = subscribers ?? [];
+    if (!q) return rows;
+    return rows.filter((r) =>
+      [r.email, r.fullName, r.provider, r.plan, r.status]
+        .filter(Boolean)
+        .some((v) => v!.toLowerCase().includes(q)),
+    );
+  }, [subscribers, subQuery]);
 
   // Client-side gate: must be signed in AND admin. Server function re-checks
   // the role, so this only controls UX.

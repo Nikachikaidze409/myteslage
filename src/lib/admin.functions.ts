@@ -229,3 +229,140 @@ export const bogSubscriptionOverview = createServerFn({ method: "GET" })
 
     return { counts, members, recentRenewalOrders };
   });
+
+/* ------------------------------------------------------------------ *
+ * All subscribers (both providers) + admin cancellation at period end.
+ * ------------------------------------------------------------------ */
+
+export interface SubscriberRow {
+  id: string;
+  userId: string;
+  email: string | null;
+  fullName: string | null;
+  provider: string;
+  plan: string;
+  status: string;
+  validUntil: string | null;
+  autoRenew: boolean;
+  cancelAtPeriodEnd: boolean;
+  canCancel: boolean;
+}
+
+async function assertAdmin(context: { supabase: any; userId: string }) {
+  const { data: isAdmin, error } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
+  if (error) throw new Error("Could not verify admin role.");
+  if (!isAdmin) throw new Error("Forbidden");
+}
+
+export const listSubscribers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<SubscriberRow[]> => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: subs, error } = await supabaseAdmin
+      .from("subscriptions")
+      .select(
+        "id, user_id, provider, product_id, price_id, status, current_period_end, auto_renew, cancel_at_period_end, paddle_subscription_id",
+      )
+      .order("current_period_end", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const ids = [...new Set((subs ?? []).map((s) => s.user_id))];
+    const people = new Map<string, { email: string | null; full_name: string | null }>();
+    if (ids.length) {
+      const { data: profiles } = await supabaseAdmin
+        .from("profiles")
+        .select("id, email, full_name")
+        .in("id", ids);
+      for (const p of profiles ?? []) people.set(p.id, { email: p.email, full_name: p.full_name });
+    }
+
+    return (subs ?? []).map((s) => {
+      const person = people.get(s.user_id);
+      const provider = s.provider ?? "paddle";
+      const stillOpen =
+        !s.current_period_end || new Date(s.current_period_end).getTime() > Date.now();
+      return {
+        id: s.id,
+        userId: s.user_id,
+        email: person?.email ?? null,
+        fullName: person?.full_name ?? null,
+        provider,
+        plan: planLabel(s.product_id ?? s.price_id),
+        status: s.status,
+        validUntil: s.current_period_end,
+        autoRenew: !!s.auto_renew,
+        cancelAtPeriodEnd: !!s.cancel_at_period_end,
+        canCancel:
+          stillOpen &&
+          s.status !== "canceled" &&
+          !s.cancel_at_period_end &&
+          (provider === "bog" ? true : !!s.paddle_subscription_id),
+      };
+    });
+  });
+
+/**
+ * Admin-only: stops the subscription from renewing. Access is preserved until
+ * the end of the period that has already been paid for; no further charge.
+ */
+export const cancelSubscriptionAtPeriodEnd = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { subscriptionId: string }) => {
+    if (!data?.subscriptionId) throw new Error("Missing subscription id.");
+    return data;
+  })
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: sub, error: readErr } = await supabaseAdmin
+      .from("subscriptions")
+      .select(
+        "id, provider, provider_parent_order_id, paddle_subscription_id, environment, current_period_end",
+      )
+      .eq("id", data.subscriptionId)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!sub) throw new Error("Subscription not found.");
+
+    const provider = sub.provider ?? "paddle";
+    let note = "";
+
+    if (provider === "paddle") {
+      if (!sub.paddle_subscription_id) throw new Error("No Paddle subscription id on this row.");
+      const { gatewayFetch } = await import("@/lib/paddle.server");
+      const env = sub.environment === "sandbox" ? "sandbox" : "live";
+      const res = await gatewayFetch(env, `/subscriptions/${sub.paddle_subscription_id}/cancel`, {
+        method: "POST",
+        body: JSON.stringify({ effective_from: "next_billing_period" }),
+      });
+      if (!res.ok) {
+        console.error("[admin] Paddle cancel failed", res.status);
+        throw new Error("The payment provider refused the cancellation. Please try again.");
+      }
+    }
+
+    const { error: updErr } = await supabaseAdmin
+      .from("subscriptions")
+      .update({
+        auto_renew: false,
+        cancel_at_period_end: true,
+        next_billing_at: null,
+        ...(provider === "bog" ? { renewal_status: "canceled", renewal_lock_until: null } : {}),
+      })
+      .eq("id", sub.id);
+    if (updErr) throw new Error(updErr.message);
+
+    if (provider === "bog" && sub.provider_parent_order_id) {
+      const { deleteBogSavedCard } = await import("@/lib/bog.server");
+      const removed = await deleteBogSavedCard(sub.provider_parent_order_id);
+      if (!removed) note = "Saved card removal needs follow-up; renewal is already off.";
+    }
+
+    return { canceled: true as const, validUntil: sub.current_period_end, note };
+  });

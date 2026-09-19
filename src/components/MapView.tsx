@@ -56,6 +56,8 @@ interface Props {
    * increments per message; the engine applies it like a driver gesture.
    */
   remoteView?: { view: import("@/lib/pair-channel").PairedView; seq: number } | null;
+  /** Night palette: a GPU filter over the map layer, no map reload. */
+  darkMode?: boolean;
 }
 
 export function MapView({

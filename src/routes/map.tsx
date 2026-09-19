@@ -212,6 +212,26 @@ function Index() {
   const [offRoute, setOffRoute] = useState(false);
   const [showTraffic, setShowTraffic] = useState(true);
   const [tilt3d, setTilt3d] = useState(true);
+  // Night palette. Read after mount so the server render and hydration match.
+  const [darkMap, setDarkMap] = useState(false);
+  useEffect(() => {
+    try {
+      setDarkMap(localStorage.getItem("tsl.map-dark") === "1");
+    } catch {
+      /* storage disabled */
+    }
+  }, []);
+  const toggleDarkMap = useCallback(() => {
+    setDarkMap((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem("tsl.map-dark", next ? "1" : "0");
+      } catch {
+        /* storage disabled */
+      }
+      return next;
+    });
+  }, []);
   // 3D perspective needs vector (WebGL) rendering. Older in-car GPUs fall back
   // to raster: the toggle is then hidden and the map stays flat 2D.
   const [vector3dAvailable, setVector3dAvailable] = useState(true);

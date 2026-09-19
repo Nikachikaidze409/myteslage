@@ -9,6 +9,8 @@ import {
 } from "@/lib/pair-channel";
 import { HEARTBEAT_INTERVAL_MS } from "@/lib/remote-state";
 import { DestinationSearch, type Destination } from "@/components/DestinationSearch";
+import { PasteLocationBar } from "@/components/PasteLocationBar";
+import { PhoneHud } from "@/components/PhoneHud";
 import { computeRoute, type RouteResult } from "@/lib/routes.functions";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
 import { RouteProgressEngine } from "@/lib/maps/routeProgressEngine";
@@ -47,6 +49,7 @@ function PhoneRelay() {
   const [rerouting, setRerouting] = useState(false);
   const [wakeLockOn, setWakeLockOn] = useState(false);
   const [mapControlOn, setMapControlOn] = useState(false);
+  const [hudOn, setHudOn] = useState(false);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const channelReadyRef = useRef(false);
@@ -621,6 +624,14 @@ function PhoneRelay() {
 
   return (
     <div className="min-h-screen bg-background p-5 text-foreground">
+      {hudOn && (
+        <PhoneHud
+          fix={last}
+          route={route}
+          destinationName={destination?.name ?? null}
+          onExit={() => setHudOn(false)}
+        />
+      )}
       <div className="mx-auto max-w-md space-y-5">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
@@ -699,12 +710,33 @@ function PhoneRelay() {
 
         {status === "streaming" && (
           <>
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="space-y-3 rounded-xl border border-border bg-card p-4">
               <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                 Where to?
               </div>
-              <DestinationSearch onSelect={setDestination} />
+              <DestinationSearch
+                onSelect={setDestination}
+                origin={last ? { lat: last.lat, lng: last.lng } : null}
+              />
+              <PasteLocationBar
+                onResolved={setDestination}
+                origin={last ? { lat: last.lat, lng: last.lng } : null}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Paste a location shared on WhatsApp, Viber or Telegram, or tap the microphone and
+                say the address in Georgian.
+              </p>
             </div>
+
+            <button
+              onClick={() => {
+                void requestWakeLock();
+                setHudOn(true);
+              }}
+              className="h-12 w-full rounded-xl border border-border bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-accent"
+            >
+              Dash view (speed + next turn)
+            </button>
 
             {destination && (
               <div className="space-y-3 rounded-xl border border-border bg-card p-4">

@@ -649,7 +649,9 @@ export function MapView({
         className={`absolute bottom-8 left-4 z-30 flex items-center gap-2 rounded-full border px-4 py-2.5 shadow-lg backdrop-blur transition ${
           followUi
             ? "border-primary bg-primary text-primary-foreground"
-            : "border-border bg-white/95 text-foreground hover:bg-white"
+            : darkMode
+              ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
+              : "border-border bg-white/95 text-foreground hover:bg-white"
         }`}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -590,7 +590,20 @@ export function MapView({
 
   return (
     <div className="relative h-full w-full">
-      <div ref={containerRef} className="h-full w-full rounded-2xl bg-muted" />
+      <div
+        ref={containerRef}
+        className="h-full w-full rounded-2xl bg-muted"
+        style={
+          darkMode
+            ? {
+                // Night palette applied on the composited map layer only:
+                // instant, GPU-accelerated, no map re-creation, no extra tiles.
+                filter: "invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.95) saturate(0.85)",
+                willChange: "filter",
+              }
+            : undefined
+        }
+      />
 
       {retrying && !mapError && (
         <div className="pointer-events-none absolute inset-0 z-40 grid place-items-center rounded-2xl bg-background/80">

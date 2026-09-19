@@ -702,12 +702,33 @@ function PhoneRelay() {
 
         {status === "streaming" && (
           <>
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="space-y-3 rounded-xl border border-border bg-card p-4">
               <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                 Where to?
               </div>
-              <DestinationSearch onSelect={setDestination} />
+              <DestinationSearch
+                onSelect={setDestination}
+                origin={last ? { lat: last.lat, lng: last.lng } : null}
+              />
+              <PasteLocationBar
+                onResolved={setDestination}
+                origin={last ? { lat: last.lat, lng: last.lng } : null}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Paste a location shared on WhatsApp, Viber or Telegram, or tap the microphone and
+                say the address in Georgian.
+              </p>
             </div>
+
+            <button
+              onClick={() => {
+                void requestWakeLock();
+                setHudOn(true);
+              }}
+              className="h-12 w-full rounded-xl border border-border bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-accent"
+            >
+              Dash view (speed + next turn)
+            </button>
 
             {destination && (
               <div className="space-y-3 rounded-xl border border-border bg-card p-4">

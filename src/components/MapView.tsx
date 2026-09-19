@@ -85,6 +85,7 @@ export function MapView({
   onCapabilities,
   onTilt3dUnsupported,
   remoteView,
+  darkMode = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);

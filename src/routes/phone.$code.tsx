@@ -624,6 +624,14 @@ function PhoneRelay() {
 
   return (
     <div className="min-h-screen bg-background p-5 text-foreground">
+      {hudOn && (
+        <PhoneHud
+          fix={last}
+          route={route}
+          destinationName={destination?.name ?? null}
+          onExit={() => setHudOn(false)}
+        />
+      )}
       <div className="mx-auto max-w-md space-y-5">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">

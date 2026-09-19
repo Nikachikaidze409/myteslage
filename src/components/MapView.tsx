@@ -56,6 +56,8 @@ interface Props {
    * increments per message; the engine applies it like a driver gesture.
    */
   remoteView?: { view: import("@/lib/pair-channel").PairedView; seq: number } | null;
+  /** Night palette: a GPU filter over the map layer, no map reload. */
+  darkMode?: boolean;
 }
 
 export function MapView({
@@ -83,6 +85,7 @@ export function MapView({
   onCapabilities,
   onTilt3dUnsupported,
   remoteView,
+  darkMode = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -587,7 +590,20 @@ export function MapView({
 
   return (
     <div className="relative h-full w-full">
-      <div ref={containerRef} className="h-full w-full rounded-2xl bg-muted" />
+      <div
+        ref={containerRef}
+        className="h-full w-full rounded-2xl bg-muted"
+        style={
+          darkMode
+            ? {
+                // Night palette applied on the composited map layer only:
+                // instant, GPU-accelerated, no map re-creation, no extra tiles.
+                filter: "invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.95) saturate(0.85)",
+                willChange: "filter",
+              }
+            : undefined
+        }
+      />
 
       {retrying && !mapError && (
         <div className="pointer-events-none absolute inset-0 z-40 grid place-items-center rounded-2xl bg-background/80">
@@ -633,7 +649,9 @@ export function MapView({
         className={`absolute bottom-8 left-4 z-30 flex items-center gap-2 rounded-full border px-4 py-2.5 shadow-lg backdrop-blur transition ${
           followUi
             ? "border-primary bg-primary text-primary-foreground"
-            : "border-border bg-white/95 text-foreground hover:bg-white"
+            : darkMode
+              ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
+              : "border-border bg-white/95 text-foreground hover:bg-white"
         }`}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -644,7 +662,11 @@ export function MapView({
       </button>
 
       {/* Large touch-friendly zoom controls */}
-      <div className="absolute bottom-8 right-4 z-30 flex flex-col overflow-hidden rounded-2xl border border-border bg-white/95 shadow-lg backdrop-blur">
+      <div
+        className={`absolute bottom-8 right-4 z-30 flex flex-col overflow-hidden rounded-2xl border shadow-lg backdrop-blur ${
+          darkMode ? "border-slate-700 bg-slate-900/90" : "border-border bg-white/95"
+        }`}
+      >
         <button
           type="button"
           aria-label="Zoom in"
@@ -654,11 +676,13 @@ export function MapView({
             engineRef.current?.suppressCamera(600);
             map.setZoom(Math.min(20, (map.getZoom() ?? 15) + 1));
           }}
-          className="h-12 w-12 text-2xl font-semibold text-foreground hover:bg-muted"
+          className={`h-12 w-12 text-2xl font-semibold ${
+            darkMode ? "text-slate-100 hover:bg-slate-800" : "text-foreground hover:bg-muted"
+          }`}
         >
           +
         </button>
-        <div className="h-px bg-border" />
+        <div className={`h-px ${darkMode ? "bg-slate-700" : "bg-border"}`} />
         <button
           type="button"
           aria-label="Zoom out"
@@ -668,7 +692,9 @@ export function MapView({
             engineRef.current?.suppressCamera(600);
             map.setZoom(Math.max(4, (map.getZoom() ?? 15) - 1));
           }}
-          className="h-12 w-12 text-2xl font-semibold text-foreground hover:bg-muted"
+          className={`h-12 w-12 text-2xl font-semibold ${
+            darkMode ? "text-slate-100 hover:bg-slate-800" : "text-foreground hover:bg-muted"
+          }`}
         >
           −
         </button>

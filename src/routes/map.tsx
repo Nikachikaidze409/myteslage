@@ -212,6 +212,26 @@ function Index() {
   const [offRoute, setOffRoute] = useState(false);
   const [showTraffic, setShowTraffic] = useState(true);
   const [tilt3d, setTilt3d] = useState(true);
+  // Night palette. Read after mount so the server render and hydration match.
+  const [darkMap, setDarkMap] = useState(false);
+  useEffect(() => {
+    try {
+      setDarkMap(localStorage.getItem("tsl.map-dark") === "1");
+    } catch {
+      /* storage disabled */
+    }
+  }, []);
+  const toggleDarkMap = useCallback(() => {
+    setDarkMap((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem("tsl.map-dark", next ? "1" : "0");
+      } catch {
+        /* storage disabled */
+      }
+      return next;
+    });
+  }, []);
   // 3D perspective needs vector (WebGL) rendering. Older in-car GPUs fall back
   // to raster: the toggle is then hidden and the map stays flat 2D.
   const [vector3dAvailable, setVector3dAvailable] = useState(true);
@@ -1083,7 +1103,9 @@ function Index() {
               className={`rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
                 showTraffic
                   ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-white/90 text-foreground hover:bg-white"
+                  : darkMap
+                    ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
+                    : "border-border bg-white/90 text-foreground hover:bg-white"
               }`}
             >
               {showTraffic ? "Traffic on" : "Traffic off"}
@@ -1099,11 +1121,28 @@ function Index() {
                   ? "cursor-not-allowed border-border bg-white/70 text-muted-foreground"
                   : tilt3d
                     ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-white/90 text-foreground hover:bg-white"
+                    : darkMap
+                      ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
+                      : "border-border bg-white/90 text-foreground hover:bg-white"
               }`}
             >
               {tilt3d && vector3dAvailable ? "3D" : "2D"}
             </button>
+            <button
+              type="button"
+              onClick={toggleDarkMap}
+              aria-pressed={darkMap}
+              aria-label="Toggle dark map"
+              title="Switch between day and night map colours"
+              className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
+                darkMap
+                  ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
+                  : "border-border bg-white/90 text-foreground hover:bg-white"
+              }`}
+            >
+              {darkMap ? "Night" : "Day"}
+            </button>
+
 
           </div>
           )}
@@ -1231,6 +1270,7 @@ function Index() {
                 steps={route?.steps ?? []}
                 navigating={navigating}
                 tilt3d={tilt3d && vector3dAvailable}
+                darkMode={darkMap}
                 onCapabilities={({ vector }) => {
                   // Only a hard "no vector renderer" answer disables 3D; an
                   // undetermined result leaves the control fully usable.

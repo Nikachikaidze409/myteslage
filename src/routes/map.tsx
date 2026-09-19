@@ -1270,6 +1270,7 @@ function Index() {
                 steps={route?.steps ?? []}
                 navigating={navigating}
                 tilt3d={tilt3d && vector3dAvailable}
+                darkMode={darkMap}
                 onCapabilities={({ vector }) => {
                   // Only a hard "no vector renderer" answer disables 3D; an
                   // undetermined result leaves the control fully usable.

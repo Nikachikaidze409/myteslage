@@ -9,6 +9,8 @@ import {
 } from "@/lib/pair-channel";
 import { HEARTBEAT_INTERVAL_MS } from "@/lib/remote-state";
 import { DestinationSearch, type Destination } from "@/components/DestinationSearch";
+import { PasteLocationBar } from "@/components/PasteLocationBar";
+import { PhoneHud } from "@/components/PhoneHud";
 import { computeRoute, type RouteResult } from "@/lib/routes.functions";
 import { snapToRoad } from "@/lib/snap-to-road.functions";
 import { RouteProgressEngine } from "@/lib/maps/routeProgressEngine";
@@ -47,6 +49,7 @@ function PhoneRelay() {
   const [rerouting, setRerouting] = useState(false);
   const [wakeLockOn, setWakeLockOn] = useState(false);
   const [mapControlOn, setMapControlOn] = useState(false);
+  const [hudOn, setHudOn] = useState(false);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const channelReadyRef = useRef(false);

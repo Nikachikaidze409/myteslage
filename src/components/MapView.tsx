@@ -662,7 +662,11 @@ export function MapView({
       </button>
 
       {/* Large touch-friendly zoom controls */}
-      <div className="absolute bottom-8 right-4 z-30 flex flex-col overflow-hidden rounded-2xl border border-border bg-white/95 shadow-lg backdrop-blur">
+      <div
+        className={`absolute bottom-8 right-4 z-30 flex flex-col overflow-hidden rounded-2xl border shadow-lg backdrop-blur ${
+          darkMode ? "border-slate-700 bg-slate-900/90" : "border-border bg-white/95"
+        }`}
+      >
         <button
           type="button"
           aria-label="Zoom in"
@@ -672,11 +676,13 @@ export function MapView({
             engineRef.current?.suppressCamera(600);
             map.setZoom(Math.min(20, (map.getZoom() ?? 15) + 1));
           }}
-          className="h-12 w-12 text-2xl font-semibold text-foreground hover:bg-muted"
+          className={`h-12 w-12 text-2xl font-semibold ${
+            darkMode ? "text-slate-100 hover:bg-slate-800" : "text-foreground hover:bg-muted"
+          }`}
         >
           +
         </button>
-        <div className="h-px bg-border" />
+        <div className={`h-px ${darkMode ? "bg-slate-700" : "bg-border"}`} />
         <button
           type="button"
           aria-label="Zoom out"
@@ -686,7 +692,9 @@ export function MapView({
             engineRef.current?.suppressCamera(600);
             map.setZoom(Math.max(4, (map.getZoom() ?? 15) - 1));
           }}
-          className="h-12 w-12 text-2xl font-semibold text-foreground hover:bg-muted"
+          className={`h-12 w-12 text-2xl font-semibold ${
+            darkMode ? "text-slate-100 hover:bg-slate-800" : "text-foreground hover:bg-muted"
+          }`}
         >
           −
         </button>

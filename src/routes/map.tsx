@@ -1103,7 +1103,9 @@ function Index() {
               className={`rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
                 showTraffic
                   ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-white/90 text-foreground hover:bg-white"
+                  : darkMap
+                    ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
+                    : "border-border bg-white/90 text-foreground hover:bg-white"
               }`}
             >
               {showTraffic ? "Traffic on" : "Traffic off"}
@@ -1119,11 +1121,28 @@ function Index() {
                   ? "cursor-not-allowed border-border bg-white/70 text-muted-foreground"
                   : tilt3d
                     ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-white/90 text-foreground hover:bg-white"
+                    : darkMap
+                      ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
+                      : "border-border bg-white/90 text-foreground hover:bg-white"
               }`}
             >
               {tilt3d && vector3dAvailable ? "3D" : "2D"}
             </button>
+            <button
+              type="button"
+              onClick={toggleDarkMap}
+              aria-pressed={darkMap}
+              aria-label="Toggle dark map"
+              title="Switch between day and night map colours"
+              className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
+                darkMap
+                  ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
+                  : "border-border bg-white/90 text-foreground hover:bg-white"
+              }`}
+            >
+              {darkMap ? "Night" : "Day"}
+            </button>
+
 
           </div>
           )}

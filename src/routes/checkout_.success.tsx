@@ -4,7 +4,7 @@ import { getBogPaymentState, getMembershipState } from "@/lib/bog.functions";
 import { paddlePurchaseRecentlyTracked, trackPurchaseOnce } from "@/lib/meta-pixel";
 import { PROVIDER_PRICES, type Plan } from "@/lib/checkout-provider";
 
-export const Route = createFileRoute("/checkout/success")({
+export const Route = createFileRoute("/checkout_/success")({
   component: CheckoutSuccess,
   head: () => ({
     meta: [

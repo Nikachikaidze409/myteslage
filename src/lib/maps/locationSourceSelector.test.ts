@@ -83,7 +83,7 @@ describe("LocationSourceSelector", () => {
     const s = new LocationSourceSelector();
     // Phone clock is a year ahead; only local received time matters.
     s.offer({ ...phone(5), timestamp: Date.now() + 31e9 } as never, 1000);
-    s.offer({ ...tesla(5), timestamp: 0 } as never, 1200);
+    s.offer({ ...tesla(60), timestamp: 0 } as never, 1200);
     expect(s.activeSource).toBe("phone");
     expect(s.snapshot(1200).tesla.stale).toBe(false);
     expect(s.snapshot(1200).phone.stale).toBe(false);
@@ -111,7 +111,7 @@ describe("LocationSourceSelector", () => {
     const s = new LocationSourceSelector();
     s.setHudMode(true);
     s.offer(phone(10), 1000);
-    expect(s.offer(tesla(10), 1000 + 9_000)).toBe(true);
+    expect(s.offer(tesla(40), 1000 + 9_000)).toBe(true);
     expect(s.snapshot(10_000).reason).toBe("hud-phone-stale-fallback");
   });
 });

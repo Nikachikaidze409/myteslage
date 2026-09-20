@@ -52,7 +52,8 @@ describe("LocationSourceSelector", () => {
     t += 1000;
     s.offer(tesla(5), t);
     expect(s.activeSource).toBe("tesla");
-    expect(s.snapshot(t).reason).toBe("tesla-recovered");
+    // A 5 m car fix is precise, so the vehicle takes the lead outright.
+    expect(s.snapshot(t).reason).toBe("tesla-precise");
   });
 
   it("5. a single excellent phone fix does not steal a healthy Tesla", () => {

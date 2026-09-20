@@ -61,5 +61,8 @@ export function cleanSpokenDestination(raw: string): string {
   }
   // "ბელიაშვილის 12 ნომერში" -> "ბელიაშვილის 12"
   out = out.replace(/\s+(ნომერში|ნომერთან|ნომერზე)$/u, "");
+  // "სითი მოლში" -> "სითი მოლი" (keep short words intact)
+  out = out.replace(/([\u10A0-\u10FF]{4,})ში$/u, "$1ი");
   return out.trim() || raw.trim();
+
 }

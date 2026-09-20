@@ -708,35 +708,46 @@ function PhoneRelay() {
           </div>
         )}
 
+        {/* Search, paste and the speedometer work as soon as the QR is scanned —
+            no account sign-in and no need to start GPS sharing first. */}
+        {status !== "ended" && (
+          <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Where to?
+            </div>
+            <DestinationSearch
+              onSelect={setDestination}
+              origin={last ? { lat: last.lat, lng: last.lng } : null}
+            />
+            <PasteLocationBar
+              onResolved={setDestination}
+              origin={last ? { lat: last.lat, lng: last.lng } : null}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Paste a location shared on WhatsApp, Viber or Telegram, or tap the microphone and
+              say the address in Georgian.
+            </p>
+          </div>
+        )}
+
+        {status !== "ended" && (
+          <button
+            onClick={() => {
+              // The speedometer needs live GPS: start it with the same tap so
+              // the driver never lands on an empty black screen.
+              if (status !== "streaming") start();
+              void requestWakeLock();
+              setHudOn(true);
+            }}
+            className="h-12 w-full rounded-xl border border-border bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-accent"
+          >
+            Speedometer / სპიდომეტრი
+          </button>
+        )}
+
         {status === "streaming" && (
           <>
-            <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-              <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                Where to?
-              </div>
-              <DestinationSearch
-                onSelect={setDestination}
-                origin={last ? { lat: last.lat, lng: last.lng } : null}
-              />
-              <PasteLocationBar
-                onResolved={setDestination}
-                origin={last ? { lat: last.lat, lng: last.lng } : null}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Paste a location shared on WhatsApp, Viber or Telegram, or tap the microphone and
-                say the address in Georgian.
-              </p>
-            </div>
 
-            <button
-              onClick={() => {
-                void requestWakeLock();
-                setHudOn(true);
-              }}
-              className="h-12 w-full rounded-xl border border-border bg-secondary text-sm font-semibold text-secondary-foreground hover:bg-accent"
-            >
-              Dash view (speed + next turn)
-            </button>
 
             {destination && (
               <div className="space-y-3 rounded-xl border border-border bg-card p-4">

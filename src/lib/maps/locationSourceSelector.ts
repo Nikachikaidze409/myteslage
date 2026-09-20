@@ -16,6 +16,7 @@ export type SwitchReason =
   | "tesla-stale"
   | "phone-stale"
   | "tesla-recovered"
+  | "tesla-precise"
   | "hud-phone"
   | "hud-phone-stale-fallback";
 

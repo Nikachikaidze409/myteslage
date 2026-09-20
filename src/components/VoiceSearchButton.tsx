@@ -124,9 +124,9 @@ export function VoiceSearchButton({ onResult, lang = "ka-GE", className }: Props
       >
         🎤
       </button>
-      {error && (
+      {(listening || error) && (
         <div className="absolute right-0 top-full z-10 mt-1 w-48 rounded-lg border border-border bg-popover p-2 text-[11px] text-muted-foreground shadow-lg">
-          {error}
+          {listening ? "Listening… / გისმენთ…" : error}
         </div>
       )}
     </div>

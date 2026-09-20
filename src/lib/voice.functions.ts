@@ -62,11 +62,16 @@ async function transcribe(key: string, audio: Uint8Array): Promise<string> {
  */
 async function extractDestination(key: string, heard: string): Promise<string> {
   const prompt =
-    "You turn a Georgian or English spoken navigation command into a map search query.\n" +
-    "Return ONLY the destination as it should be typed into Google Maps for Georgia (country GE).\n" +
-    "Drop words like წამიყვანე, მიმიყვანე, მინდა, take me to, navigate to. Fix grammatical case " +
-    "(სითი მოლში -> სითი მოლი). Keep street numbers (ბელიაშვილის 12). No explanation, no quotes.\n\n" +
+    "You turn a Georgian or English spoken navigation command into a short map search phrase.\n" +
+    "Answer with the destination text only: no URL, no link, no coordinates, no explanation, " +
+    "no quotes, one single line, at most 8 words. Assume the country is Georgia (GE).\n" +
+    "Drop words like წამიყვანე, მიმიყვანე, მინდა, take me to, navigate to. Fix the grammatical " +
+    "case (სითი მოლში -> სითი მოლი). Keep street numbers (ბელიაშვილის 12).\n" +
+    "Examples:\n" +
+    "Spoken: წამიყვანე სითი მოლში -> სითი მოლი\n" +
+    "Spoken: მიმიყვანე ბელიაშვილის 12 ნომერში -> ბელიაშვილის 12\n\n" +
     `Spoken: ${heard}`;
+
 
   try {
     const res = await fetch(`${AI_BASE}/responses`, {

@@ -85,14 +85,24 @@ export function nextStepFor(
  */
 export function PhoneHud({ fix, route, destinationName, onExit }: Props) {
   const next = useMemo(() => nextStepFor(route, fix), [route, fix]);
-  const speed = fix?.speed != null && fix.speed >= 0 ? Math.round(fix.speed * 3.6) : null;
+  const prevFixRef = useRef<PairedFix | null>(null);
+  const [speed, setSpeed] = useState<number | null>(null);
+
+  // Recompute on every fix: no debounce, so the number tracks the car live.
+  useEffect(() => {
+    if (!fix) return;
+    const v = deriveSpeedKmh(prevFixRef.current, fix);
+    prevFixRef.current = fix;
+    if (v != null) setSpeed(v);
+  }, [fix]);
+
   const dist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-between bg-black p-5 text-white">
       <div className="flex items-start justify-between">
         <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/50">
-          Dash view
+          Speedometer
         </div>
         <button
           onClick={onExit}

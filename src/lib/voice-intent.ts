@@ -33,7 +33,8 @@ const TRAILING = [
 ];
 
 /** Grammatical endings Georgian speakers add to a place name. */
-const SUFFIXES = ["-ში", "-თან", "-ზე", "ნომერში", "ნომერთან"];
+const SUFFIXES: string[] = [];
+
 
 function stripOnce(text: string, words: string[], where: "start" | "end"): string {
   const lower = text.toLowerCase();

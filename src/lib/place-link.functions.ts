@@ -99,14 +99,23 @@ export const resolvePastedLocation = createServerFn({ method: "POST" })
         throw new Error("That link is not a Google Maps location link");
       }
       let finalUrl = parsed.url;
+      // The best place name seen anywhere in the redirect chain. Short links
+      // carry the real address on the very first hop, before Google's EU
+      // cookie-consent page takes over, so we remember it as we go.
+      let bestName: string | null = placeNameFromMapsUrl(parsed.url);
       try {
         // Follow the short-link chain by hand and read the Location header.
         // A browser User-Agent makes Google answer short links with a
         // JavaScript page (HTTP 200) instead of the 302 that carries the
         // real place URL, so we deliberately do NOT pretend to be a browser.
+        // The consent cookies keep Google from bouncing us to consent.google.com.
+        const headers = {
+          cookie: "CONSENT=PENDING+999; SOCS=CAESEwgDEgk2MTc4NDQ3OTIaAmVuIAEaBgiA_LyaBg",
+          "accept-language": "en-US,en;q=0.9",
+        };
         let current = parsed.url;
-        for (let hop = 0; hop < 5; hop++) {
-          const res = await fetch(current, { redirect: "manual" });
+        for (let hop = 0; hop < 6; hop++) {
+          const res = await fetch(current, { redirect: "manual", headers });
           const loc = res.headers.get("location");
           if (!loc) {
             finalUrl = res.url || current;
@@ -130,6 +139,7 @@ export const resolvePastedLocation = createServerFn({ method: "POST" })
           }
           current = new URL(loc, current).toString();
           finalUrl = current;
+          bestName = bestName ?? placeNameFromMapsUrl(current);
           const hit = coordsFromMapsUrl(current);
           if (hit && validLatLng(hit.lat, hit.lng)) {
             const meta = await nameForPoint(hit.lat, hit.lng);
@@ -144,7 +154,7 @@ export const resolvePastedLocation = createServerFn({ method: "POST" })
       } catch {
         /* fall through to name search */
       }
-      const name = placeNameFromMapsUrl(finalUrl) ?? placeNameFromMapsUrl(parsed.url);
+      const name = bestName ?? placeNameFromMapsUrl(finalUrl) ?? placeNameFromMapsUrl(parsed.url);
       if (name) {
         const found = await searchText(name, bias);
         if (found) return found;

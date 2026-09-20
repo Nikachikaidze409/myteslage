@@ -33,40 +33,78 @@ export function VoiceSearchButton({ onResult, lang = "ka-GE", className }: Props
 
   if (!supported) return null;
 
+  /**
+   * Start listening in `useLang`. Some phones (notably iOS Safari) do not
+   * support Georgian speech at all and fail instantly, so we retry once in
+   * the phone's own language rather than blaming the speaker.
+   */
+  const listen = (useLang: string, canFallback: boolean) => {
+    const Ctor = recognitionCtor();
+    if (!Ctor) return;
+    setError(null);
+    const rec = new Ctor();
+    recRef.current = rec;
+    rec.lang = useLang;
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    rec.continuous = false;
+    let got = false;
+    rec.onresult = (e: any) => {
+      const res = e?.results?.[e.resultIndex ?? 0];
+      const text = res?.[0]?.transcript?.trim();
+      if (text && res?.isFinal) {
+        got = true;
+        onResult(text);
+      }
+    };
+    rec.onerror = (e: any) => {
+      const kind = e?.error;
+      setListening(false);
+      if (
+        canFallback &&
+        (kind === "language-not-supported" || kind === "service-not-allowed" || kind === "bad-grammar")
+      ) {
+        const fallback =
+          typeof navigator !== "undefined" && navigator.language && navigator.language !== useLang
+            ? navigator.language
+            : "en-US";
+        setTimeout(() => listen(fallback, false), 150);
+        return;
+      }
+      if (kind === "not-allowed" || kind === "service-not-allowed") {
+        setError("Microphone blocked. Allow it in the browser settings.");
+      } else if (kind === "no-speech") {
+        setError("Nothing heard. Tap and speak right after the button turns blue.");
+      } else if (kind === "language-not-supported") {
+        setError("This phone cannot recognise Georgian speech. Type the address instead.");
+      } else if (kind === "network") {
+        setError("No connection for speech. Check the internet and try again.");
+      } else {
+        setError("Didn't catch that. Try again.");
+      }
+    };
+    rec.onend = () => {
+      setListening(false);
+      if (!got) {
+        setError((prev) => prev ?? "Nothing heard. Tap and speak right after the button turns blue.");
+      }
+    };
+    try {
+      rec.start();
+      setListening(true);
+    } catch {
+      setListening(false);
+      setError("Could not start the microphone. Try again.");
+    }
+  };
+
   const toggle = () => {
     if (listening) {
       try { recRef.current?.stop?.(); } catch { /* ignore */ }
       setListening(false);
       return;
     }
-    const Ctor = recognitionCtor();
-    if (!Ctor) return;
-    setError(null);
-    const rec = new Ctor();
-    recRef.current = rec;
-    rec.lang = lang;
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-    rec.continuous = false;
-    rec.onresult = (e: any) => {
-      const text = e?.results?.[0]?.[0]?.transcript?.trim();
-      if (text) onResult(text);
-    };
-    rec.onerror = (e: any) => {
-      setListening(false);
-      setError(
-        e?.error === "not-allowed"
-          ? "Microphone blocked. Allow it in the browser settings."
-          : "Didn't catch that. Try again.",
-      );
-    };
-    rec.onend = () => setListening(false);
-    try {
-      rec.start();
-      setListening(true);
-    } catch {
-      setListening(false);
-    }
+    listen(lang, true);
   };
 
   return (
@@ -86,9 +124,9 @@ export function VoiceSearchButton({ onResult, lang = "ka-GE", className }: Props
       >
         🎤
       </button>
-      {error && (
+      {(listening || error) && (
         <div className="absolute right-0 top-full z-10 mt-1 w-48 rounded-lg border border-border bg-popover p-2 text-[11px] text-muted-foreground shadow-lg">
-          {error}
+          {listening ? "Listening… / გისმენთ…" : error}
         </div>
       )}
     </div>

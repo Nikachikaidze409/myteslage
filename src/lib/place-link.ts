@@ -92,13 +92,16 @@ export function placeNameFromMapsUrl(url: string): string | null {
     const u = new URL(url);
     for (const key of ["query", "destination", "q", "daddr"]) {
       const v = u.searchParams.get(key);
-      if (v && v.trim().length >= 2) return decodeURIComponent(v.trim());
+      if (v && v.trim().length >= 2) return decodeURIComponent(v.replace(/\+/g, " ").trim());
     }
     const seg = /\/maps\/place\/([^/@?]+)/.exec(u.pathname);
     if (seg?.[1]) {
       const name = decodeURIComponent(seg[1].replace(/\+/g, " ")).trim();
       if (name.length >= 2) return name;
     }
+    // Google's EU cookie-consent hop wraps the real maps URL in ?continue=
+    const cont = u.searchParams.get("continue");
+    if (cont) return placeNameFromMapsUrl(cont);
   } catch {
     /* ignore */
   }

@@ -23,7 +23,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PhoneCodeRouteImport } from './routes/phone.$code'
 import { Route as MirrorTestSendRouteImport } from './routes/mirror-test_.send'
-import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
+import { Route as CheckoutSuccessRouteImport } from './routes/checkout_.success'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaymentsBogProcessRenewalsRouteImport } from './routes/api/public/payments/bog/process-renewals'
 import { Route as ApiPublicPaymentsBogCallbackRouteImport } from './routes/api/public/payments/bog/callback'
@@ -99,9 +99,9 @@ const MirrorTestSendRoute = MirrorTestSendRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
-  id: '/success',
-  path: '/success',
-  getParentRoute: () => CheckoutRoute,
+  id: '/checkout_/success',
+  path: '/checkout/success',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
@@ -126,7 +126,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/checkout': typeof CheckoutRouteWithChildren
+  '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/map': typeof MapRoute
   '/mirror-test': typeof MirrorTestRoute
@@ -146,7 +146,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/checkout': typeof CheckoutRouteWithChildren
+  '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/map': typeof MapRoute
   '/mirror-test': typeof MirrorTestRoute
@@ -167,7 +167,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/checkout': typeof CheckoutRouteWithChildren
+  '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/map': typeof MapRoute
   '/mirror-test': typeof MirrorTestRoute
@@ -176,7 +176,7 @@ export interface FileRoutesById {
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
-  '/checkout/success': typeof CheckoutSuccessRoute
+  '/checkout_/success': typeof CheckoutSuccessRoute
   '/mirror-test_/send': typeof MirrorTestSendRoute
   '/phone/$code': typeof PhoneCodeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -238,7 +238,7 @@ export interface FileRouteTypes {
     | '/refund'
     | '/reset-password'
     | '/terms'
-    | '/checkout/success'
+    | '/checkout_/success'
     | '/mirror-test_/send'
     | '/phone/$code'
     | '/api/public/payments/webhook'
@@ -250,7 +250,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
-  CheckoutRoute: typeof CheckoutRouteWithChildren
+  CheckoutRoute: typeof CheckoutRoute
   DriveRoute: typeof DriveRoute
   MapRoute: typeof MapRoute
   MirrorTestRoute: typeof MirrorTestRoute
@@ -259,6 +259,7 @@ export interface RootRouteChildren {
   RefundRoute: typeof RefundRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
+  CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   MirrorTestSendRoute: typeof MirrorTestSendRoute
   PhoneCodeRoute: typeof PhoneCodeRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -366,12 +367,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MirrorTestSendRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/checkout/success': {
-      id: '/checkout/success'
-      path: '/success'
+    '/checkout_/success': {
+      id: '/checkout_/success'
+      path: '/checkout/success'
       fullPath: '/checkout/success'
       preLoaderRoute: typeof CheckoutSuccessRouteImport
-      parentRoute: typeof CheckoutRoute
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
@@ -397,23 +398,11 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface CheckoutRouteChildren {
-  CheckoutSuccessRoute: typeof CheckoutSuccessRoute
-}
-
-const CheckoutRouteChildren: CheckoutRouteChildren = {
-  CheckoutSuccessRoute: CheckoutSuccessRoute,
-}
-
-const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
-  CheckoutRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
-  CheckoutRoute: CheckoutRouteWithChildren,
+  CheckoutRoute: CheckoutRoute,
   DriveRoute: DriveRoute,
   MapRoute: MapRoute,
   MirrorTestRoute: MirrorTestRoute,
@@ -422,6 +411,7 @@ const rootRouteChildren: RootRouteChildren = {
   RefundRoute: RefundRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,
+  CheckoutSuccessRoute: CheckoutSuccessRoute,
   MirrorTestSendRoute: MirrorTestSendRoute,
   PhoneCodeRoute: PhoneCodeRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,

@@ -112,8 +112,14 @@ async function extractDestination(key: string, heard: string): Promise<string> {
         /* ignore partial frames */
       }
     }
-    const cleaned = text.trim().replace(/^["'„“]|["'”]$/g, "").trim();
-    return cleaned.length > 0 && cleaned.length < 200 ? cleaned : cleanSpokenDestination(heard);
+    const cleaned = text
+      .trim()
+      .split("\n")[0]!
+      .replace(/^["'„“]|["'”]$/g, "")
+      .trim();
+    const usable = cleaned.length > 0 && cleaned.length < 120 && !/https?:\/\//i.test(cleaned);
+    return usable ? cleaned : cleanSpokenDestination(heard);
+
   } catch {
     return cleanSpokenDestination(heard);
   }

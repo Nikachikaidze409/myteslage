@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { decodePolyline, distanceMeters } from "@/lib/geo";
 import type { RouteResult } from "@/lib/routes.functions";
 import type { PairedFix } from "@/lib/pair-channel";
@@ -8,6 +8,29 @@ interface Props {
   route: RouteResult | null;
   destinationName?: string | null;
   onExit: () => void;
+}
+
+/**
+ * Speed in km/h for the dashboard. Phone browsers often report `speed` as
+ * null, 0 or a value that lags several seconds behind, so we fall back to the
+ * distance travelled between two consecutive fixes, which updates instantly.
+ */
+export function deriveSpeedKmh(
+  prev: { lat: number; lng: number; timestamp: number } | null,
+  cur: { lat: number; lng: number; timestamp: number; speed?: number | null; accuracy?: number } | null,
+): number | null {
+  if (!cur) return null;
+  if (prev) {
+    const dt = (cur.timestamp - prev.timestamp) / 1000;
+    if (dt > 0.15 && dt < 12) {
+      const d = distanceMeters(prev, cur);
+      // Ignore GPS jitter while standing still.
+      const derived = d < 1.5 ? 0 : (d / dt) * 3.6;
+      if (derived >= 0 && derived < 260) return Math.round(derived);
+    }
+  }
+  if (typeof cur.speed === "number" && cur.speed >= 0) return Math.round(cur.speed * 3.6);
+  return null;
 }
 
 /** Pick an arrow for a Google step instruction. */

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { subscribePair, type PairedFix, type PairedNavState, type PairedView } from "@/lib/pair-channel";
-import { createPairSession, endPairSession } from "@/lib/pair.functions";
+import { createPairSession, endPairSession, ensurePairSession } from "@/lib/pair.functions";
 import {
   tickRemoteState,
   remoteStateLabel,

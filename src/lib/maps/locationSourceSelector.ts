@@ -16,6 +16,7 @@ export type SwitchReason =
   | "tesla-stale"
   | "phone-stale"
   | "tesla-recovered"
+  | "tesla-precise"
   | "hud-phone"
   | "hud-phone-stale-fallback";
 
@@ -55,6 +56,12 @@ const TESLA_RECOVERY_SCORE = 75;
 const TESLA_BIAS = 8;
 /** Bias is only granted to an already decent Tesla fix. */
 const TESLA_BIAS_MIN_SCORE = 50;
+/**
+ * The car's roof antenna is dual-band: when it reports this accuracy or better
+ * it always drives navigation, even in HUD mode. A phone lying in the cabin
+ * typically reports 30-40 m and must never replace a 2 m vehicle fix.
+ */
+export const TESLA_PRECISE_M = 15;
 
 export function accuracyScore(accuracy: number): number {
   if (!Number.isFinite(accuracy) || accuracy < 0) return 0;
@@ -175,9 +182,31 @@ export class LocationSourceSelector {
     this.streak.phone = 0;
   }
 
+  /** True while the car's own antenna reports a precise, fresh fix. */
+  private teslaPrecise(now: number): boolean {
+    const t = this.tracks.tesla;
+    return (
+      this.fresh("tesla", now) &&
+      t.accuracy != null &&
+      Number.isFinite(t.accuracy) &&
+      t.accuracy <= TESLA_PRECISE_M
+    );
+  }
+
   private decide(incoming: LocationSource, now: number): void {
     const teslaUsable = this.usable("tesla", now);
     const phoneUsable = this.usable("phone", now);
+    const teslaPrecise = this.teslaPrecise(now);
+
+    // The vehicle's roof antenna always wins while it is precise: a phone in
+    // the cabin (30-40 m) must never downgrade a 2 m vehicle fix, not even in
+    // HUD mode where the phone stays the routing brain.
+    if (teslaPrecise) {
+      if (this.active !== "tesla" || this.reason !== "tesla-precise") {
+        this.commit("tesla", "tesla-precise", now);
+      }
+      return;
+    }
 
     // HUD mode: the phone is the navigation brain, so it leads while fresh.
     if (this.hud) {

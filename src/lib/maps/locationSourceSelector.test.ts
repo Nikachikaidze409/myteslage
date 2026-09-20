@@ -52,7 +52,8 @@ describe("LocationSourceSelector", () => {
     t += 1000;
     s.offer(tesla(5), t);
     expect(s.activeSource).toBe("tesla");
-    expect(s.snapshot(t).reason).toBe("tesla-recovered");
+    // A 5 m car fix is precise, so the vehicle takes the lead outright.
+    expect(s.snapshot(t).reason).toBe("tesla-precise");
   });
 
   it("5. a single excellent phone fix does not steal a healthy Tesla", () => {
@@ -83,26 +84,35 @@ describe("LocationSourceSelector", () => {
     const s = new LocationSourceSelector();
     // Phone clock is a year ahead; only local received time matters.
     s.offer({ ...phone(5), timestamp: Date.now() + 31e9 } as never, 1000);
-    s.offer({ ...tesla(5), timestamp: 0 } as never, 1200);
+    s.offer({ ...tesla(60), timestamp: 0 } as never, 1200);
     expect(s.activeSource).toBe("phone");
     expect(s.snapshot(1200).tesla.stale).toBe(false);
     expect(s.snapshot(1200).phone.stale).toBe(false);
   });
 
-  it("8. HUD mode prefers a fresh phone", () => {
+  it("8. HUD mode prefers a fresh phone when the car fix is poor", () => {
+    const s = new LocationSourceSelector();
+    s.setHudMode(true);
+    s.offer(tesla(45), 1000);
+    expect(s.offer(phone(20), 1200)).toBe(true);
+    expect(s.activeSource).toBe("phone");
+    expect(s.snapshot(1200).reason).toBe("hud-phone");
+  });
+
+  it("8b. a precise car fix is never replaced by a phone, even in HUD mode", () => {
     const s = new LocationSourceSelector();
     s.setHudMode(true);
     s.offer(tesla(4), 1000);
-    expect(s.offer(phone(60), 1200)).toBe(true);
-    expect(s.activeSource).toBe("phone");
-    expect(s.snapshot(1200).reason).toBe("hud-phone");
+    expect(s.offer(phone(35), 1200)).toBe(false);
+    expect(s.activeSource).toBe("tesla");
+    expect(s.snapshot(1200).reason).toBe("tesla-precise");
   });
 
   it("9. HUD mode falls back to Tesla when the phone goes stale", () => {
     const s = new LocationSourceSelector();
     s.setHudMode(true);
     s.offer(phone(10), 1000);
-    expect(s.offer(tesla(10), 1000 + 9_000)).toBe(true);
+    expect(s.offer(tesla(40), 1000 + 9_000)).toBe(true);
     expect(s.snapshot(10_000).reason).toBe("hud-phone-stale-fallback");
   });
 });

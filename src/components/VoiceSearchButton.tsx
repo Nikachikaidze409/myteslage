@@ -23,24 +23,32 @@ export function VoiceSearchButton({ onResult, lang = "ka-GE", className }: Props
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const recRef = useRef<any>(null);
+  const timersRef = useRef<number[]>([]);
+
+  const clearTimers = () => {
+    for (const t of timersRef.current) window.clearTimeout(t);
+    timersRef.current = [];
+  };
 
   useEffect(() => {
     setSupported(recognitionCtor() != null);
     return () => {
-      try { recRef.current?.stop?.(); } catch { /* ignore */ }
+      clearTimers();
+      try { recRef.current?.abort?.(); } catch { /* ignore */ }
     };
   }, []);
 
   if (!supported) return null;
 
   /**
-   * Start listening in `useLang`. Some phones (notably iOS Safari) do not
-   * support Georgian speech at all and fail instantly, so we retry once in
-   * the phone's own language rather than blaming the speaker.
+   * Start listening in `useLang`. Some phones (notably iOS Safari) have no
+   * Georgian speech model: they open the microphone and then stay silent
+   * forever instead of failing, so we also fall back on a hard timeout.
    */
   const listen = (useLang: string, canFallback: boolean) => {
     const Ctor = recognitionCtor();
     if (!Ctor) return;
+    clearTimers();
     setError(null);
     const rec = new Ctor();
     recRef.current = rec;
@@ -49,28 +57,67 @@ export function VoiceSearchButton({ onResult, lang = "ka-GE", className }: Props
     rec.maxAlternatives = 1;
     rec.continuous = false;
     let got = false;
-    rec.onresult = (e: any) => {
-      const res = e?.results?.[e.resultIndex ?? 0];
-      const text = res?.[0]?.transcript?.trim();
-      if (text && res?.isFinal) {
-        got = true;
-        onResult(text);
-      }
+    let heardAnything = false;
+    /** Best text so far, even if the engine never marks it final. */
+    let bestText = "";
+
+    const fallbackLang = () =>
+      typeof navigator !== "undefined" && navigator.language && navigator.language !== useLang
+        ? navigator.language
+        : "en-US";
+
+    const finish = (text: string) => {
+      if (got) return;
+      got = true;
+      clearTimers();
+      try { rec.stop?.(); } catch { /* ignore */ }
+      setListening(false);
+      onResult(text);
     };
+
+    rec.onresult = (e: any) => {
+      heardAnything = true;
+      let text = "";
+      let final = false;
+      for (let i = 0; i < (e?.results?.length ?? 0); i++) {
+        const r = e.results[i];
+        text += r?.[0]?.transcript ?? "";
+        if (r?.isFinal) final = true;
+      }
+      text = text.trim();
+      if (!text) return;
+      bestText = text;
+      if (final) {
+        finish(text);
+        return;
+      }
+      // Mobile engines often never flag "final": submit shortly after the
+      // speaker pauses instead of waiting forever.
+      clearTimers();
+      timersRef.current.push(
+        window.setTimeout(() => {
+          if (bestText) finish(bestText);
+        }, 1_200),
+      );
+    };
+
+    rec.onspeechstart = () => {
+      heardAnything = true;
+    };
+
     rec.onerror = (e: any) => {
       const kind = e?.error;
+      if (got) return;
+      clearTimers();
       setListening(false);
       if (
         canFallback &&
         (kind === "language-not-supported" || kind === "service-not-allowed" || kind === "bad-grammar")
       ) {
-        const fallback =
-          typeof navigator !== "undefined" && navigator.language && navigator.language !== useLang
-            ? navigator.language
-            : "en-US";
-        setTimeout(() => listen(fallback, false), 150);
+        window.setTimeout(() => listen(fallbackLang(), false), 150);
         return;
       }
+      if (kind === "aborted") return;
       if (kind === "not-allowed" || kind === "service-not-allowed") {
         setError("Microphone blocked. Allow it in the browser settings.");
       } else if (kind === "no-speech") {
@@ -83,15 +130,51 @@ export function VoiceSearchButton({ onResult, lang = "ka-GE", className }: Props
         setError("Didn't catch that. Try again.");
       }
     };
+
     rec.onend = () => {
+      if (got) return;
+      clearTimers();
       setListening(false);
-      if (!got) {
-        setError((prev) => prev ?? "Nothing heard. Tap and speak right after the button turns blue.");
+      if (bestText) {
+        finish(bestText);
+        return;
       }
+      if (canFallback && !heardAnything) {
+        window.setTimeout(() => listen(fallbackLang(), false), 150);
+        return;
+      }
+      setError((prev) => prev ?? "Nothing heard. Tap and speak right after the button turns blue.");
     };
+
     try {
       rec.start();
       setListening(true);
+      // Safety net: an engine with no model for this language can open the
+      // microphone and never emit a single event. Never stay stuck on
+      // "Listening…": retry once in the phone's own language, then give up.
+      timersRef.current.push(
+        window.setTimeout(() => {
+          if (got || heardAnything) return;
+          try { rec.abort?.(); } catch { /* ignore */ }
+          setListening(false);
+          if (canFallback) {
+            window.setTimeout(() => listen(fallbackLang(), false), 150);
+          } else {
+            setError("Nothing heard. Tap and speak right after the button turns blue.");
+          }
+        }, 6_000),
+      );
+      // Absolute cap so the microphone never stays open.
+      timersRef.current.push(
+        window.setTimeout(() => {
+          if (got) return;
+          if (bestText) finish(bestText);
+          else {
+            try { rec.stop?.(); } catch { /* ignore */ }
+            setListening(false);
+          }
+        }, 12_000),
+      );
     } catch {
       setListening(false);
       setError("Could not start the microphone. Try again.");
@@ -100,6 +183,7 @@ export function VoiceSearchButton({ onResult, lang = "ka-GE", className }: Props
 
   const toggle = () => {
     if (listening) {
+      clearTimers();
       try { recRef.current?.stop?.(); } catch { /* ignore */ }
       setListening(false);
       return;

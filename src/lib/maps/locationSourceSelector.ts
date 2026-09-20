@@ -182,9 +182,31 @@ export class LocationSourceSelector {
     this.streak.phone = 0;
   }
 
+  /** True while the car's own antenna reports a precise, fresh fix. */
+  private teslaPrecise(now: number): boolean {
+    const t = this.tracks.tesla;
+    return (
+      this.fresh("tesla", now) &&
+      t.accuracy != null &&
+      Number.isFinite(t.accuracy) &&
+      t.accuracy <= TESLA_PRECISE_M
+    );
+  }
+
   private decide(incoming: LocationSource, now: number): void {
     const teslaUsable = this.usable("tesla", now);
     const phoneUsable = this.usable("phone", now);
+    const teslaPrecise = this.teslaPrecise(now);
+
+    // The vehicle's roof antenna always wins while it is precise: a phone in
+    // the cabin (30-40 m) must never downgrade a 2 m vehicle fix, not even in
+    // HUD mode where the phone stays the routing brain.
+    if (teslaPrecise) {
+      if (this.active !== "tesla" || this.reason !== "tesla-precise") {
+        this.commit("tesla", "tesla-precise", now);
+      }
+      return;
+    }
 
     // HUD mode: the phone is the navigation brain, so it leads while fresh.
     if (this.hud) {

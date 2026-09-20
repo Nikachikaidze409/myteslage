@@ -56,6 +56,12 @@ const TESLA_RECOVERY_SCORE = 75;
 const TESLA_BIAS = 8;
 /** Bias is only granted to an already decent Tesla fix. */
 const TESLA_BIAS_MIN_SCORE = 50;
+/**
+ * The car's roof antenna is dual-band: when it reports this accuracy or better
+ * it always drives navigation, even in HUD mode. A phone lying in the cabin
+ * typically reports 30-40 m and must never replace a 2 m vehicle fix.
+ */
+export const TESLA_PRECISE_M = 15;
 
 export function accuracyScore(accuracy: number): number {
   if (!Number.isFinite(accuracy) || accuracy < 0) return 0;

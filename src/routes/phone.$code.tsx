@@ -260,7 +260,9 @@ function PhoneRelay() {
           setError(err.message || "Geolocation error");
         }
       },
-      { enableHighAccuracy: true, maximumAge: 1_000, timeout: 20_000 },
+      // maximumAge: 0 forces a fresh hardware fix; a cached Wi-Fi/cell fix in
+      // the cabin is typically 30-40 m and would be sent to the car as-is.
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 20_000 },
     );
   };
 

@@ -89,13 +89,22 @@ describe("LocationSourceSelector", () => {
     expect(s.snapshot(1200).phone.stale).toBe(false);
   });
 
-  it("8. HUD mode prefers a fresh phone", () => {
+  it("8. HUD mode prefers a fresh phone when the car fix is poor", () => {
+    const s = new LocationSourceSelector();
+    s.setHudMode(true);
+    s.offer(tesla(45), 1000);
+    expect(s.offer(phone(20), 1200)).toBe(true);
+    expect(s.activeSource).toBe("phone");
+    expect(s.snapshot(1200).reason).toBe("hud-phone");
+  });
+
+  it("8b. a precise car fix is never replaced by a phone, even in HUD mode", () => {
     const s = new LocationSourceSelector();
     s.setHudMode(true);
     s.offer(tesla(4), 1000);
-    expect(s.offer(phone(60), 1200)).toBe(true);
-    expect(s.activeSource).toBe("phone");
-    expect(s.snapshot(1200).reason).toBe("hud-phone");
+    expect(s.offer(phone(35), 1200)).toBe(false);
+    expect(s.activeSource).toBe("tesla");
+    expect(s.snapshot(1200).reason).toBe("tesla-precise");
   });
 
   it("9. HUD mode falls back to Tesla when the phone goes stale", () => {

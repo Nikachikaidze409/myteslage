@@ -7,7 +7,7 @@ import { displayNameFrom } from "@/components/AccountMenu";
 const src = (p: string) => readFileSync(join(process.cwd(), "src", p), "utf8");
 
 describe("payment success page", () => {
-  const page = src("routes/checkout.success.tsx");
+  const page = src("routes/checkout_.success.tsx");
 
   it("shows the Georgian success title only in the verified state", () => {
     expect(page).toContain("გადახდა წარმატებით შესრულდა");

@@ -77,7 +77,7 @@ describe("order payload is built server-side only", () => {
 
 describe("credentials stay on the server", () => {
   it("BOG credentials and the bearer token are never read in client code", () => {
-    for (const file of ["routes/checkout.tsx", "routes/checkout.success.tsx", "lib/bog.functions.ts"]) {
+    for (const file of ["routes/checkout.tsx", "routes/checkout_.success.tsx", "lib/bog.functions.ts"]) {
       const content = src(file);
       expect(content).not.toContain("BOG_CLIENT_SECRET");
       expect(content).not.toContain("BOG_CLIENT_ID");
@@ -182,7 +182,7 @@ describe("payment verification", () => {
   });
 
   it("the redirect page never activates a membership on its own", () => {
-    const page = src("routes/checkout.success.tsx");
+    const page = src("routes/checkout_.success.tsx");
     expect(page).toContain("getBogPaymentState");
     expect(page).not.toContain("subscriptions");
     expect(page).not.toContain("insert");
@@ -258,7 +258,7 @@ describe("pre-publish hardening", () => {
   });
 
   it("an active Paddle subscription does not mark a pending BOG order as paid", () => {
-    const page = src("routes/checkout.success.tsx");
+    const page = src("routes/checkout_.success.tsx");
     // The BOG branch is decided only by the payment_orders row for this attempt.
     expect(page).toContain('getBogPaymentState({ data: { externalOrderId } })');
     expect(page).toContain('result.state === "completed"');
@@ -436,7 +436,7 @@ describe("provider-aware success-page membership check", () => {
   });
 
   it("the Paddle success path passes provider=paddle and keeps BOG order-specific", () => {
-    const page = src("routes/checkout.success.tsx");
+    const page = src("routes/checkout_.success.tsx");
     expect(page).toContain('getMembershipState({ data: { provider: "paddle" } })');
     expect(page).toContain("getBogPaymentState({ data: { externalOrderId } })");
   });

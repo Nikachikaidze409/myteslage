@@ -100,31 +100,46 @@ export const resolvePastedLocation = createServerFn({ method: "POST" })
       }
       let finalUrl = parsed.url;
       try {
-        const res = await fetch(parsed.url, {
-          redirect: "follow",
-          headers: {
-            // Google serves the coordinate-bearing page to a normal browser.
-            "User-Agent":
-              "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
-          },
-        });
-        finalUrl = res.url || parsed.url;
+        // Follow the short-link chain by hand and read the Location header.
+        // A browser User-Agent makes Google answer short links with a
+        // JavaScript page (HTTP 200) instead of the 302 that carries the
+        // real place URL, so we deliberately do NOT pretend to be a browser.
+        let current = parsed.url;
+        for (let hop = 0; hop < 5; hop++) {
+          const res = await fetch(current, { redirect: "manual" });
+          const loc = res.headers.get("location");
+          if (!loc) {
+            finalUrl = res.url || current;
+            // Some hosts answer 200 with the expanded page: try the body too.
+            if (res.status === 200 && !coordsFromMapsUrl(finalUrl)) {
+              const body = (await res.text()).slice(0, 200_000);
+              const inBody =
+                /\[null,null,(-?\d{1,2}\.\d{4,}),(-?\d{1,3}\.\d{4,})\]/.exec(body) ??
+                /@(-?\d{1,2}\.\d{4,}),(-?\d{1,3}\.\d{4,})/.exec(body) ??
+                /!3d(-?\d{1,2}\.\d{4,})!4d(-?\d{1,3}\.\d{4,})/.exec(body);
+              if (inBody) {
+                const lat = Number(inBody[1]);
+                const lng = Number(inBody[2]);
+                if (validLatLng(lat, lng)) {
+                  const meta = await nameForPoint(lat, lng);
+                  return { lat, lng, ...meta };
+                }
+              }
+            }
+            break;
+          }
+          current = new URL(loc, current).toString();
+          finalUrl = current;
+          const hit = coordsFromMapsUrl(current);
+          if (hit && validLatLng(hit.lat, hit.lng)) {
+            const meta = await nameForPoint(hit.lat, hit.lng);
+            return { lat: hit.lat, lng: hit.lng, ...meta };
+          }
+        }
         const coords = coordsFromMapsUrl(finalUrl);
         if (coords && validLatLng(coords.lat, coords.lng)) {
           const meta = await nameForPoint(coords.lat, coords.lng);
           return { lat: coords.lat, lng: coords.lng, ...meta };
-        }
-        const body = (await res.text()).slice(0, 200_000);
-        const inBody =
-          /\[null,null,(-?\d{1,2}\.\d{4,}),(-?\d{1,3}\.\d{4,})\]/.exec(body) ??
-          /@(-?\d{1,2}\.\d{4,}),(-?\d{1,3}\.\d{4,})/.exec(body);
-        if (inBody) {
-          const lat = Number(inBody[1]);
-          const lng = Number(inBody[2]);
-          if (validLatLng(lat, lng)) {
-            const meta = await nameForPoint(lat, lng);
-            return { lat, lng, ...meta };
-          }
         }
       } catch {
         /* fall through to name search */

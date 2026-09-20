@@ -88,12 +88,20 @@ export function PairPhonePanel({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const currentOrigin = window.location.origin;
-    setOrigin(currentOrigin.includes("localhost") ? currentOrigin : PUBLIC_APP_ORIGIN);
+    // The QR must always point at the screen the driver is looking at, so the
+    // phone lands on the same site the car is signed in to.
+    setOrigin(window.location.origin || PUBLIC_APP_ORIGIN);
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved) {
       setCode(saved);
       setRemoteState("connecting");
+      // A saved code may already have expired (they last 12 h). Ask the server
+      // for the live one and swap it in, so the QR is never a dead code.
+      void ensurePairSession()
+        .then((s) => {
+          if (s?.code && s.code !== saved) setCode(s.code);
+        })
+        .catch(() => { /* keep the saved code; the user can reconnect */ });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

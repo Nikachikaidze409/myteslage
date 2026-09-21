@@ -11,15 +11,24 @@ interface Props {
 }
 
 /**
- * Speed in km/h for the dashboard. Phone browsers often report `speed` as
- * null, 0 or a value that lags several seconds behind, so we fall back to the
- * distance travelled between two consecutive fixes, which updates instantly.
+ * Speed in km/h for the dashboard.
+ *
+ * The GPS chip reports an instantaneous Doppler speed in `coords.speed`, which
+ * reacts the moment the car accelerates. We prefer it over the distance between
+ * two fixes, because that derived value is really the *average* speed of the
+ * last second or more and therefore always lags behind the car's own display.
+ * The derived value stays as the fallback for browsers that report no speed.
  */
 export function deriveSpeedKmh(
   prev: { lat: number; lng: number; timestamp: number } | null,
   cur: { lat: number; lng: number; timestamp: number; speed?: number | null; accuracy?: number } | null,
 ): number | null {
   if (!cur) return null;
+  if (typeof cur.speed === "number" && Number.isFinite(cur.speed) && cur.speed >= 0) {
+    // Ignore sub-walking-pace noise while standing still.
+    const kmh = cur.speed < 0.6 ? 0 : cur.speed * 3.6;
+    if (kmh < 260) return Math.round(kmh);
+  }
   if (prev) {
     const dt = (cur.timestamp - prev.timestamp) / 1000;
     if (dt > 0.15 && dt < 12) {
@@ -29,7 +38,6 @@ export function deriveSpeedKmh(
       if (derived >= 0 && derived < 260) return Math.round(derived);
     }
   }
-  if (typeof cur.speed === "number" && cur.speed >= 0) return Math.round(cur.speed * 3.6);
   return null;
 }
 
@@ -86,6 +94,9 @@ export function nextStepFor(
 export function PhoneHud({ fix, route, destinationName, onExit }: Props) {
   const next = useMemo(() => nextStepFor(route, fix), [route, fix]);
   const prevFixRef = useRef<PairedFix | null>(null);
+  // Target = latest measured speed; displayed = the animated value on screen.
+  const targetRef = useRef<number | null>(null);
+  const displayRef = useRef<number | null>(null);
   const [speed, setSpeed] = useState<number | null>(null);
 
   // Recompute on every fix: no debounce, so the number tracks the car live.
@@ -93,8 +104,36 @@ export function PhoneHud({ fix, route, destinationName, onExit }: Props) {
     if (!fix) return;
     const v = deriveSpeedKmh(prevFixRef.current, fix);
     prevFixRef.current = fix;
-    if (v != null) setSpeed(v);
+    if (v != null) targetRef.current = v;
   }, [fix]);
+
+  // Roll the digits towards the target at ~60 fps, like a car dashboard:
+  // 20 → 21 → 22 … instead of jumping straight from 20 to 30.
+  useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min((now - last) / 1000, 0.25);
+      last = now;
+      const target = targetRef.current;
+      if (target != null) {
+        const cur = displayRef.current;
+        if (cur == null) {
+          displayRef.current = target;
+        } else {
+          const diff = target - cur;
+          // ~300 ms to close the gap, with a floor so big jumps stay quick.
+          const step = Math.sign(diff) * Math.max(Math.abs(diff) * dt * 6, dt * 12);
+          displayRef.current = Math.abs(step) >= Math.abs(diff) ? target : cur + step;
+        }
+        const shown = Math.round(displayRef.current);
+        setSpeed((prev) => (prev === shown ? prev : shown));
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   const dist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`);
 

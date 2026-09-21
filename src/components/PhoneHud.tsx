@@ -11,15 +11,24 @@ interface Props {
 }
 
 /**
- * Speed in km/h for the dashboard. Phone browsers often report `speed` as
- * null, 0 or a value that lags several seconds behind, so we fall back to the
- * distance travelled between two consecutive fixes, which updates instantly.
+ * Speed in km/h for the dashboard.
+ *
+ * The GPS chip reports an instantaneous Doppler speed in `coords.speed`, which
+ * reacts the moment the car accelerates. We prefer it over the distance between
+ * two fixes, because that derived value is really the *average* speed of the
+ * last second or more and therefore always lags behind the car's own display.
+ * The derived value stays as the fallback for browsers that report no speed.
  */
 export function deriveSpeedKmh(
   prev: { lat: number; lng: number; timestamp: number } | null,
   cur: { lat: number; lng: number; timestamp: number; speed?: number | null; accuracy?: number } | null,
 ): number | null {
   if (!cur) return null;
+  if (typeof cur.speed === "number" && Number.isFinite(cur.speed) && cur.speed >= 0) {
+    // Ignore sub-walking-pace noise while standing still.
+    const kmh = cur.speed < 0.6 ? 0 : cur.speed * 3.6;
+    if (kmh < 260) return Math.round(kmh);
+  }
   if (prev) {
     const dt = (cur.timestamp - prev.timestamp) / 1000;
     if (dt > 0.15 && dt < 12) {
@@ -29,7 +38,6 @@ export function deriveSpeedKmh(
       if (derived >= 0 && derived < 260) return Math.round(derived);
     }
   }
-  if (typeof cur.speed === "number" && cur.speed >= 0) return Math.round(cur.speed * 3.6);
   return null;
 }
 

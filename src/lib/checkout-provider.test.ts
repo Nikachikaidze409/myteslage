@@ -17,7 +17,7 @@ function makeDeps(overrides: Partial<CheckoutDeps> = {}): CheckoutDeps {
     getPaddlePriceId: vi.fn(async () => "pri_123"),
     openPaddleCheckout: vi.fn(),
     assign: vi.fn(),
-    origin: "https://teslanavi.online",
+    origin: "https://tmap.ge",
     ...overrides,
   };
 }

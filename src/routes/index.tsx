@@ -623,24 +623,7 @@ function Nav({
           <a href="#pricing" className="hover:text-white">{t.navPricing}</a>
         </nav>
         <div className="flex items-center gap-2">
-          <div className="mr-1 flex items-center rounded-lg border border-white/10 bg-white/[0.03] p-0.5 text-[11px] font-bold">
-            <button
-              type="button"
-              onClick={() => onLang("ka")}
-              className={`rounded-md px-2 py-1 transition ${lang === "ka" ? "bg-white text-black" : "text-white/60 hover:text-white"}`}
-              aria-pressed={lang === "ka"}
-            >
-              ქარ
-            </button>
-            <button
-              type="button"
-              onClick={() => onLang("en")}
-              className={`rounded-md px-2 py-1 transition ${lang === "en" ? "bg-white text-black" : "text-white/60 hover:text-white"}`}
-              aria-pressed={lang === "en"}
-            >
-              EN
-            </button>
-          </div>
+          <LanguageSwitcher lang={lang} onLang={onLang} className="mr-1" />
           {signedIn ? (
             <>
               <Link

@@ -16,6 +16,7 @@ import { FavoritesPanel } from "@/components/FavoritesPanel";
 import { AlternativesPanel } from "@/components/AlternativesPanel";
 import { BatteryPanel } from "@/components/BatteryPanel";
 import { distanceMeters } from "@/lib/geo";
+import { UI, useLang, LanguageSwitcher } from "@/lib/i18n";
 import {
   LocationSourceSelector,
   type SelectorSnapshot,
@@ -120,6 +121,8 @@ function IndexGated() {
 }
 
 function Index() {
+  const [lang, setLang] = useLang();
+  const tr = UI[lang];
   const [fix, setFixRaw] = useState<Fix | null>(null);
   // Tesla browser GPS is the preferred primary source; a paired phone is a
   // quality-based fallback. The selector decides which one drives the pipeline.

@@ -60,6 +60,8 @@ interface Props {
   darkMode?: boolean;
 }
 
+import { UI, useLang } from "@/lib/i18n";
+
 export function MapView({
   fix,
   destination,

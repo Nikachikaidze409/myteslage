@@ -28,8 +28,7 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-type Lang = "ka" | "en";
-const LANG_KEY = "mytesla.lang";
+import { useLang, LanguageSwitcher, type Lang } from "@/lib/i18n";
 
 const T = {
   ka: {

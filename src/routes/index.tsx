@@ -411,6 +411,13 @@ const T = {
   },
 } as const;
 
+const SIGN_OUT: Record<Lang, string> = {
+  ka: "გასვლა",
+  en: "Sign out",
+  hy: "Դուրս գալ",
+  ru: "Выйти",
+};
+
 function Landing() {
   const [signedIn, setSignedIn] = useState(false);
   const [lang, setLangPersist] = useLang();
@@ -632,7 +639,7 @@ function Nav({
               >
                 {t.navOpenApp}
               </Link>
-              <AccountMenu signOutLabel={lang === "ka" ? "გასვლა" : "Sign out"} />
+              <AccountMenu signOutLabel={SIGN_OUT[lang]} />
             </>
           ) : (
             <>

@@ -44,9 +44,43 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+// Legacy domain cutover: teslanavi.online -> tmap.ge.
+// Machine-to-machine payment endpoints stay on the old host forever, because
+// provider records created before the cutover still point at them.
+const LEGACY_HOSTS = new Set([
+  "teslanavi.online",
+  "www.teslanavi.online",
+  // www of the canonical domain folds into the bare canonical host.
+  "www.tmap.ge",
+]);
+const CANONICAL_HOST = "tmap.ge";
+const LEGACY_API_PATHS = new Set([
+  "/api/public/payments/bog/callback",
+  "/api/public/payments/bog/process-renewals",
+  "/api/public/payments/webhook",
+]);
+
+export function legacyRedirectTarget(rawUrl: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  if (!LEGACY_HOSTS.has(url.hostname.toLowerCase())) return null;
+  if (LEGACY_API_PATHS.has(url.pathname.replace(/\/+$/, "") || "/")) return null;
+  url.protocol = "https:";
+  url.hostname = CANONICAL_HOST;
+  url.port = "";
+  return url.toString();
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const redirectTo = legacyRedirectTarget(request.url);
+      if (redirectTo) return Response.redirect(redirectTo, 301);
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { LegalFooter } from "@/components/LegalFooter";
 
 export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
@@ -65,7 +66,8 @@ function ResetPasswordPage() {
   };
 
   return (
-    <div className="grid min-h-screen place-items-center bg-background p-4 text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <main className="grid flex-1 place-items-center p-4">
       <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl">
         <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
           TMap Georgia
@@ -131,6 +133,8 @@ function ResetPasswordPage() {
           !invalid && <p className="mt-4 text-sm text-muted-foreground">Checking your reset link…</p>
         )}
       </div>
+      </main>
+      <LegalFooter />
     </div>
   );
 }

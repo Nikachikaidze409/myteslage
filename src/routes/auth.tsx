@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { signupWithCode } from "@/lib/auth.functions";
+import { LegalFooter } from "@/components/LegalFooter";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -110,7 +111,8 @@ function AuthPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-background p-4 text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <main className="grid flex-1 place-items-center p-4">
       <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl">
         <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
           TMap Georgia
@@ -277,6 +279,8 @@ function AuthPage() {
             : "← Back to sign in · დაბრუნება"}
         </button>
       </div>
+      </main>
+      <LegalFooter />
     </div>
   );
 }

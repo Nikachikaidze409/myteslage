@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { getBogPaymentState, getMembershipState } from "@/lib/bog.functions";
 import { paddlePurchaseRecentlyTracked, trackPurchaseOnce } from "@/lib/meta-pixel";
 import { PROVIDER_PRICES, type Plan } from "@/lib/checkout-provider";
+import { LegalFooter } from "@/components/LegalFooter";
 
 export const Route = createFileRoute("/checkout_/success")({
   component: CheckoutSuccess,
@@ -108,7 +109,8 @@ function CheckoutSuccess() {
   }, []);
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#050708] px-6 text-white">
+    <div className="flex min-h-screen flex-col bg-[#050708] text-white">
+    <main className="grid flex-1 place-items-center px-6 py-12">
       <section className="w-full max-w-lg rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center">
         {state === "active" ? (
           <>
@@ -164,5 +166,7 @@ function CheckoutSuccess() {
         )}
       </section>
     </main>
+    <LegalFooter />
+    </div>
   );
 }

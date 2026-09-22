@@ -1,6 +1,6 @@
-# Tesla Navigator Lite
+# TMap Georgia
 
-Can we Build a website-only Tesla browser web app prototype for imported Tesla owners in Georgia whose built-in maps do not work correctly.
+TMap Georgia is a website-only browser navigation product for imported Tesla owners in Georgia whose built-in maps do not work correctly.
 
 The goal is to test whether a browser-only solution can detect the car’s location well enough without pairing a phone manually. The idea is that when the phone’s Wi‑Fi or hotspot is on nearby, the website should try to determine the user’s current location through the browser’s geolocation capabilities and available network-based positioning, then show navigation features on the Tesla screen. Browsers can request geolocation permission and use the best available device location source, but they cannot directly control phone GPS hardware, so the app must be designed as a feasibility test, not as a guaranteed native GPS replacement.youtubedeveloper.mozilla
 
@@ -50,7 +50,7 @@ What would require a companion mobile app later for a production-grade product.
 
 This project was built with [Lovable](https://lovable.dev).
 
-**Live app**: https://myteslage.lovable.app
+**Live app**: https://tmap.ge
 
 ## Build with Lovable
 

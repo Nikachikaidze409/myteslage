@@ -868,7 +868,7 @@ function Index() {
   }, []);
 
   return (
-    <div className="h-screen overflow-hidden bg-background text-foreground">
+    <div className={`h-screen overflow-hidden bg-background text-foreground ${darkMap ? "dark" : ""}`}>
       <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
         {/* Sidebar - hidden in HUD mode (phone is the brain) or when minimized */}
         {!hudMode && (

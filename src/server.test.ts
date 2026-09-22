@@ -50,6 +50,23 @@ describe("legacy domain redirect", () => {
     );
   });
 
+  it("never runs the application handler on the legacy host", async () => {
+    const worker = (await import("./server")).default;
+    const response = await worker.fetch(
+      new Request("https://teslanavi.online/api/public/payments/bog/callback", {
+        method: "POST",
+        body: "{}",
+      }),
+      {},
+      {},
+    );
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(
+      "https://tmap.ge/api/public/payments/bog/callback",
+    );
+    expect(await response.text()).toBe("");
+  });
+
   it("leaves the canonical domain untouched", () => {
     expect(legacyRedirectTarget("https://tmap.ge/map?gpsdebug=1")).toBeNull();
     expect(legacyRedirectTarget("https://tmap.ge/")).toBeNull();

@@ -56,7 +56,9 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
     scrollwheel: false,
     // Double-tap / double-click zoom is a gesture too: only +/- may zoom.
     disableDoubleClickZoom: true,
-    clickableIcons: true,
+    // POI taps open Google's own info windows and fire extra network
+    // requests; drivers hit them by accident while panning.
+    clickableIcons: false,
     keyboardShortcuts: false,
     maxZoom: 20,
     minZoom: 4,

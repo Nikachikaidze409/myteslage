@@ -36,7 +36,7 @@ interface Props {
 }
 
 const STORAGE_KEY = "tesla-nav.pair-code";
-const PUBLIC_APP_ORIGIN = "https://myteslage.lovable.app";
+const PUBLIC_APP_ORIGIN = "https://tmap.ge";
 
 export function PairPhonePanel({
   onPairedFix,

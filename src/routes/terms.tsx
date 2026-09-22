@@ -59,10 +59,10 @@ function TermsPage() {
 
         <h2>3. Payment and subscriptions</h2>
         <p>
-          Our order process is conducted by our online reseller Paddle.com.
-          Paddle.com is the Merchant of Record for all our orders. Paddle
-          provides all customer service inquiries and handles returns. Payment,
-          billing, taxes, cancellation, and refund mechanics are governed by{" "}
+          Depending on the checkout method you choose, payment is processed by
+          Bank of Georgia or by our online reseller Paddle.com. For orders
+          processed by Paddle, Paddle.com is the Merchant of Record and its
+          payment, billing, tax, cancellation, and refund terms apply as set out in{" "}
           <a
             href="https://www.paddle.com/legal/checkout-buyer-terms"
             target="_blank"

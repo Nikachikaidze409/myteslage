@@ -20,7 +20,7 @@ export function RoutePreview({
 }) {
   if (!destinationName && !loading && !route && !error) return null;
   return (
-    <div className="rounded-2xl border border-border bg-white p-5">
+    <div className="rounded-2xl border border-border bg-card p-5">
       {loading && (
         <div className="text-sm text-muted-foreground">
           {offRoute ? "Off route - rerouting…" : "Computing route…"}

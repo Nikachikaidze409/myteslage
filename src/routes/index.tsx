@@ -413,21 +413,7 @@ const T = {
 
 function Landing() {
   const [signedIn, setSignedIn] = useState(false);
-  const [lang, setLang] = useState<Lang>("ka");
-
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(LANG_KEY) as Lang | null;
-      if (saved === "ka" || saved === "en") setLang(saved);
-    } catch {}
-  }, []);
-
-  const setLangPersist = (l: Lang) => {
-    setLang(l);
-    try {
-      window.localStorage.setItem(LANG_KEY, l);
-    } catch {}
-  };
+  const [lang, setLangPersist] = useLang();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));

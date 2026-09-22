@@ -72,7 +72,7 @@ function BatteryPanelImpl({ routeKm, encodedPolyline, onAddStop }: Props) {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-white p-4">
+    <div className="rounded-2xl border border-border bg-card p-4">
       <div className="mb-2 flex items-center justify-between">
         <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
           Battery · range

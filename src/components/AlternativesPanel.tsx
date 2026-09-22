@@ -26,7 +26,7 @@ function AlternativesPanelImpl({
   ];
 
   return (
-    <div className="rounded-2xl border border-border bg-white p-4">
+    <div className="rounded-2xl border border-border bg-card p-4">
       <div className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
         Route options
       </div>

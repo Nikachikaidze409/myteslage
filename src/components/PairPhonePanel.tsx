@@ -255,7 +255,7 @@ export function PairPhonePanel({
 
       {!code && (
         <div className="flex items-center gap-4 rounded-2xl bg-muted/60 p-4">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-border bg-white text-primary">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-border bg-card text-primary">
             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <rect x="6" y="3" width="12" height="18" rx="2" strokeWidth="2" />
               <circle cx="12" cy="17.5" r="1" fill="currentColor" />
@@ -293,7 +293,7 @@ export function PairPhonePanel({
                   "inline-flex items-center gap-2 rounded-full px-2 py-1 text-[11px] font-medium " +
                   (connected
                     ? "bg-[color:var(--good)]/15 text-[color:var(--good)]"
-                    : "bg-white text-muted-foreground")
+                    : "bg-card text-muted-foreground")
                 }
               >
                 <span
@@ -322,7 +322,7 @@ export function PairPhonePanel({
             </a>
             <button
               onClick={disconnect}
-              className="h-8 shrink-0 rounded-lg border border-border bg-white px-3 text-[11px] font-medium text-muted-foreground transition hover:bg-muted"
+              className="h-8 shrink-0 rounded-lg border border-border bg-card px-3 text-[11px] font-medium text-muted-foreground transition hover:bg-muted"
             >
               Disconnect
             </button>

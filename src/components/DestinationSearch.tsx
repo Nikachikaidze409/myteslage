@@ -88,7 +88,7 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
 
   return (
     <div className="relative">
-      <div className="flex h-16 w-full items-center rounded-2xl border border-white bg-white/90 px-6 shadow-xl shadow-slate-300/40 backdrop-blur-md transition focus-within:ring-2 focus-within:ring-primary/30">
+      <div className="flex h-16 w-full items-center rounded-2xl border border-border bg-card/90 px-6 shadow-xl shadow-slate-300/40 dark:shadow-slate-900/50 backdrop-blur-md transition focus-within:ring-2 focus-within:ring-primary/30">
         <svg className="mr-4 h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
@@ -135,14 +135,14 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
               }
             });
           }}
-          className="ml-2 h-10 shrink-0 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-foreground shadow-sm hover:bg-muted"
+          className="ml-2 h-10 shrink-0 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-foreground shadow-sm hover:bg-muted"
         >
           Space
         </button>
       </div>
 
       {(suggestions.length > 0 || error || loading) && q.trim().length >= 2 && (
-        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-slate-300/40">
+        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-slate-300/40 dark:shadow-slate-900/50">
           {loading && (
             <div className="px-5 py-3 text-sm text-muted-foreground">Searching…</div>
           )}

@@ -651,7 +651,7 @@ export function MapView({
             ? "border-primary bg-primary text-primary-foreground"
             : darkMode
               ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
-              : "border-border bg-white/95 text-foreground hover:bg-white"
+              : "border-border bg-card/95 text-foreground hover:bg-card"
         }`}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -664,7 +664,7 @@ export function MapView({
       {/* Large touch-friendly zoom controls */}
       <div
         className={`absolute bottom-8 right-4 z-30 flex flex-col overflow-hidden rounded-2xl border shadow-lg backdrop-blur ${
-          darkMode ? "border-slate-700 bg-slate-900/90" : "border-border bg-white/95"
+          darkMode ? "border-slate-700 bg-slate-900/90" : "border-border bg-card/95"
         }`}
       >
         <button

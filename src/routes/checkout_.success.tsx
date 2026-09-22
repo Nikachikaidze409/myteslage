@@ -8,13 +8,14 @@ export const Route = createFileRoute("/checkout_/success")({
   component: CheckoutSuccess,
   head: () => ({
     meta: [
-      { title: "Payment complete | Tesla Map Georgia" },
-      { name: "description", content: "Your Tesla Map Georgia membership payment is complete." },
-      { property: "og:title", content: "Payment complete | Tesla Map Georgia" },
-      { property: "og:description", content: "Your Tesla Map Georgia membership payment is complete." },
+      { title: "Payment complete | TMap Georgia" },
+      { name: "description", content: "Your TMap Georgia membership payment is complete." },
+      { property: "og:title", content: "Payment complete | TMap Georgia" },
+      { property: "og:description", content: "Your TMap Georgia membership payment is complete." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://tmap.ge/checkout/success" }],
   }),
 });
 

@@ -252,7 +252,7 @@ describe("pre-publish hardening", () => {
 
   it("the success redirect carries the opaque external order id", () => {
     expect(bogSuccessUrl("tsn_abc")).toBe(
-      "https://teslanavi.online/checkout/success?provider=bog&order=tsn_abc",
+      "https://tmap.ge/checkout/success?provider=bog&order=tsn_abc",
     );
     expect(buildOrderPayload("monthly", "tsn_abc").redirect_urls.success).toContain("order=tsn_abc");
   });

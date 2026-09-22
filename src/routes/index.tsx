@@ -9,13 +9,13 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "Tesla Map Georgia - ნავიგაცია იმპორტირებული Tesla-სთვის საქართველოში" },
+      { title: "TMap Georgia - ნავიგაცია Tesla-სთვის საქართველოში" },
       {
         name: "description",
         content:
           "დაივიწყე Tesla Premium Connectivity. ცოცხალი ნავიგაცია პირდაპირ Tesla-ს ეკრანზე - მხოლოდ 8 ₾ თვეში.",
       },
-      { property: "og:title", content: "Tesla Map Georgia - ნავიგაცია, რომელიც Tesla-ს უნდა ჰქონდეს" },
+      { property: "og:title", content: "TMap Georgia - ნავიგაცია Tesla-სთვის საქართველოში" },
       {
         property: "og:description",
         content:
@@ -24,6 +24,7 @@ export const Route = createFileRoute("/")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://tmap.ge/" }],
   }),
 });
 
@@ -64,7 +65,7 @@ const T = {
       "მიბმულია Tesla-ს ძველ რუკის მონაცემებზე მხარდაუჭერელ ქვეყნებში",
     ],
     goodEyebrow: "გამოსავალი",
-    goodTitle: "Tesla Map Georgia - 8 ₾/თვე",
+    goodTitle: "TMap Georgia - 8 ₾/თვე",
     goodBullets: [
       "Google-ის ხარისხის რუკები, რომლებმაც იციან ქართული ქუჩები",
       "რეალურ დროში GPS შენი ტელეფონიდან → მანქანის 17″ ეკრანზე",
@@ -159,7 +160,7 @@ const T = {
       "Locked to Tesla's aging map data outside supported countries",
     ],
     goodEyebrow: "The solution",
-    goodTitle: "Tesla Map Georgia - 8 ₾/month",
+    goodTitle: "TMap Georgia - 8 ₾/month",
     goodBullets: [
       "Google-quality maps that actually know Georgian streets",
       "Real-time GPS from your phone → your car's 17″ screen",
@@ -439,7 +440,7 @@ function Nav({
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
             ⚡
           </span>
-          Tesla Map Georgia
+          TMap Georgia
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
           <a href="#pricing" className="hover:text-white">{t.navPricing}</a>
@@ -634,7 +635,10 @@ function Footer({ text }: { text: string }) {
           Privacy Notice
         </Link>
       </div>
-      © {new Date().getFullYear()} Tesla Map Georgia · {text}
+      <p>© {new Date().getFullYear()} TMap Georgia · {text}</p>
+      <p className="mx-auto mt-3 max-w-2xl px-6 text-white/50">
+        TMap Georgia is an independent product and is not affiliated with or endorsed by Tesla, Inc.
+      </p>
     </footer>
   );
 }

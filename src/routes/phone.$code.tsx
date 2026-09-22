@@ -27,7 +27,15 @@ import { createMap } from "@/lib/maps/googleMapsService";
 
 export const Route = createFileRoute("/phone/$code")({
   head: () => ({
-    meta: [{ title: "Tesla nav - phone remote" }],
+    meta: [
+      { title: "Phone remote | TMap Georgia" },
+      { name: "description", content: "Pair your phone with TMap Georgia navigation in a compatible Tesla vehicle." },
+      { property: "og:title", content: "Phone remote | TMap Georgia" },
+      { property: "og:description", content: "Pair your phone with TMap Georgia navigation in a compatible Tesla vehicle." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "robots", content: "noindex" },
+    ],
   }),
   component: PhoneRelay,
 });

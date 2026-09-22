@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AccountBar } from "@/components/AccountBar";
+import { LegalFooter } from "@/components/LegalFooter";
 
 type Plan = "monthly" | "quarterly" | "annual";
 const PLAN_KEY = "tsl.pending-plan";
@@ -10,13 +11,18 @@ export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   head: () => ({
     meta: [
-      { title: "Pricing - Tesla Map Georgia" },
+      { title: "Pricing - TMap Georgia" },
       {
         name: "description",
         content:
           "8 ₾/month, 21.60 ₾ every 3 months, or 85 ₾ a year. Live navigation for imported Teslas in Georgia.",
       },
+      { property: "og:title", content: "Pricing - TMap Georgia" },
+      { property: "og:description", content: "Choose a TMap Georgia navigation membership: 8 ₾ monthly, 21.60 ₾ quarterly, or 85 ₾ annually." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://tmap.ge/pricing" }],
   }),
 });
 
@@ -53,7 +59,7 @@ function PricingPage() {
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
               ⚡
             </span>
-            Tesla Map Georgia
+            TMap Georgia
           </Link>
           <Link to="/" className="text-sm text-white/60 hover:text-white">
             ← Back
@@ -156,6 +162,7 @@ function PricingPage() {
           </Link>
         </p>
       </main>
+      <LegalFooter />
     </div>
   );
 }

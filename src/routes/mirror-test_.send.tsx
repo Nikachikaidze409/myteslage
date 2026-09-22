@@ -11,13 +11,13 @@ export const Route = createFileRoute("/mirror-test_/send")({
   component: MirrorSender,
   head: () => ({
     meta: [
-      { title: "Send Screen to Tesla — TeslaNavi Mirror Test" },
+      { title: "Send Screen to Tesla | TMap Georgia Mirror Test" },
       {
         name: "description",
         content:
-          "Sender side of the TeslaNavi mirror diagnostic: shares this device's screen to the paired Tesla browser over WebRTC.",
+          "Sender side of the TMap Georgia mirror diagnostic: shares this device's screen to the paired Tesla browser over WebRTC.",
       },
-      { property: "og:title", content: "Send Screen to Tesla — TeslaNavi Mirror Test" },
+      { property: "og:title", content: "Send Screen to Tesla | TMap Georgia Mirror Test" },
       {
         property: "og:description",
         content: "Share this device's screen to the paired Tesla browser over WebRTC.",

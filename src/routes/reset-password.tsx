@@ -6,9 +6,14 @@ export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
   head: () => ({
     meta: [
-      { title: "Reset password · Tesla Map Georgia" },
-      { name: "description", content: "Set a new password for your Tesla Map Georgia account." },
+      { title: "Reset password | TMap Georgia" },
+      { name: "description", content: "Set a new password for your TMap Georgia account." },
+      { property: "og:title", content: "Reset password | TMap Georgia" },
+      { property: "og:description", content: "Set a new password for your TMap Georgia account." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://tmap.ge/reset-password" }],
   }),
 });
 
@@ -63,7 +68,7 @@ function ResetPasswordPage() {
     <div className="grid min-h-screen place-items-center bg-background p-4 text-foreground">
       <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl">
         <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
-          Tesla · Georgia
+          TMap Georgia
         </div>
         <h1 className="font-display mt-1 text-2xl font-bold">
           Set a new password · ახალი პაროლი

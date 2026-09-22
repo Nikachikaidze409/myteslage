@@ -1160,20 +1160,6 @@ function Index() {
                   {remoteState === "connected" ? "Connected" : "Connect"}
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setRecenterSignal((n) => n + 1)}
-                aria-label="My Location"
-                title="Recenter map on your location"
-                className={`flex items-center gap-1.5 rounded-full border px-5 py-2 text-xs font-semibold shadow-md backdrop-blur transition ${
-                  darkMap
-                    ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
-                    : "border-border bg-white/90 text-foreground hover:bg-white"
-                }`}
-              >
-                <span aria-hidden>📍</span>
-                My Location
-              </button>
             </div>
           )}
 

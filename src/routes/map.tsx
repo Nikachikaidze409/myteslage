@@ -1109,7 +1109,7 @@ function Index() {
                         : "border-border bg-card/90 text-foreground hover:bg-card"
                   }`}
                 >
-                  {showTraffic ? "Traffic on" : "Traffic off"}
+                  {showTraffic ? tr.trafficOn : tr.trafficOff}
                 </button>
                 <button
                   type="button"
@@ -1141,7 +1141,7 @@ function Index() {
                       : "border-border bg-card/90 text-foreground hover:bg-card"
                   }`}
                 >
-                  {darkMap ? "Night" : "Day"}
+                  {darkMap ? tr.night : tr.day}
                 </button>
                 <button
                   type="button"
@@ -1157,8 +1157,14 @@ function Index() {
                   }`}
                 >
                   <span aria-hidden>📱</span>
-                  {remoteState === "connected" ? "Connected" : "Connect"}
+                  {remoteState === "connected" ? tr.connected : tr.connect}
                 </button>
+                <LanguageSwitcher
+                  lang={lang}
+                  onLang={setLang}
+                  tone="light"
+                  className="rounded-full px-1 py-0.5 shadow-md backdrop-blur"
+                />
               </div>
             </div>
           )}

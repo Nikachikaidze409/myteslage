@@ -17,7 +17,7 @@ function makeDeps(overrides: Partial<CheckoutDeps> = {}): CheckoutDeps {
     getPaddlePriceId: vi.fn(async () => "pri_123"),
     openPaddleCheckout: vi.fn(),
     assign: vi.fn(),
-    origin: "https://teslanavi.online",
+    origin: "https://tmap.ge",
     ...overrides,
   };
 }
@@ -67,7 +67,7 @@ describe("checkout payment provider", () => {
     const options = (deps.openPaddleCheckout as unknown as { mock: { calls: any[][] } }).mock.calls[0][0];
     expect(options.items).toEqual([{ priceId: "pri_123", quantity: 1 }]);
     expect(options.customData).toEqual({ userId: "u9" });
-    expect(options.settings.successUrl).toBe("https://teslanavi.online/checkout/success?provider=paddle");
+    expect(options.settings.successUrl).toBe("https://tmap.ge/checkout/success?provider=paddle");
     expect(options.settings.displayMode).toBe("overlay");
   });
 });

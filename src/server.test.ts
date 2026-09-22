@@ -33,8 +33,14 @@ describe("legacy domain redirect", () => {
     }
   });
 
+  it("folds www of the canonical domain into the bare host", () => {
+    expect(legacyRedirectTarget("https://www.tmap.ge/pricing?x=1")).toBe(
+      "https://tmap.ge/pricing?x=1",
+    );
+  });
+
   it("leaves the canonical domain untouched", () => {
     expect(legacyRedirectTarget("https://tmap.ge/map?gpsdebug=1")).toBeNull();
-    expect(legacyRedirectTarget("https://www.tmap.ge/")).toBeNull();
+    expect(legacyRedirectTarget("https://tmap.ge/")).toBeNull();
   });
 });

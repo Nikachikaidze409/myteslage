@@ -5,3 +5,6 @@
 - [x] Preserve legacy payment URLs and verify payment/navigation logic is unchanged
 - [x] Run full tests, typecheck, and production build
 - [x] Report changed files and justified remaining legacy references
+- [x] Move the hourly BOG renewal schedule to tmap.ge (same time, token, logic)
+- [x] Redirect legacy public pages to tmap.ge while keeping legacy payment endpoints direct
+- [x] Fold www.tmap.ge into tmap.ge

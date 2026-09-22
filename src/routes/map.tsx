@@ -222,7 +222,9 @@ function Index() {
   const [navigating, setNavigating] = useState(false);
   const [offRoute, setOffRoute] = useState(false);
   const [showTraffic, setShowTraffic] = useState(true);
-  const [tilt3d, setTilt3d] = useState(true);
+  // Default to flat 2D: the heavy 3D perspective only loads when the driver
+  // explicitly taps the 2D/3D toggle.
+  const [tilt3d, setTilt3d] = useState(false);
   // Night palette. Read after mount so the server render and hydration match.
   const [darkMap, setDarkMap] = useState(false);
   useEffect(() => {

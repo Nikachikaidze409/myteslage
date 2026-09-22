@@ -116,7 +116,7 @@ describe("BOG saved-card endpoints", () => {
     expect(call[1].method).toBe("POST");
     const body = JSON.parse(call[1].body);
     expect(body).toEqual({
-      callback_url: "https://teslanavi.online/api/public/payments/bog/callback",
+      callback_url: "https://tmap.ge/api/public/payments/bog/callback",
       external_order_id: "tsr_abc",
     });
     expect(body.amount).toBeUndefined();

@@ -79,23 +79,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Tesla Browser Navigation GPS test for Georgia - Carplay for" },
+      { title: "TMap Georgia" },
       {
         name: "description",
         content:
-          "Tesla Browser Navigation GPS test for Georgia - Carplay for",
+          "Browser-based navigation for compatible Tesla vehicles in Georgia.",
       },
-      { name: "author", content: "Tesla Browser Nav" },
-      { property: "og:title", content: "Tesla Browser Navigation GPS test for Georgia - Carplay for" },
+      { name: "author", content: "TMap Georgia" },
+      { property: "og:title", content: "TMap Georgia" },
       {
         property: "og:description",
         content:
-          "Tesla Browser Navigation GPS test for Georgia - Carplay for",
+          "Browser-based navigation for compatible Tesla vehicles in Georgia.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Tesla Browser Navigation GPS test for Georgia - Carplay for" },
-      { name: "twitter:description", content: "Tesla Browser Navigation GPS test for Georgia - Carplay for" },
+      { name: "twitter:title", content: "TMap Georgia" },
+      { name: "twitter:description", content: "Browser-based navigation for compatible Tesla vehicles in Georgia." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ebc60772-3510-4f10-9aa5-334344e5b88d/id-preview-c69a260f--6fef22b8-032d-4c78-acb2-2495788dfa3e.lovable.app-1783544389258.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ebc60772-3510-4f10-9aa5-334344e5b88d/id-preview-c69a260f--6fef22b8-032d-4c78-acb2-2495788dfa3e.lovable.app-1783544389258.png" },
     ],

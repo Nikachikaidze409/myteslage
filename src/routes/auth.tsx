@@ -2,9 +2,21 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { signupWithCode } from "@/lib/auth.functions";
+import { LegalFooter } from "@/components/LegalFooter";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
+  head: () => ({
+    meta: [
+      { title: "Sign in or create an account | TMap Georgia" },
+      { name: "description", content: "Sign in to TMap Georgia or create your navigation membership account." },
+      { property: "og:title", content: "Sign in | TMap Georgia" },
+      { property: "og:description", content: "Access your TMap Georgia navigation membership." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+    links: [{ rel: "canonical", href: "https://tmap.ge/auth" }],
+  }),
 });
 
 function AuthPage() {
@@ -99,10 +111,11 @@ function AuthPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-background p-4 text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <main className="grid flex-1 place-items-center p-4">
       <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl">
         <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
-          Tesla · Georgia
+          TMap Georgia
         </div>
         <h1 className="font-display mt-1 text-2xl font-bold">
           {mode === "signin" ? "Sign in" : mode === "signup" ? "Create your account" : "Reset password · პაროლის აღდგენა"}
@@ -266,6 +279,8 @@ function AuthPage() {
             : "← Back to sign in · დაბრუნება"}
         </button>
       </div>
+      </main>
+      <LegalFooter />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
   type Plan,
 } from "@/lib/checkout-provider";
 import { AccountBar } from "@/components/AccountBar";
+import { LegalFooter } from "@/components/LegalFooter";
 
 const PLAN_KEY = "tsl.pending-plan";
 const PLANS: Record<Plan, { label: string; period: string }> = {
@@ -29,13 +30,14 @@ export const Route = createFileRoute("/checkout")({
   component: Checkout,
   head: () => ({
     meta: [
-      { title: "Secure checkout | Tesla Map Georgia" },
-      { name: "description", content: "Start your Tesla Map Georgia membership with secure Bank of Georgia checkout." },
-      { property: "og:title", content: "Secure checkout | Tesla Map Georgia" },
-      { property: "og:description", content: "Start your Tesla Map Georgia membership with secure Bank of Georgia checkout." },
+      { title: "Secure checkout | TMap Georgia" },
+      { name: "description", content: "Start your TMap Georgia membership with secure Bank of Georgia or Paddle checkout." },
+      { property: "og:title", content: "Secure checkout | TMap Georgia" },
+      { property: "og:description", content: "Start your TMap Georgia membership with secure Bank of Georgia or Paddle checkout." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://tmap.ge/checkout" }],
   }),
 });
 
@@ -181,7 +183,7 @@ function Checkout() {
         <div className="mx-auto flex h-16 max-w-[900px] items-center justify-between px-6">
           <Link to="/" className="font-display flex items-center gap-2 text-lg font-black">
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">⚡</span>
-            Tesla Map Georgia
+            TMap Georgia
           </Link>
           <Link to="/pricing" className="text-sm text-white/60 hover:text-white">← Change plan</Link>
         </div>
@@ -323,6 +325,7 @@ function Checkout() {
           <button type="button" onClick={() => setPlan("annual")} className={plan === "annual" ? "text-white" : "hover:text-white"}>1 year</button>
         </div>
       </main>
+      <LegalFooter />
     </div>
   );
 }

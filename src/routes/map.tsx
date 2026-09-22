@@ -77,6 +77,17 @@ const MapView = lazy(() =>
 
 export const Route = createFileRoute("/map")({
   component: IndexGated,
+  head: () => ({
+    meta: [
+      { title: "Navigation | TMap Georgia" },
+      { name: "description", content: "Live browser navigation for compatible Tesla vehicles in Georgia." },
+      { property: "og:title", content: "Navigation | TMap Georgia" },
+      { property: "og:description", content: "Live browser navigation for compatible Tesla vehicles in Georgia." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
 });
 
 const MAP_CATEGORIES: { key: string; label: string; emoji: string }[] = [

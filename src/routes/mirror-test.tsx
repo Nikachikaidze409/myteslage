@@ -14,13 +14,13 @@ export const Route = createFileRoute("/mirror-test")({
   component: MirrorReceiver,
   head: () => ({
     meta: [
-      { title: "Tesla Screen Mirror Test — TeslaNavi" },
+      { title: "Tesla Screen Mirror Test | TMap Georgia" },
       {
         name: "description",
         content:
           "Diagnostic receiver that checks whether the Tesla browser can play a live low-latency screen stream from a phone or laptop.",
       },
-      { property: "og:title", content: "Tesla Screen Mirror Test — TeslaNavi" },
+      { property: "og:title", content: "Tesla Screen Mirror Test | TMap Georgia" },
       {
         property: "og:description",
         content: "Check whether the Tesla browser can play a live low-latency screen stream.",

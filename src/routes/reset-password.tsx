@@ -1,14 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { LegalFooter } from "@/components/LegalFooter";
 
 export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
   head: () => ({
     meta: [
-      { title: "Reset password · Tesla Map Georgia" },
-      { name: "description", content: "Set a new password for your Tesla Map Georgia account." },
+      { title: "Reset password | TMap Georgia" },
+      { name: "description", content: "Set a new password for your TMap Georgia account." },
+      { property: "og:title", content: "Reset password | TMap Georgia" },
+      { property: "og:description", content: "Set a new password for your TMap Georgia account." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://tmap.ge/reset-password" }],
   }),
 });
 
@@ -60,10 +66,11 @@ function ResetPasswordPage() {
   };
 
   return (
-    <div className="grid min-h-screen place-items-center bg-background p-4 text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <main className="grid flex-1 place-items-center p-4">
       <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl">
         <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
-          Tesla · Georgia
+          TMap Georgia
         </div>
         <h1 className="font-display mt-1 text-2xl font-bold">
           Set a new password · ახალი პაროლი
@@ -126,6 +133,8 @@ function ResetPasswordPage() {
           !invalid && <p className="mt-4 text-sm text-muted-foreground">Checking your reset link…</p>
         )}
       </div>
+      </main>
+      <LegalFooter />
     </div>
   );
 }

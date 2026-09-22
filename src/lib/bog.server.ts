@@ -16,14 +16,14 @@ export const BOG_SAVE_SUBSCRIPTION_URL = "https://api.bog.ge/payments/v1/orders"
 /** Delete saved card (DELETE /payments/v1/charges/card/{parent_order_id}). */
 export const BOG_DELETE_CARD_URL = "https://api.bog.ge/payments/v1/charges/card";
 
-export const BOG_CALLBACK_URL = "https://teslanavi.online/api/public/payments/bog/callback";
-export const BOG_SUCCESS_BASE_URL = "https://teslanavi.online/checkout/success";
+export const BOG_CALLBACK_URL = "https://tmap.ge/api/public/payments/bog/callback";
+export const BOG_SUCCESS_BASE_URL = "https://tmap.ge/checkout/success";
 
 /** Success redirect tied to the specific, opaque payment attempt. */
 export function bogSuccessUrl(externalOrderId: string): string {
   return `${BOG_SUCCESS_BASE_URL}?provider=bog&order=${encodeURIComponent(externalOrderId)}`;
 }
-export const BOG_FAIL_URL = "https://teslanavi.online/checkout?payment=failed";
+export const BOG_FAIL_URL = "https://tmap.ge/checkout?payment=failed";
 
 /* ------------------------------------------------------------------ *
  * Trusted plan configuration. The browser may only name a plan key.
@@ -45,21 +45,21 @@ export const BOG_PLANS: Record<PlanKey, BogPlan> = {
     amount: 8.0,
     currency: "GEL",
     durationMonths: 1,
-    description: "TeslaNavi membership — 1 month",
+    description: "TMap Georgia membership — 1 month",
   },
   quarterly: {
     id: "tesla_map_georgia_quarterly",
     amount: 21.6,
     currency: "GEL",
     durationMonths: 3,
-    description: "TeslaNavi membership — 3 months",
+    description: "TMap Georgia membership — 3 months",
   },
   annual: {
     id: "tesla_map_georgia_annual",
     amount: 85.0,
     currency: "GEL",
     durationMonths: 12,
-    description: "TeslaNavi membership — 1 year",
+    description: "TMap Georgia membership — 1 year",
   },
 };
 
@@ -222,7 +222,7 @@ export function buildOrderPayload(
   };
 }
 
-export const BOG_UPGRADE_DESCRIPTION = "TeslaNavi 3-month membership upgrade";
+export const BOG_UPGRADE_DESCRIPTION = "TMap Georgia 3-month membership upgrade";
 
 /**
  * Fallback body used only if BOG rejects the explicit method list because one
@@ -578,7 +578,7 @@ export function computeRenewalPeriod(
   return { start, end: computePeriodEnd(plan, start) };
 }
 
-/** Opaque TeslaNavi reference for a renewal attempt (carries no user id). */
+/** Opaque TMap Georgia reference for a renewal attempt (carries no user id). */
 export function newRenewalReference(): string {
   return `tsr_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
 }

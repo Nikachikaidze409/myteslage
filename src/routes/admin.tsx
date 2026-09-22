@@ -17,8 +17,12 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
   head: () => ({
     meta: [
-      { title: "Admin · Tesla Map Georgia" },
-      { name: "description", content: "Admin panel for Tesla Map Georgia." },
+      { title: "Admin | TMap Georgia" },
+      { name: "description", content: "TMap Georgia administration." },
+      { property: "og:title", content: "Admin | TMap Georgia" },
+      { property: "og:description", content: "TMap Georgia administration." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -183,7 +187,7 @@ function AdminPage() {
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
               ⚡
             </span>
-            Tesla Map Georgia
+            TMap Georgia
           </Link>
           <span className="text-sm font-semibold text-white/50">Admin</span>
         </div>

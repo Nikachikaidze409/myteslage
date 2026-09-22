@@ -4,13 +4,18 @@ export const Route = createFileRoute("/privacy")({
   component: PrivacyPage,
   head: () => ({
     meta: [
-      { title: "Privacy Notice - Tesla Map Georgia" },
+      { title: "Privacy Notice - TMap Georgia" },
       {
         name: "description",
         content:
-          "How tesla map georgia collects, uses, and protects your personal data.",
+          "How TMap Georgia collects, uses, and protects your personal data.",
       },
+      { property: "og:title", content: "Privacy Notice - TMap Georgia" },
+      { property: "og:description", content: "How TMap Georgia collects, uses, and protects your personal data." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://tmap.ge/privacy" }],
   }),
 });
 
@@ -23,7 +28,7 @@ function PrivacyPage() {
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
               ⚡
             </span>
-            Tesla Map Georgia
+            TMap Georgia
           </Link>
           <Link to="/" className="text-sm text-white/60 hover:text-white">
             ← Back
@@ -33,14 +38,13 @@ function PrivacyPage() {
 
       <main className="mx-auto max-w-[760px] px-6 pb-24 pt-12 text-sm leading-7 text-white/75 [&_h2]:mb-2 [&_h2]:mt-8 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-white [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_p]:mb-3">
         <h1 className="font-display text-4xl font-black text-white">Privacy Notice</h1>
-        <p className="mt-2 text-white/40">Last updated: August 2026</p>
+        <p className="mt-2 text-white/40">Last updated: September 2026</p>
 
         <h2>1. Who we are</h2>
         <p>
-          This Privacy Notice is issued by <strong>Tesla Navi Online</strong>{" "}
-          (trading as "tesla map georgia"), the data controller for the personal
-          data processed through the Tesla Map Georgia web application. Tesla
-          Navi Online is the registered legal entity that operates the service.
+          This Privacy Notice is issued by <strong>TMap Georgia</strong>, the data
+          controller for the personal data processed through the TMap Georgia web application.
+          TMap Georgia operates the service.
           You can contact us at the support email shown on our website for any
           privacy question.
         </p>
@@ -106,6 +110,11 @@ function PrivacyPage() {
         <p>
           We may update this notice. Material changes will be announced in the
           app or by email.
+        </p>
+
+        <h2>10. Independent product</h2>
+        <p>
+          TMap Georgia is an independent product and is not affiliated with or endorsed by Tesla, Inc.
         </p>
       </main>
     </div>

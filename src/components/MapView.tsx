@@ -596,10 +596,10 @@ export function MapView({
         style={
           darkMode
             ? {
-                // Night palette applied on the composited map layer only:
-                // instant, GPU-accelerated, no map re-creation, no extra tiles.
-                filter: "invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.95) saturate(0.85)",
-                willChange: "filter",
+                // Night palette on the composited map layer. Kept to the two
+                // cheapest primitives: extra brightness/contrast/saturate and
+                // willChange force a per-frame repaint on the Tesla browser.
+                filter: "invert(1) hue-rotate(180deg)",
               }
             : undefined
         }

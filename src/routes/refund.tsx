@@ -4,13 +4,18 @@ export const Route = createFileRoute("/refund")({
   component: RefundPage,
   head: () => ({
     meta: [
-      { title: "Refund Policy - Tesla Map Georgia" },
+      { title: "Refund Policy - TMap Georgia" },
       {
         name: "description",
         content:
-          "30-day money-back guarantee for Tesla Map Georgia subscriptions, processed by Paddle.",
+          "30-day money-back guarantee for TMap Georgia subscriptions, processed by Paddle.",
       },
+      { property: "og:title", content: "Refund Policy - TMap Georgia" },
+      { property: "og:description", content: "30-day money-back guarantee for TMap Georgia subscriptions, processed by Paddle." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://tmap.ge/refund" }],
   }),
 });
 
@@ -23,7 +28,7 @@ function RefundPage() {
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
               ⚡
             </span>
-            Tesla Map Georgia
+            TMap Georgia
           </Link>
           <Link to="/" className="text-sm text-white/60 hover:text-white">
             ← Back
@@ -33,13 +38,12 @@ function RefundPage() {
 
       <main className="mx-auto max-w-[760px] px-6 pb-24 pt-12 text-sm leading-7 text-white/75 [&_h2]:mb-2 [&_h2]:mt-8 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-white [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_p]:mb-3">
         <h1 className="font-display text-4xl font-black text-white">Refund Policy</h1>
-        <p className="mt-2 text-white/40">Last updated: August 2026</p>
+        <p className="mt-2 text-white/40">Last updated: September 2026</p>
 
         <h2>30-day money-back guarantee</h2>
         <p>
-          If you're not satisfied with your Tesla Map Georgia subscription,
-          operated by <strong>Tesla Navi Online</strong> (trading as "tesla
-          map georgia"), you can request a full refund within{" "}
+          If you're not satisfied with your TMap Georgia subscription, you can
+          request a full refund within{" "}
           <strong>30 days</strong> of your order date — no questions asked.
         </p>
 
@@ -77,6 +81,11 @@ function RefundPage() {
           Cancellation stops future renewals; your access continues until the
           end of the current paid period. Cancelling does not remove the
           30-day refund right described above for recent orders.
+        </p>
+
+        <h2>Independent product</h2>
+        <p>
+          TMap Georgia is an independent product and is not affiliated with or endorsed by Tesla, Inc.
         </p>
       </main>
     </div>

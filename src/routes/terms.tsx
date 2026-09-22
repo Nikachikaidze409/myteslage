@@ -4,13 +4,18 @@ export const Route = createFileRoute("/terms")({
   component: TermsPage,
   head: () => ({
     meta: [
-      { title: "Terms & Conditions - Tesla Map Georgia" },
+      { title: "Terms & Conditions - TMap Georgia" },
       {
         name: "description",
         content:
-          "Terms of service for the Tesla Map Georgia in-car navigation web application.",
+          "Terms of service for the TMap Georgia in-car navigation web application.",
       },
+      { property: "og:title", content: "Terms & Conditions - TMap Georgia" },
+      { property: "og:description", content: "Terms of service for the TMap Georgia in-car navigation web application." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://tmap.ge/terms" }],
   }),
 });
 
@@ -23,7 +28,7 @@ function TermsPage() {
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
               ⚡
             </span>
-            Tesla Map Georgia
+            TMap Georgia
           </Link>
           <Link to="/" className="text-sm text-white/60 hover:text-white">
             ← Back
@@ -33,14 +38,12 @@ function TermsPage() {
 
       <main className="mx-auto max-w-[760px] px-6 pb-24 pt-12 text-sm leading-7 text-white/75 [&_h2]:mb-2 [&_h2]:mt-8 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-white [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_p]:mb-3">
         <h1 className="font-display text-4xl font-black text-white">Terms & Conditions</h1>
-        <p className="mt-2 text-white/40">Last updated: August 2026</p>
+        <p className="mt-2 text-white/40">Last updated: September 2026</p>
 
         <h2>1. Agreement</h2>
         <p>
-          These terms are between you and{" "}
-          <strong>Tesla Navi Online</strong> (trading as "tesla map georgia")
-          ("we", "us"). Tesla Navi Online is the registered legal entity that
-          operates and provides the Tesla Map Georgia service. By creating an
+          These terms are between you and <strong>TMap Georgia</strong> ("we", "us").
+          TMap Georgia operates and provides the TMap Georgia service. By creating an
           account or continuing to use the service, you agree to these terms.
           You confirm you are of legal age and, if using the service on behalf
           of an organisation, that you have authority to bind it.
@@ -48,7 +51,7 @@ function TermsPage() {
 
         <h2>2. The service</h2>
         <p>
-          Tesla Map Georgia is a browser-based live navigation application for
+          TMap Georgia is a browser-based live navigation application for
           imported Tesla vehicles in Georgia, including GPS guidance, route
           preview, phone GPS pairing, traffic-aware routing, and supercharger
           stop planning.
@@ -130,6 +133,11 @@ function TermsPage() {
           terms without our consent; we may assign them in connection with a
           merger or acquisition. We are not liable for delays caused by events
           beyond our reasonable control.
+        </p>
+
+        <h2>11. Independent product</h2>
+        <p>
+          TMap Georgia is an independent product and is not affiliated with or endorsed by Tesla, Inc.
         </p>
       </main>
     </div>

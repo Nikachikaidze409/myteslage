@@ -45,8 +45,9 @@ function isH3SwallowedErrorBody(body: string): boolean {
 }
 
 // Legacy domain cutover: teslanavi.online -> tmap.ge.
-// Machine-to-machine payment endpoints stay on the old host forever, because
-// provider records created before the cutover still point at them.
+// The legacy host is redirect-only: it never runs application or payment logic.
+// Browser reads move with 301; anything else (a late provider POST) moves with
+// 308 so the method, headers and body survive the hop.
 const LEGACY_HOSTS = new Set([
   "teslanavi.online",
   "www.teslanavi.online",
@@ -54,11 +55,6 @@ const LEGACY_HOSTS = new Set([
   "www.tmap.ge",
 ]);
 const CANONICAL_HOST = "tmap.ge";
-const LEGACY_API_PATHS = new Set([
-  "/api/public/payments/bog/callback",
-  "/api/public/payments/bog/process-renewals",
-  "/api/public/payments/webhook",
-]);
 
 export function legacyRedirectTarget(rawUrl: string): string | null {
   let url: URL;
@@ -68,18 +64,29 @@ export function legacyRedirectTarget(rawUrl: string): string | null {
     return null;
   }
   if (!LEGACY_HOSTS.has(url.hostname.toLowerCase())) return null;
-  if (LEGACY_API_PATHS.has(url.pathname.replace(/\/+$/, "") || "/")) return null;
   url.protocol = "https:";
   url.hostname = CANONICAL_HOST;
   url.port = "";
   return url.toString();
 }
 
+/** 301 for browser reads, 308 for everything else so POST bodies survive. */
+export function legacyRedirectStatus(method: string): 301 | 308 {
+  const verb = method.toUpperCase();
+  return verb === "GET" || verb === "HEAD" ? 301 : 308;
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const redirectTo = legacyRedirectTarget(request.url);
-      if (redirectTo) return Response.redirect(redirectTo, 301);
+      if (redirectTo) {
+        return new Response(null, {
+          status: legacyRedirectStatus(request.method),
+          headers: { location: redirectTo },
+        });
+      }
+
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);

@@ -1,3 +1,4 @@
+import { UI, useLang } from "@/lib/i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { onMapsAuthFailure, clearMapsAuthFailure, resetMapsLoader } from "@/lib/maps-loader";
 import { createMap } from "@/lib/maps/googleMapsService";
@@ -60,8 +61,6 @@ interface Props {
   darkMode?: boolean;
 }
 
-import { UI, useLang } from "@/lib/i18n";
-
 export function MapView({
   fix,
   destination,
@@ -89,6 +88,7 @@ export function MapView({
   remoteView,
   darkMode = false,
 }: Props) {
+  const [lang] = useLang();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const googleRef = useRef<any>(null);

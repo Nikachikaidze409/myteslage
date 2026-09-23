@@ -66,8 +66,8 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
     backgroundColor: "#f1f5f9",
     mapId: MAP_ID,
   };
-  // TEMPORARY PREVIEW: raster rendering so the driver can compare the classic
-  // flat Google Maps look against the vector map. Revert to VECTOR after review.
+  // Raster rendering: prebuilt dark tiles from Google, no WebGL work in the
+  // car's browser. Tilt / heading interaction has no meaning on raster.
   if (google.maps.RenderingType?.RASTER) {
     options.renderingType = google.maps.RenderingType.RASTER;
     options.tiltInteractionEnabled = false;

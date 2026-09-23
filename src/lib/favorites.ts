@@ -163,3 +163,15 @@ export function saveRoutePrefs(p: RoutePrefs) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(PREFS_KEY, JSON.stringify(p));
 }
+
+// ---- Named saved locations ----
+export function addSavedPlace(p: { name: string; lat: number; lng: number }) {
+  const id = `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
+  const list = read(FAVS_KEY).filter((f) => f.id !== id);
+  list.unshift({ ...p, id, savedAt: Date.now(), kind: "favorite" });
+  write(FAVS_KEY, list);
+}
+
+export function removeSavedPlace(id: string) {
+  write(FAVS_KEY, read(FAVS_KEY).filter((f) => f.id !== id));
+}

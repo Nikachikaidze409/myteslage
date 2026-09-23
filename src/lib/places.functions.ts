@@ -117,4 +117,9 @@ export async function searchNearbyCore(
     }
     places.sort((a, b) => (a.distanceMeters ?? 0) - (b.distanceMeters ?? 0));
     return { places };
-  });
+}
+
+export const searchNearby = createServerFn({ method: "POST" })
+  .middleware([requireMapAccess])
+  .inputValidator(searchNearbyInput)
+  .handler(({ data }) => searchNearbyCore(data));

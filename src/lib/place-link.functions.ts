@@ -169,4 +169,9 @@ export async function resolvePastedLocationCore(
     const found = await searchText(parsed.text, bias);
     if (!found) throw new Error("No place matched that text");
     return found;
-  });
+}
+
+export const resolvePastedLocation = createServerFn({ method: "POST" })
+  .middleware([requireMapAccess])
+  .inputValidator(resolvePastedLocationInput)
+  .handler(({ data }) => resolvePastedLocationCore(data));

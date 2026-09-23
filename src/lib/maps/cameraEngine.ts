@@ -171,20 +171,20 @@ export class CameraEngine {
     this.cur.tilt = lerp(this.cur.tilt, wantTilt, kAng);
     this.cur.zoom = lerp(this.cur.zoom, wantZoom, kZoom);
 
-    // Cap camera writes at ~20/s: the Tesla browser cannot composite a vector
-    // frame faster than that, so extra writes only queue up work.
-    if (now - this.lastApplied < 50) return;
+    // ~30 fps camera writes: raster centring is cheap, so the follow stays
+    // smooth instead of stepping.
+    if (now - this.lastApplied < 33) return;
 
     const center = { lat: this.cur.lat, lng: this.cur.lng };
     const prev = this.applied;
-    // ~0.5 m / 0.2 deg deadband: standing at a light must not redraw at all.
+    // ~0.15 m / 0.05 deg deadband: only true standstill skips a redraw.
     const still =
       prev &&
-      Math.abs(prev.lat - center.lat) < 5e-6 &&
-      Math.abs(prev.lng - center.lng) < 5e-6 &&
-      Math.abs(prev.heading - this.cur.heading) < 0.2 &&
-      Math.abs(prev.tilt - this.cur.tilt) < 0.2 &&
-      Math.abs(prev.zoom - this.cur.zoom) < 0.004;
+      Math.abs(prev.lat - center.lat) < 1.5e-6 &&
+      Math.abs(prev.lng - center.lng) < 1.5e-6 &&
+      Math.abs(prev.heading - this.cur.heading) < 0.05 &&
+      Math.abs(prev.tilt - this.cur.tilt) < 0.05 &&
+      Math.abs(prev.zoom - this.cur.zoom) < 0.001;
     if (still) return;
 
     this.lastApplied = now;

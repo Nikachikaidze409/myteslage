@@ -21,23 +21,24 @@ const TYPE_MAP: Record<string, string[]> = {
   parking: ["parking"],
 };
 
-export const searchNearby = createServerFn({ method: "POST" })
-  .middleware([requireMapAccess])
-  .inputValidator(
-    (data: {
-      lat: number;
-      lng: number;
-      category: string;
-      radiusMeters?: number;
-      textQuery?: string;
-    }) => {
-      if (typeof data?.lat !== "number" || typeof data?.lng !== "number") {
-        throw new Error("Invalid coordinates");
-      }
-      return data;
-    },
-  )
-  .handler(async ({ data }): Promise<{ places: NearbyPlace[] }> => {
+/** Input check for searchNearby (shared with the mobile API). */
+export const searchNearbyInput = (data: {
+  lat: number;
+  lng: number;
+  category: string;
+  radiusMeters?: number;
+  textQuery?: string;
+}) => {
+  if (typeof data?.lat !== "number" || typeof data?.lng !== "number") {
+    throw new Error("Invalid coordinates");
+  }
+  return data;
+};
+
+/** searchNearby without the RPC wrapper, so the mobile API can call it too. */
+export async function searchNearbyCore(
+  data: ReturnType<typeof searchNearbyInput>,
+): Promise<{ places: NearbyPlace[] }> {
     const useText = data.category === "supercharger" || !!data.textQuery;
     const url = useText
       ? `${PLACES_API}/places:searchText`

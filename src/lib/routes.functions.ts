@@ -213,4 +213,11 @@ export async function computeRouteCore(
       routes.unshift(primary);
     }
     return { routes };
-  });
+}
+
+export const computeRoute = createServerFn({ method: "POST" })
+  .middleware([requireMapAccess])
+  .inputValidator(computeRouteInput)
+  .handler(({ data, context }) =>
+    computeRouteCore(data, (context as { userId?: string }).userId ?? null),
+  );

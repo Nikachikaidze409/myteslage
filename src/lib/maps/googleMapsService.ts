@@ -7,7 +7,7 @@ import { loadGoogleMaps } from "@/lib/maps-loader";
 /** Cloud-configured vector Map ID. Override per environment if needed. */
 export const MAP_ID: string =
   (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined)?.trim() ||
-  "90416c59a9ac912becb5ad6a";
+  "90416c59a9ac912bdb10e2fe";
 
 export const DEFAULT_CENTER = { lat: 41.7151, lng: 44.8271 };
 

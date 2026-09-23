@@ -10,15 +10,19 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as RuRouteImport } from './routes/ru'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RefundRouteImport } from './routes/refund'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as MirrorTestRouteImport } from './routes/mirror-test'
 import { Route as MapRouteImport } from './routes/map'
+import { Route as HyRouteImport } from './routes/hy'
+import { Route as EnRouteImport } from './routes/en'
 import { Route as DriveRouteImport } from './routes/drive'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AmRouteImport } from './routes/am'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PhoneCodeRouteImport } from './routes/phone.$code'
@@ -32,6 +36,11 @@ import { Route as ApiPublicMobileV1ActionRouteImport } from './routes/api/public
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuRoute = RuRouteImport.update({
+  id: '/ru',
+  path: '/ru',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -64,6 +73,16 @@ const MapRoute = MapRouteImport.update({
   path: '/map',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HyRoute = HyRouteImport.update({
+  id: '/hy',
+  path: '/hy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnRoute = EnRouteImport.update({
+  id: '/en',
+  path: '/en',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DriveRoute = DriveRouteImport.update({
   id: '/drive',
   path: '/drive',
@@ -77,6 +96,11 @@ const CheckoutRoute = CheckoutRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AmRoute = AmRouteImport.update({
+  id: '/am',
+  path: '/am',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -131,15 +155,19 @@ const ApiPublicMobileV1ActionRoute = ApiPublicMobileV1ActionRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/am': typeof AmRoute
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
+  '/en': typeof EnRoute
+  '/hy': typeof HyRoute
   '/map': typeof MapRoute
   '/mirror-test': typeof MirrorTestRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/ru': typeof RuRoute
   '/terms': typeof TermsRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/mirror-test/send': typeof MirrorTestSendRoute
@@ -152,15 +180,19 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/am': typeof AmRoute
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
+  '/en': typeof EnRoute
+  '/hy': typeof HyRoute
   '/map': typeof MapRoute
   '/mirror-test': typeof MirrorTestRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/ru': typeof RuRoute
   '/terms': typeof TermsRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/mirror-test/send': typeof MirrorTestSendRoute
@@ -174,15 +206,19 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/am': typeof AmRoute
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
+  '/en': typeof EnRoute
+  '/hy': typeof HyRoute
   '/map': typeof MapRoute
   '/mirror-test': typeof MirrorTestRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund': typeof RefundRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/ru': typeof RuRoute
   '/terms': typeof TermsRoute
   '/checkout_/success': typeof CheckoutSuccessRoute
   '/mirror-test_/send': typeof MirrorTestSendRoute
@@ -197,15 +233,19 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/am'
     | '/auth'
     | '/checkout'
     | '/drive'
+    | '/en'
+    | '/hy'
     | '/map'
     | '/mirror-test'
     | '/pricing'
     | '/privacy'
     | '/refund'
     | '/reset-password'
+    | '/ru'
     | '/terms'
     | '/checkout/success'
     | '/mirror-test/send'
@@ -218,15 +258,19 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/am'
     | '/auth'
     | '/checkout'
     | '/drive'
+    | '/en'
+    | '/hy'
     | '/map'
     | '/mirror-test'
     | '/pricing'
     | '/privacy'
     | '/refund'
     | '/reset-password'
+    | '/ru'
     | '/terms'
     | '/checkout/success'
     | '/mirror-test/send'
@@ -239,15 +283,19 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/am'
     | '/auth'
     | '/checkout'
     | '/drive'
+    | '/en'
+    | '/hy'
     | '/map'
     | '/mirror-test'
     | '/pricing'
     | '/privacy'
     | '/refund'
     | '/reset-password'
+    | '/ru'
     | '/terms'
     | '/checkout_/success'
     | '/mirror-test_/send'
@@ -261,15 +309,19 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AmRoute: typeof AmRoute
   AuthRoute: typeof AuthRoute
   CheckoutRoute: typeof CheckoutRoute
   DriveRoute: typeof DriveRoute
+  EnRoute: typeof EnRoute
+  HyRoute: typeof HyRoute
   MapRoute: typeof MapRoute
   MirrorTestRoute: typeof MirrorTestRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   RefundRoute: typeof RefundRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RuRoute: typeof RuRoute
   TermsRoute: typeof TermsRoute
   CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   MirrorTestSendRoute: typeof MirrorTestSendRoute
@@ -287,6 +339,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ru': {
+      id: '/ru'
+      path: '/ru'
+      fullPath: '/ru'
+      preLoaderRoute: typeof RuRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -331,6 +390,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MapRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hy': {
+      id: '/hy'
+      path: '/hy'
+      fullPath: '/hy'
+      preLoaderRoute: typeof HyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/en': {
+      id: '/en'
+      path: '/en'
+      fullPath: '/en'
+      preLoaderRoute: typeof EnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/drive': {
       id: '/drive'
       path: '/drive'
@@ -350,6 +423,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/am': {
+      id: '/am'
+      path: '/am'
+      fullPath: '/am'
+      preLoaderRoute: typeof AmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -421,15 +501,19 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AmRoute: AmRoute,
   AuthRoute: AuthRoute,
   CheckoutRoute: CheckoutRoute,
   DriveRoute: DriveRoute,
+  EnRoute: EnRoute,
+  HyRoute: HyRoute,
   MapRoute: MapRoute,
   MirrorTestRoute: MirrorTestRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   RefundRoute: RefundRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  RuRoute: RuRoute,
   TermsRoute: TermsRoute,
   CheckoutSuccessRoute: CheckoutSuccessRoute,
   MirrorTestSendRoute: MirrorTestSendRoute,

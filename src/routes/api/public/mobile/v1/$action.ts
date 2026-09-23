@@ -95,59 +95,77 @@ export const Route = createFileRoute("/api/public/mobile/v1/$action")({
   server: {
     handlers: {
       GET: async ({ request, params }) => {
-        const action = (params as { action?: string }).action;
+        try {
+          const action = (params as { action?: string }).action;
 
-        if (action === "config") {
-          return json({
-            apiVersion: MOBILE_API_VERSION,
-            supabaseUrl: process.env["SUPABASE_URL"] ?? null,
-            supabaseKey: process.env["SUPABASE_PUBLISHABLE_KEY"] ?? null,
-            // Raise to force old app builds to show "please update".
-            minAppVersion: process.env["MOBILE_MIN_APP_VERSION"] ?? "1.0.0",
-          });
-        }
-
-        if (action === "session") {
-          const auth = await authorize(request);
-          if ("res" in auth) {
-            const body = (await auth.res.clone().json()) as MobileErrorBody;
-            return json({ valid: false, ...body }, auth.res.status);
+          if (action === "config") {
+            return json({
+              apiVersion: MOBILE_API_VERSION,
+              supabaseUrl: process.env["SUPABASE_URL"] ?? null,
+              supabaseKey: process.env["SUPABASE_PUBLISHABLE_KEY"] ?? null,
+              // Raise to force old app builds to show "please update".
+              minAppVersion: process.env["MOBILE_MIN_APP_VERSION"] ?? "1.0.0",
+            });
           }
-          return json({ valid: true, expiresAt: auth.check.expiresAt });
-        }
 
-        return fail(404, "not_found", "Unknown endpoint");
+          if (action === "session") {
+            const auth = await authorize(request);
+            if ("res" in auth) {
+              const body = (await auth.res.clone().json()) as MobileErrorBody;
+              return json({ valid: false, ...body }, auth.res.status);
+            }
+            return json({ valid: true, expiresAt: auth.check.expiresAt });
+          }
+
+          return fail(404, "not_found", "Unknown endpoint");
+        } catch (e) {
+          // Never let an unexpected failure fall through to the HTML error page:
+          // the native app can only read JSON.
+          console.error("[mobile-api]", e);
+          return json(
+            { error: "failed", message: e instanceof Error ? e.message : String(e) },
+            500,
+          );
+        }
       },
 
       POST: async ({ request, params }) => {
-        const action = (params as { action?: string }).action ?? "";
-        const load = POST_HANDLERS[action];
-        if (!load) return fail(404, "not_found", "Unknown endpoint");
-
-        const auth = await authorize(request);
-        if ("res" in auth) return auth.res;
-
-        const len = Number(request.headers.get("content-length") ?? "0");
-        if (len > MAX_BODY_BYTES) return fail(413, "bad_request", "Request is too large");
-        const raw = await request.text();
-        if (raw.length > MAX_BODY_BYTES) return fail(413, "bad_request", "Request is too large");
-
-        let data: unknown;
         try {
-          data = raw ? JSON.parse(raw) : {};
-        } catch {
-          return fail(400, "bad_request", "Body must be JSON");
-        }
+          const action = (params as { action?: string }).action ?? "";
+          const load = POST_HANDLERS[action];
+          if (!load) return fail(404, "not_found", "Unknown endpoint");
 
-        try {
-          const handler = await load();
-          return json(await handler(data, auth.check.userId));
-        } catch (e) {
-          const { status, body } = errorResponseFor(e);
-          if (status >= 500 || body.error === "failed") {
-            console.error(`[mobile-api] ${action} failed:`, body.message);
+          const auth = await authorize(request);
+          if ("res" in auth) return auth.res;
+
+          const len = Number(request.headers.get("content-length") ?? "0");
+          if (len > MAX_BODY_BYTES) return fail(413, "bad_request", "Request is too large");
+          const raw = await request.text();
+          if (raw.length > MAX_BODY_BYTES) return fail(413, "bad_request", "Request is too large");
+
+          let data: unknown;
+          try {
+            data = raw ? JSON.parse(raw) : {};
+          } catch {
+            return fail(400, "bad_request", "Body must be JSON");
           }
-          return json(body, status);
+
+          try {
+            const handler = await load();
+            return json(await handler(data, auth.check.userId));
+          } catch (e) {
+            const { status, body } = errorResponseFor(e);
+            if (status >= 500 || body.error === "failed") {
+              console.error(`[mobile-api] ${action} failed:`, body.message);
+            }
+            return json(body, status);
+          }
+        } catch (e) {
+          console.error("[mobile-api]", e);
+          return json(
+            { error: "failed", message: e instanceof Error ? e.message : String(e) },
+            500,
+          );
         }
       },
     },

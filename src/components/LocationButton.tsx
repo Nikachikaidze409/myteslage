@@ -1,5 +1,4 @@
 import type { LocationStatus } from "@/hooks/useLiveLocation";
-import { UI, useLang } from "@/lib/i18n";
 
 interface Props {
   status: LocationStatus;
@@ -13,18 +12,16 @@ interface Props {
  * by being hidden, remounted or re-rendered.
  */
 export function LocationButton({ status, onStart, onStop }: Props) {
-  const [lang] = useLang();
-  const t = UI[lang];
   const label =
     status === "live"
-      ? t.trackingOn
+      ? "Tracking on"
       : status === "starting"
         ? "Searching for live GPS…"
         : status === "denied"
           ? "Location blocked - enable it in browser settings"
           : status === "unavailable"
             ? "Location unavailable - retry"
-            : t.startTracking;
+            : "Start tracking";
 
   const live = status === "live" || status === "starting";
 

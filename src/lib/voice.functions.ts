@@ -125,36 +125,27 @@ async function extractDestination(key: string, heard: string): Promise<string> {
   }
 }
 
-/** Input check for transcribeDestination (shared with the mobile API). */
-export const transcribeDestinationInput = (data: { audio: string }) => {
-  if (!data || typeof data.audio !== "string" || data.audio.length < 1000) {
-    throw new Error("Nothing was recorded");
-  }
-  // ~6 MB of base64 is far more than a spoken command ever needs.
-  if (data.audio.length > 6_000_000) throw new Error("That recording is too long");
-  return data;
-};
-
 /**
  * Listen to a short recording and return the destination the driver asked for.
  * Gated by the same membership/pairing check as every other paid endpoint.
- *
- * Without the RPC wrapper, so the mobile API can call it too.
  */
-export async function transcribeDestinationCore(
-  data: ReturnType<typeof transcribeDestinationInput>,
-): Promise<SpokenDestination> {
-  const key = process.env["LOVABLE_API_KEY"];
-  if (!key) throw new Error("Voice service is not configured");
-
-  const heard = await transcribe(key, decodeBase64(data.audio));
-  if (!heard) throw new Error("Nothing was heard. Speak right after the button turns red.");
-
-  const query = await extractDestination(key, heard);
-  return { heard, query };
-}
-
 export const transcribeDestination = createServerFn({ method: "POST" })
   .middleware([requireMapAccess])
-  .inputValidator(transcribeDestinationInput)
-  .handler(({ data }) => transcribeDestinationCore(data));
+  .inputValidator((data: { audio: string }) => {
+    if (!data || typeof data.audio !== "string" || data.audio.length < 1000) {
+      throw new Error("Nothing was recorded");
+    }
+    // ~6 MB of base64 is far more than a spoken command ever needs.
+    if (data.audio.length > 6_000_000) throw new Error("That recording is too long");
+    return data;
+  })
+  .handler(async ({ data }): Promise<SpokenDestination> => {
+    const key = process.env["LOVABLE_API_KEY"];
+    if (!key) throw new Error("Voice service is not configured");
+
+    const heard = await transcribe(key, decodeBase64(data.audio));
+    if (!heard) throw new Error("Nothing was heard. Speak right after the button turns red.");
+
+    const query = await extractDestination(key, heard);
+    return { heard, query };
+  });

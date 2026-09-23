@@ -1,4 +1,3 @@
-import { UI, useLang } from "@/lib/i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { onMapsAuthFailure, clearMapsAuthFailure, resetMapsLoader } from "@/lib/maps-loader";
 import { createMap } from "@/lib/maps/googleMapsService";
@@ -88,7 +87,6 @@ export function MapView({
   remoteView,
   darkMode = false,
 }: Props) {
-  const [lang] = useLang();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const googleRef = useRef<any>(null);
@@ -598,10 +596,10 @@ export function MapView({
         style={
           darkMode
             ? {
-                // Night palette on the composited map layer. Kept to the two
-                // cheapest primitives: extra brightness/contrast/saturate and
-                // willChange force a per-frame repaint on the Tesla browser.
-                filter: "invert(1) hue-rotate(180deg)",
+                // Night palette applied on the composited map layer only:
+                // instant, GPU-accelerated, no map re-creation, no extra tiles.
+                filter: "invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.95) saturate(0.85)",
+                willChange: "filter",
               }
             : undefined
         }
@@ -647,26 +645,26 @@ export function MapView({
         type="button"
         onClick={recenterOnMe}
         aria-label="Center on my location"
-        title={UI[lang].myLocation}
+        title="My location"
         className={`absolute bottom-8 left-4 z-30 flex items-center gap-2 rounded-full border px-4 py-2.5 shadow-lg backdrop-blur transition ${
           followUi
             ? "border-primary bg-primary text-primary-foreground"
             : darkMode
               ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
-              : "border-border bg-card/95 text-foreground hover:bg-card"
+              : "border-border bg-white/95 text-foreground hover:bg-white"
         }`}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="3" />
           <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
         </svg>
-        <span className="text-sm font-semibold">{UI[lang].myLocation}</span>
+        <span className="text-sm font-semibold">My location</span>
       </button>
 
       {/* Large touch-friendly zoom controls */}
       <div
         className={`absolute bottom-8 right-4 z-30 flex flex-col overflow-hidden rounded-2xl border shadow-lg backdrop-blur ${
-          darkMode ? "border-slate-700 bg-slate-900/90" : "border-border bg-card/95"
+          darkMode ? "border-slate-700 bg-slate-900/90" : "border-border bg-white/95"
         }`}
       >
         <button

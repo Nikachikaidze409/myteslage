@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AccountBar } from "@/components/AccountBar";
 import { LegalFooter } from "@/components/LegalFooter";
-import { UI, useLang, LanguageSwitcher } from "@/lib/i18n";
 
 type Plan = "monthly" | "quarterly" | "annual";
 const PLAN_KEY = "tsl.pending-plan";
@@ -32,8 +31,6 @@ function PricingPage() {
   const [selected, setSelected] = useState<Plan>("annual");
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [noMembership, setNoMembership] = useState(false);
-  const [lang, setLang] = useLang();
-  const t = UI[lang];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
@@ -64,12 +61,9 @@ function PricingPage() {
             </span>
             TMap Georgia
           </Link>
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher lang={lang} onLang={setLang} />
-            <Link to="/" className="text-sm text-white/60 hover:text-white">
-              {t.back}
-            </Link>
-          </div>
+          <Link to="/" className="text-sm text-white/60 hover:text-white">
+            ← Back
+          </Link>
         </div>
       </header>
 
@@ -77,16 +71,18 @@ function PricingPage() {
         <AccountBar
           note={
             noMembership
-              ? t.noMembership
+              ? "This account has no active membership. If you paid with a different email, sign out and sign in with that email."
               : null
           }
         />
         <div className="text-center">
           <div className="text-[11px] font-bold uppercase tracking-widest text-[#e9b149]">
-            {t.membership}
+            Membership
           </div>
-          <h1 className="font-display mt-2 text-4xl font-black md:text-5xl">{t.pickPlan}</h1>
-          <p className="mt-3 text-white/60">{t.pickPlanSub}</p>
+          <h1 className="font-display mt-2 text-4xl font-black md:text-5xl">Pick your plan</h1>
+          <p className="mt-3 text-white/60">
+            One account = one device. Cancel anytime, no lock-in.
+          </p>
         </div>
 
         <div className="mt-12 grid gap-5 md:grid-cols-3">
@@ -94,40 +90,47 @@ function PricingPage() {
             plan="monthly"
             selected={selected === "monthly"}
             onSelect={() => setSelected("monthly")}
-            title={t.monthly}
+            title="Monthly"
             price="8 ₾"
-            period={t.perMonth}
-            subtitle={t.billedMonthly}
+            period="per month"
+            subtitle="Billed every month"
             perMonth="8 ₾/mo"
           />
           <PlanCard
             plan="quarterly"
             selected={selected === "quarterly"}
             onSelect={() => setSelected("quarterly")}
-            title={t.threeMonths}
+            title="3 months"
             price="21.60 ₾"
-            period={t.everyThree}
-            subtitle={t.off10}
+            period="every 3 months"
+            subtitle="10% off"
             perMonth="7.20 ₾/mo"
           />
           <PlanCard
             plan="annual"
             selected={selected === "annual"}
             onSelect={() => setSelected("annual")}
-            title={t.oneYear}
+            title="1 year"
             price="85 ₾"
-            period={t.perYear}
-            subtitle={t.bestValue}
+            period="per year"
+            subtitle="Best value - one payment a year"
             perMonth="7.08 ₾/mo"
-            badge={t.save11}
+            badge="Save 11%"
             highlighted
           />
         </div>
 
         <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.02] p-5 text-sm text-white/70">
-          <div className="mb-2 font-semibold text-white">{t.whatYouGet}</div>
+          <div className="mb-2 font-semibold text-white">What you get</div>
           <ul className="grid gap-1.5 md:grid-cols-2">
-            {t.perks.map((f) => (
+            {[
+              "Live in-car navigation optimized for Tesla",
+              "Phone GPS pairing (real 1 m accuracy)",
+              "Turn-by-turn HUD & voice guidance",
+              "Live traffic + auto-rerouting",
+              "Georgian streets, addresses, POIs",
+              "Supercharger stop planning",
+            ].map((f) => (
               <li key={f} className="flex gap-2">
                 <span className="text-emerald-400">✓</span> {f}
               </li>
@@ -140,20 +143,22 @@ function PricingPage() {
           onClick={proceed}
           className="font-display mt-8 flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] text-base font-bold text-white shadow-[0_10px_40px_-10px_rgba(59,130,246,0.7)] transition hover:brightness-110"
         >
-          {signedIn === false ? t.createAndContinue : t.continueCheckout}
+          {signedIn === false
+            ? "Create account & continue →"
+            : "Continue to checkout →"}
         </button>
         <p className="mt-3 text-center text-xs text-white/40">
-          {t.checkoutNote}
+          Secure checkout. No hidden fees. Cancel anytime from your account.
         </p>
         <p className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-white/40">
           <Link to="/terms" className="text-white/60 transition hover:text-white">
-            {t.terms}
+            Terms & Conditions
           </Link>
           <Link to="/refund" className="text-white/60 transition hover:text-white">
-            {t.refund}
+            Refund Policy
           </Link>
           <Link to="/privacy" className="text-white/60 transition hover:text-white">
-            {t.privacy}
+            Privacy Notice
           </Link>
         </p>
       </main>
@@ -194,9 +199,9 @@ function PlanCard({
           : "border-white/10 bg-white/[0.02] hover:border-white/25"
       }`}
     >
-      {(badge ?? (highlighted ? "-10%" : null)) && (
+      {(badge ?? (highlighted ? "Save 10%" : null)) && (
         <div className="absolute -top-3 left-6 rounded-full bg-[#e9b149] px-3 py-1 text-[11px] font-black uppercase tracking-widest text-black">
-          {badge ?? "-10%"}
+          {badge ?? "Save 10%"}
         </div>
       )}
       <div className="flex items-start justify-between">

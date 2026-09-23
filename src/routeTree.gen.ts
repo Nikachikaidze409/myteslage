@@ -27,7 +27,6 @@ import { Route as CheckoutSuccessRouteImport } from './routes/checkout_.success'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaymentsBogProcessRenewalsRouteImport } from './routes/api/public/payments/bog/process-renewals'
 import { Route as ApiPublicPaymentsBogCallbackRouteImport } from './routes/api/public/payments/bog/callback'
-import { Route as ApiPublicMobileV1ActionRouteImport } from './routes/api/public/mobile/v1/$action'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -122,11 +121,6 @@ const ApiPublicPaymentsBogCallbackRoute =
     path: '/api/public/payments/bog/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicMobileV1ActionRoute = ApiPublicMobileV1ActionRouteImport.update({
-  id: '/api/public/mobile/v1/$action',
-  path: '/api/public/mobile/v1/$action',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -145,7 +139,6 @@ export interface FileRoutesByFullPath {
   '/mirror-test/send': typeof MirrorTestSendRoute
   '/phone/$code': typeof PhoneCodeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
-  '/api/public/mobile/v1/$action': typeof ApiPublicMobileV1ActionRoute
   '/api/public/payments/bog/callback': typeof ApiPublicPaymentsBogCallbackRoute
   '/api/public/payments/bog/process-renewals': typeof ApiPublicPaymentsBogProcessRenewalsRoute
 }
@@ -166,7 +159,6 @@ export interface FileRoutesByTo {
   '/mirror-test/send': typeof MirrorTestSendRoute
   '/phone/$code': typeof PhoneCodeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
-  '/api/public/mobile/v1/$action': typeof ApiPublicMobileV1ActionRoute
   '/api/public/payments/bog/callback': typeof ApiPublicPaymentsBogCallbackRoute
   '/api/public/payments/bog/process-renewals': typeof ApiPublicPaymentsBogProcessRenewalsRoute
 }
@@ -188,7 +180,6 @@ export interface FileRoutesById {
   '/mirror-test_/send': typeof MirrorTestSendRoute
   '/phone/$code': typeof PhoneCodeRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
-  '/api/public/mobile/v1/$action': typeof ApiPublicMobileV1ActionRoute
   '/api/public/payments/bog/callback': typeof ApiPublicPaymentsBogCallbackRoute
   '/api/public/payments/bog/process-renewals': typeof ApiPublicPaymentsBogProcessRenewalsRoute
 }
@@ -211,7 +202,6 @@ export interface FileRouteTypes {
     | '/mirror-test/send'
     | '/phone/$code'
     | '/api/public/payments/webhook'
-    | '/api/public/mobile/v1/$action'
     | '/api/public/payments/bog/callback'
     | '/api/public/payments/bog/process-renewals'
   fileRoutesByTo: FileRoutesByTo
@@ -232,7 +222,6 @@ export interface FileRouteTypes {
     | '/mirror-test/send'
     | '/phone/$code'
     | '/api/public/payments/webhook'
-    | '/api/public/mobile/v1/$action'
     | '/api/public/payments/bog/callback'
     | '/api/public/payments/bog/process-renewals'
   id:
@@ -253,7 +242,6 @@ export interface FileRouteTypes {
     | '/mirror-test_/send'
     | '/phone/$code'
     | '/api/public/payments/webhook'
-    | '/api/public/mobile/v1/$action'
     | '/api/public/payments/bog/callback'
     | '/api/public/payments/bog/process-renewals'
   fileRoutesById: FileRoutesById
@@ -275,7 +263,6 @@ export interface RootRouteChildren {
   MirrorTestSendRoute: typeof MirrorTestSendRoute
   PhoneCodeRoute: typeof PhoneCodeRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
-  ApiPublicMobileV1ActionRoute: typeof ApiPublicMobileV1ActionRoute
   ApiPublicPaymentsBogCallbackRoute: typeof ApiPublicPaymentsBogCallbackRoute
   ApiPublicPaymentsBogProcessRenewalsRoute: typeof ApiPublicPaymentsBogProcessRenewalsRoute
 }
@@ -408,13 +395,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsBogCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/mobile/v1/$action': {
-      id: '/api/public/mobile/v1/$action'
-      path: '/api/public/mobile/v1/$action'
-      fullPath: '/api/public/mobile/v1/$action'
-      preLoaderRoute: typeof ApiPublicMobileV1ActionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -435,7 +415,6 @@ const rootRouteChildren: RootRouteChildren = {
   MirrorTestSendRoute: MirrorTestSendRoute,
   PhoneCodeRoute: PhoneCodeRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
-  ApiPublicMobileV1ActionRoute: ApiPublicMobileV1ActionRoute,
   ApiPublicPaymentsBogCallbackRoute: ApiPublicPaymentsBogCallbackRoute,
   ApiPublicPaymentsBogProcessRenewalsRoute:
     ApiPublicPaymentsBogProcessRenewalsRoute,

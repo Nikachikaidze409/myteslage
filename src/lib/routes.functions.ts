@@ -37,30 +37,28 @@ export type AvoidOption = "highways" | "ferries";
 /** Why this route is being asked for. Drives how much Google work we pay for. */
 export type RoutePurposeInput = "user" | "reroute" | "traffic";
 
-/** Input check for computeRoute (shared with the mobile API). */
-export const computeRouteInput = (data: {
-  origin: LatLng;
-  destination: LatLng;
-  waypoints?: LatLng[];
-  avoid?: AvoidOption[];
-  alternatives?: boolean;
-  avoidUnpaved?: boolean;
-  purpose?: RoutePurposeInput;
-}) => {
-  // Strict server-side validation: finite in-range coordinates, capped
-  // waypoints, and a purpose from the fixed allow-list.
-  validateRouteInput(data);
-  return data;
-};
+export const computeRoute = createServerFn({ method: "POST" })
+  .middleware([requireMapAccess])
+  .inputValidator(
+    (data: {
+      origin: LatLng;
+      destination: LatLng;
+      waypoints?: LatLng[];
+      avoid?: AvoidOption[];
+      alternatives?: boolean;
+      avoidUnpaved?: boolean;
+      purpose?: RoutePurposeInput;
+    }) => {
+      // Strict server-side validation: finite in-range coordinates, capped
+      // waypoints, and a purpose from the fixed allow-list.
+      validateRouteInput(data);
+      return data;
+    })
 
-/** computeRoute without the RPC wrapper, so the mobile API can call it too. */
-export async function computeRouteCore(
-  data: ReturnType<typeof computeRouteInput>,
-  userId: string | null,
-): Promise<RoutesResponse> {
+  .handler(async ({ data, context }): Promise<RoutesResponse> => {
     const validated = validateRouteInput(data);
     const purpose = validated.purpose;
-
+    const userId = (context as { userId?: string }).userId ?? null;
 
     const { claimRouteRequest, hashFingerprint, logRouteEvent } = await import(
       "@/lib/route-guard.server"
@@ -213,11 +211,4 @@ export async function computeRouteCore(
       routes.unshift(primary);
     }
     return { routes };
-}
-
-export const computeRoute = createServerFn({ method: "POST" })
-  .middleware([requireMapAccess])
-  .inputValidator(computeRouteInput)
-  .handler(({ data, context }) =>
-    computeRouteCore(data, (context as { userId?: string }).userId ?? null),
-  );
+  });

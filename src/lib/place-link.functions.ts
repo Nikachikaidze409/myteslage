@@ -67,24 +67,20 @@ async function searchText(query: string, bias?: { lat: number; lng: number }) {
   } satisfies ResolvedLocation;
 }
 
-/** Input check for resolvePastedLocation (shared with the mobile API). */
-export const resolvePastedLocationInput = (data: { text: string; lat?: number; lng?: number }) => {
-  if (!data || typeof data.text !== "string" || data.text.trim().length === 0) {
-    throw new Error("Nothing to open");
-  }
-  if (data.text.length > 2000) throw new Error("That text is too long");
-  return data;
-};
-
 /**
  * Turn a pasted WhatsApp/Viber Google Maps link, full maps URL, raw
  * coordinates, or plain address text into a routable destination.
- *
- * Without the RPC wrapper, so the mobile API can call it too.
  */
-export async function resolvePastedLocationCore(
-  data: ReturnType<typeof resolvePastedLocationInput>,
-): Promise<ResolvedLocation> {
+export const resolvePastedLocation = createServerFn({ method: "POST" })
+  .middleware([requireMapAccess])
+  .inputValidator((data: { text: string; lat?: number; lng?: number }) => {
+    if (!data || typeof data.text !== "string" || data.text.trim().length === 0) {
+      throw new Error("Nothing to open");
+    }
+    if (data.text.length > 2000) throw new Error("That text is too long");
+    return data;
+  })
+  .handler(async ({ data }): Promise<ResolvedLocation> => {
     const bias =
       typeof data.lat === "number" && typeof data.lng === "number"
         ? { lat: data.lat, lng: data.lng }
@@ -169,9 +165,4 @@ export async function resolvePastedLocationCore(
     const found = await searchText(parsed.text, bias);
     if (!found) throw new Error("No place matched that text");
     return found;
-}
-
-export const resolvePastedLocation = createServerFn({ method: "POST" })
-  .middleware([requireMapAccess])
-  .inputValidator(resolvePastedLocationInput)
-  .handler(({ data }) => resolvePastedLocationCore(data));
+  });

@@ -16,7 +16,6 @@ import { FavoritesPanel } from "@/components/FavoritesPanel";
 import { AlternativesPanel } from "@/components/AlternativesPanel";
 import { BatteryPanel } from "@/components/BatteryPanel";
 import { distanceMeters } from "@/lib/geo";
-import { UI, useLang, LanguageSwitcher } from "@/lib/i18n";
 import {
   LocationSourceSelector,
   type SelectorSnapshot,
@@ -121,8 +120,6 @@ function IndexGated() {
 }
 
 function Index() {
-  const [lang, setLang] = useLang();
-  const tr = UI[lang];
   const [fix, setFixRaw] = useState<Fix | null>(null);
   // Tesla browser GPS is the preferred primary source; a paired phone is a
   // quality-based fallback. The selector decides which one drives the pipeline.
@@ -225,9 +222,7 @@ function Index() {
   const [navigating, setNavigating] = useState(false);
   const [offRoute, setOffRoute] = useState(false);
   const [showTraffic, setShowTraffic] = useState(true);
-  // Default to flat 2D: the heavy 3D perspective only loads when the driver
-  // explicitly taps the 2D/3D toggle.
-  const [tilt3d, setTilt3d] = useState(false);
+  const [tilt3d, setTilt3d] = useState(true);
   // Night palette. Read after mount so the server render and hydration match.
   const [darkMap, setDarkMap] = useState(false);
   useEffect(() => {
@@ -871,7 +866,7 @@ function Index() {
   }, []);
 
   return (
-    <div className={`h-screen overflow-hidden bg-background text-foreground ${darkMap ? "dark" : ""}`}>
+    <div className="h-screen overflow-hidden bg-background text-foreground">
       <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
         {/* Sidebar - hidden in HUD mode (phone is the brain) or when minimized */}
         {!hudMode && (
@@ -890,7 +885,7 @@ function Index() {
                 <button
                   type="button"
                   onClick={() => void signOutAndReturn()}
-                  className="rounded-lg border border-border bg-card px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
+                  className="rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
                 >
                   Sign out
                 </button>
@@ -899,7 +894,7 @@ function Index() {
                   onClick={() => setSidebarOpen(false)}
                   aria-label="Hide panel"
                   title="Hide panel"
-                  className="grid h-8 w-8 place-items-center rounded-lg border border-border bg-card text-lg font-bold leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
+                  className="grid h-8 w-8 place-items-center rounded-lg border border-border bg-white text-lg font-bold leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   ✕
                 </button>
@@ -922,7 +917,7 @@ function Index() {
             />
           )}
 
-          <FavoritesPanel currentDestination={destination ?? preview} onPick={startTo} />
+          <FavoritesPanel currentDestination={destination} onPick={setDestination} />
 
           <LocationButton
             status={live.status}
@@ -1018,17 +1013,30 @@ function Index() {
         )}
 
         {/* Map */}
-        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 dark:shadow-slate-900/50 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
+        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
           {!hudMode && !sidebarOpen && (
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
               aria-label="Show panel"
               title="Show panel"
-              className="absolute left-4 top-4 z-40 flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur hover:bg-card"
+              className="absolute left-4 top-4 z-40 flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur hover:bg-white"
             >
               <span className="text-lg leading-none">☰</span>
               Panel
+            </button>
+          )}
+          {/* Entry point for phone remote mode — always reachable while driving direct. */}
+          {!hudMode && !sidebarOpen && (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Connect phone"
+              title="Use your phone as the remote control"
+              className="absolute bottom-20 right-4 z-40 flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur hover:bg-white"
+            >
+              <span aria-hidden>📱</span>
+              {remoteState === "connected" ? "Phone connected" : "Connect phone"}
             </button>
           )}
           {!navigating && !hudMode && (
@@ -1046,7 +1054,7 @@ function Index() {
                     className={`rounded-full border px-4 py-2 text-sm font-semibold shadow-md backdrop-blur transition disabled:opacity-40 ${
                       poiCat === c.key
                         ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-card/90 text-foreground hover:bg-card"
+                        : "border-border bg-white/90 text-foreground hover:bg-white"
                     }`}
                   >
                     <span className="mr-1">{c.emoji}</span>
@@ -1054,7 +1062,7 @@ function Index() {
                   </button>
                 ))}
                 {poiLoading && (
-                  <span className="self-center rounded-full bg-card/90 px-3 py-1 text-xs text-muted-foreground shadow">
+                  <span className="self-center rounded-full bg-white/90 px-3 py-1 text-xs text-muted-foreground shadow">
                     Searching…
                   </span>
                 )}
@@ -1063,8 +1071,8 @@ function Index() {
           )}
 
           {preview && !navigating && !hudMode && (
-            <div className="pointer-events-auto absolute inset-x-0 bottom-28 z-40 flex justify-center px-4">
-              <div className="w-full max-w-xl rounded-3xl border border-border bg-card/97 p-5 shadow-2xl backdrop-blur">
+            <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-40 flex justify-center px-4">
+              <div className="w-full max-w-xl rounded-3xl border border-border bg-white/97 p-5 shadow-2xl backdrop-blur">
                 <div className="font-display truncate text-xl font-bold text-foreground">
                   {preview.name}
                 </div>
@@ -1099,77 +1107,55 @@ function Index() {
 
 
           {!hudMode && (
-            <div className="pointer-events-auto absolute inset-x-0 bottom-3 z-30 flex flex-col items-center gap-2 px-4">
-              <div className="flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowTraffic((v) => !v)}
-                  className={`rounded-full border px-4 py-2 text-xs font-semibold shadow-md backdrop-blur transition ${
-                    showTraffic
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : darkMap
-                        ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
-                        : "border-border bg-card/90 text-foreground hover:bg-card"
-                  }`}
-                >
-                  {showTraffic ? tr.trafficOn : tr.trafficOff}
-                </button>
-                <button
-                  type="button"
-                  disabled={!vector3dAvailable}
-                  onClick={() => vector3dAvailable && setTilt3d((v) => !v)}
-                  aria-label="Toggle 3D or 2D map view"
-                  title={vector3dAvailable ? "Switch between 3D and 2D" : "3D view is not supported on this screen"}
-                  className={`rounded-full border px-4 py-2 text-xs font-semibold shadow-md backdrop-blur transition ${
-                    !vector3dAvailable
-                      ? "cursor-not-allowed border-border bg-card/70 text-muted-foreground"
-                      : tilt3d
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : darkMap
-                          ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
-                          : "border-border bg-card/90 text-foreground hover:bg-card"
-                  }`}
-                >
-                  {tilt3d && vector3dAvailable ? "3D" : "2D"}
-                </button>
-                <button
-                  type="button"
-                  onClick={toggleDarkMap}
-                  aria-pressed={darkMap}
-                  aria-label="Toggle dark map"
-                  title="Switch between day and night map colours"
-                  className={`rounded-full border px-4 py-2 text-xs font-semibold shadow-md backdrop-blur transition ${
-                    darkMap
+          <div className="absolute right-4 top-4 z-30">
+            <button
+              type="button"
+              onClick={() => setShowTraffic((v) => !v)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
+                showTraffic
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : darkMap
+                    ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
+                    : "border-border bg-white/90 text-foreground hover:bg-white"
+              }`}
+            >
+              {showTraffic ? "Traffic on" : "Traffic off"}
+            </button>
+            <button
+              type="button"
+              disabled={!vector3dAvailable}
+              onClick={() => vector3dAvailable && setTilt3d((v) => !v)}
+              aria-label="Toggle 3D or 2D map view"
+              title={vector3dAvailable ? "Switch between 3D and 2D" : "3D view is not supported on this screen"}
+              className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
+                !vector3dAvailable
+                  ? "cursor-not-allowed border-border bg-white/70 text-muted-foreground"
+                  : tilt3d
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : darkMap
                       ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
-                      : "border-border bg-card/90 text-foreground hover:bg-card"
-                  }`}
-                >
-                  {darkMap ? tr.night : tr.day}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSidebarOpen(true)}
-                  aria-label="Connect phone"
-                  title="Use your phone as the remote control"
-                  className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-semibold shadow-md backdrop-blur transition ${
-                    remoteState === "connected"
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : darkMap
-                        ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
-                        : "border-border bg-card/90 text-foreground hover:bg-card"
-                  }`}
-                >
-                  <span aria-hidden>📱</span>
-                  {remoteState === "connected" ? tr.connected : tr.connect}
-                </button>
-                <LanguageSwitcher
-                  lang={lang}
-                  onLang={setLang}
-                  tone="light"
-                  className="rounded-full px-1 py-0.5 shadow-md backdrop-blur"
-                />
-              </div>
-            </div>
+                      : "border-border bg-white/90 text-foreground hover:bg-white"
+              }`}
+            >
+              {tilt3d && vector3dAvailable ? "3D" : "2D"}
+            </button>
+            <button
+              type="button"
+              onClick={toggleDarkMap}
+              aria-pressed={darkMap}
+              aria-label="Toggle dark map"
+              title="Switch between day and night map colours"
+              className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
+                darkMap
+                  ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
+                  : "border-border bg-white/90 text-foreground hover:bg-white"
+              }`}
+            >
+              {darkMap ? "Night" : "Day"}
+            </button>
+
+
+          </div>
           )}
 
           {navigating && route && (
@@ -1184,7 +1170,7 @@ function Index() {
           )}
 
           {hudMode && (
-            <div className="pointer-events-auto absolute left-4 top-4 z-40 flex items-center gap-3 rounded-full border border-border bg-card/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur">
+            <div className="pointer-events-auto absolute left-4 top-4 z-40 flex items-center gap-3 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur">
               <span
                 className="h-2 w-2 rounded-full"
                 style={{
@@ -1209,7 +1195,7 @@ function Index() {
 
           {hudMode && rerouting && (
             <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
-              <div className="flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-1.5 text-sm font-medium text-foreground shadow-lg backdrop-blur">
+              <div className="flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-1.5 text-sm font-medium text-foreground shadow-lg backdrop-blur">
                 <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden />
                 Rerouting…
               </div>
@@ -1235,8 +1221,8 @@ function Index() {
           )}
 
           {pairNote && !hudMode && (
-            <div className="pointer-events-auto absolute inset-x-0 bottom-28 z-30 flex justify-center px-4">
-              <div className="flex items-center gap-3 rounded-full border border-border bg-card/95 px-4 py-2 text-sm shadow-lg backdrop-blur">
+            <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-30 flex justify-center px-4">
+              <div className="flex items-center gap-3 rounded-full border border-border bg-white/95 px-4 py-2 text-sm shadow-lg backdrop-blur">
                 <span className="text-lg" aria-hidden>📱</span>
                 <span className="font-medium text-foreground">{pairNote}</span>
                 <button
@@ -1251,8 +1237,8 @@ function Index() {
           )}
 
           {resumedName && (
-            <div className="pointer-events-auto absolute inset-x-0 bottom-28 z-30 flex justify-center px-4">
-              <div className="flex items-center gap-3 rounded-full border border-border bg-card/95 px-4 py-2 text-sm shadow-lg backdrop-blur">
+            <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-30 flex justify-center px-4">
+              <div className="flex items-center gap-3 rounded-full border border-border bg-white/95 px-4 py-2 text-sm shadow-lg backdrop-blur">
                 <span className="text-lg" aria-hidden>↻</span>
                 <span className="font-medium text-foreground">
                   Resumed trip to <span className="font-semibold">{resumedName}</span>

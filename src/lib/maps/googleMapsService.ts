@@ -56,9 +56,7 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
     scrollwheel: false,
     // Double-tap / double-click zoom is a gesture too: only +/- may zoom.
     disableDoubleClickZoom: true,
-    // POI taps open Google's own info windows and fire extra network
-    // requests; drivers hit them by accident while panning.
-    clickableIcons: false,
+    clickableIcons: true,
     keyboardShortcuts: false,
     maxZoom: 20,
     minZoom: 4,
@@ -66,12 +64,9 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
     backgroundColor: "#f1f5f9",
     mapId: MAP_ID,
   };
-  // Vector rendering: the camera can follow the car smoothly (heading, tilt
-  // and sub-pixel panning). Raster re-fetches tiles on every pan, which is
-  // what made the follow stutter and the map load slowly in the car.
   if (google.maps.RenderingType?.VECTOR) {
     options.renderingType = google.maps.RenderingType.VECTOR;
-    // Gesture-driven tilt / rotate stay off: display mode owns pitch and the
+    // Gesture-driven tilt / rotate are off: display mode owns pitch and the
     // navigation camera owns heading.
     options.tiltInteractionEnabled = false;
     options.headingInteractionEnabled = false;

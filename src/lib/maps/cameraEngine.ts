@@ -171,20 +171,18 @@ export class CameraEngine {
     this.cur.tilt = lerp(this.cur.tilt, wantTilt, kAng);
     this.cur.zoom = lerp(this.cur.zoom, wantZoom, kZoom);
 
-    // ~30 fps camera writes: raster centring is cheap, so the follow stays
-    // smooth instead of stepping.
+    // Skip work when nothing meaningfully changed (parked at a light).
     if (now - this.lastApplied < 33) return;
 
     const center = { lat: this.cur.lat, lng: this.cur.lng };
     const prev = this.applied;
-    // ~0.15 m / 0.05 deg deadband: only true standstill skips a redraw.
     const still =
       prev &&
       Math.abs(prev.lat - center.lat) < 1.5e-6 &&
       Math.abs(prev.lng - center.lng) < 1.5e-6 &&
       Math.abs(prev.heading - this.cur.heading) < 0.05 &&
       Math.abs(prev.tilt - this.cur.tilt) < 0.05 &&
-      Math.abs(prev.zoom - this.cur.zoom) < 0.001;
+      Math.abs(prev.zoom - this.cur.zoom) < 0.002;
     if (still) return;
 
     this.lastApplied = now;

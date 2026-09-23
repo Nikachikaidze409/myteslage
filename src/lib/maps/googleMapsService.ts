@@ -66,10 +66,10 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
     backgroundColor: "#f1f5f9",
     mapId: MAP_ID,
   };
-  if (google.maps.RenderingType?.VECTOR) {
-    options.renderingType = google.maps.RenderingType.VECTOR;
-    // Gesture-driven tilt / rotate are off: display mode owns pitch and the
-    // navigation camera owns heading.
+  // TEMPORARY PREVIEW: raster rendering so the driver can compare the classic
+  // flat Google Maps look against the vector map. Revert to VECTOR after review.
+  if (google.maps.RenderingType?.RASTER) {
+    options.renderingType = google.maps.RenderingType.RASTER;
     options.tiltInteractionEnabled = false;
     options.headingInteractionEnabled = false;
   }

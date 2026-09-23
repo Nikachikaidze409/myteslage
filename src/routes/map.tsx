@@ -922,7 +922,7 @@ function Index() {
             />
           )}
 
-          <FavoritesPanel currentDestination={destination} onPick={setDestination} />
+          <FavoritesPanel currentDestination={destination ?? preview} onPick={startTo} />
 
           <LocationButton
             status={live.status}

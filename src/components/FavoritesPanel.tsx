@@ -6,6 +6,7 @@ import {
   removeSavedPlace,
 } from "@/lib/favorites";
 import type { Destination } from "@/components/DestinationSearch";
+import { UI, useLang } from "@/lib/i18n";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,8 @@ interface Props {
 }
 
 function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
+  const [lang] = useLang();
+  const t = UI[lang];
   const recents = useRecents();
   const saved = useFavorites();
   const [open, setOpen] = useState(false);
@@ -49,13 +52,13 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex min-w-0 items-center gap-1 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground"
+          className="flex min-w-0 items-center gap-1 text-left text-xs font-bold uppercase text-muted-foreground hover:text-foreground"
         >
-          <span className="truncate">Saved locations</span>
+          <span className="min-w-0 break-words">{t.savedLocation}</span>
           <span className="text-[10px]">{open ? "▲" : "▼"}</span>
           {saved.length > 0 && (
             <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
@@ -67,10 +70,10 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
           type="button"
           onClick={startAdd}
           disabled={!canAdd}
-          title={canAdd ? "Add saved location" : "Select a place on the map first"}
+          title={canAdd ? t.add : t.selectPlaceFirst}
           className="shrink-0 rounded-lg border border-primary/40 px-2 py-1 text-[11px] font-semibold text-primary enabled:hover:bg-primary/10 disabled:cursor-not-allowed disabled:border-border disabled:text-muted-foreground"
         >
-          + Add saved location
+          {t.add}
         </button>
       </div>
 
@@ -88,7 +91,7 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
                 </button>
                 <button
                   type="button"
-                  aria-label="Remove saved location"
+                  aria-label={t.removeSavedLocation}
                   onClick={() => removeSavedPlace(f.id)}
                   className="ml-1 rounded p-1 text-muted-foreground hover:text-foreground"
                 >
@@ -99,14 +102,14 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
           </ul>
         ) : (
           <div className="rounded-xl border border-dashed border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-            No saved locations yet. Pick a place on the map, then press “Add saved location”.
+            {t.noSavedLocations}
           </div>
         )
       )}
 
       {recents.length > 0 && (
         <div className="mt-3">
-          <div className="mb-1 text-[11px] font-semibold text-muted-foreground">Recent</div>
+          <div className="mb-1 text-[11px] font-semibold text-muted-foreground">{t.recent}</div>
           <ul className="flex flex-col gap-1">
             {recents.slice(0, 4).map((r) => (
               <li key={r.id}>
@@ -126,7 +129,7 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Name this place</DialogTitle>
+            <DialogTitle>{t.nameThisPlace}</DialogTitle>
           </DialogHeader>
           <input
             autoFocus
@@ -150,7 +153,7 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
               onClick={() => setDialogOpen(false)}
               className="rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:bg-muted"
             >
-              Cancel
+              {t.cancel}
             </button>
             <button
               type="button"
@@ -158,7 +161,7 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
               disabled={!name.trim()}
               className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
             >
-              Save
+              {t.save}
             </button>
           </DialogFooter>
         </DialogContent>

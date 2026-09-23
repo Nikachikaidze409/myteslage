@@ -7,7 +7,7 @@ import { loadGoogleMaps } from "@/lib/maps-loader";
 /** Cloud-configured vector Map ID. Override per environment if needed. */
 export const MAP_ID: string =
   (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined)?.trim() ||
-  "90416c59a9ac912bdb10e2fe";
+  "90416c59a9ac912becb5ad6a";
 
 export const DEFAULT_CENTER = { lat: 41.7151, lng: 44.8271 };
 
@@ -66,10 +66,13 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
     backgroundColor: "#f1f5f9",
     mapId: MAP_ID,
   };
-  // Raster rendering: prebuilt dark tiles from Google, no WebGL work in the
-  // car's browser. Tilt / heading interaction has no meaning on raster.
-  if (google.maps.RenderingType?.RASTER) {
-    options.renderingType = google.maps.RenderingType.RASTER;
+  // Vector rendering: the camera can follow the car smoothly (heading, tilt
+  // and sub-pixel panning). Raster re-fetches tiles on every pan, which is
+  // what made the follow stutter and the map load slowly in the car.
+  if (google.maps.RenderingType?.VECTOR) {
+    options.renderingType = google.maps.RenderingType.VECTOR;
+    // Gesture-driven tilt / rotate stay off: display mode owns pitch and the
+    // navigation camera owns heading.
     options.tiltInteractionEnabled = false;
     options.headingInteractionEnabled = false;
   }

@@ -89,6 +89,19 @@ export const createBogCheckout = createServerFn({ method: "POST" })
       return { ...eligibility, redirectUrl: null as string | null };
     }
 
+    // A checkout that was started on another device (e.g. the Tesla browser)
+    // and never completed must not stop the same person paying from a phone.
+    // Any older pending attempt for this plan is superseded right here.
+    const { PENDING_CHECKOUT_BLOCK_MS } = await import("@/lib/checkout-eligibility");
+    await supabaseAdmin
+      .from("payment_orders")
+      .update({ status: "expired" })
+      .eq("user_id", context.userId)
+      .eq("provider", "bog")
+      .eq("plan", data.plan)
+      .eq("status", "pending")
+      .lt("created_at", new Date(Date.now() - PENDING_CHECKOUT_BLOCK_MS).toISOString());
+
     const plan = BOG_PLANS[data.plan];
     const upgrade = eligibility.status === "upgrade_prorated";
     const baseAmount = upgrade ? (eligibility.baseAmount ?? plan.amount) : plan.amount;

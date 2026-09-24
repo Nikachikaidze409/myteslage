@@ -129,6 +129,9 @@ function Checkout() {
       );
       // The server refused to charge again (already active / in progress).
       if (outcome.status !== "new_purchase" && outcome.status !== "upgrade_prorated") {
+        if (outcome.status === "payment_in_progress") {
+          setError("გადახდა ახლახან დაიწყო. გთხოვთ, დაელოდოთ რამდენიმე წამს და სცადოთ ხელახლა.");
+        }
         await refreshEligibility();
         setBusy(false);
         return;
@@ -160,19 +163,18 @@ function Checkout() {
     iso ? new Date(iso).toLocaleDateString("ka-GE", { year: "numeric", month: "long", day: "numeric" }) : "";
 
   const status = eligibility?.status ?? "new_purchase";
-  const blocked = status !== "new_purchase" && status !== "upgrade_prorated";
+  // A checkout left unfinished on another device never blocks this one: the
+  // driver may always retry the payment from the device they are using now.
+  const retryable = status === "payment_in_progress";
+  const blocked = status !== "new_purchase" && status !== "upgrade_prorated" && !retryable;
   const blockedTitle =
     status === "higher_plan_active"
       ? "თქვენ უკვე გაქვთ უფრო ხანგრძლივი აქტიური გამოწერა."
-      : status === "payment_in_progress"
-        ? "გადახდა უკვე მიმდინარეობს."
-        : "თქვენ უკვე გაქვთ აქტიური გამოწერა.";
+      : "თქვენ უკვე გაქვთ აქტიური გამოწერა.";
   const blockedNote =
-    status === "payment_in_progress"
-      ? "დაასრულეთ დაწყებული გადახდა ან სცადეთ ცოტა ხანში."
-      : status === "higher_plan_active"
-        ? `მიმდინარე გამოწერა მოქმედებს ${formatDate(eligibility?.validUntil)}-მდე.`
-        : `გამოწერა მოქმედებს: ${formatDate(eligibility?.validUntil)}-მდე`;
+    status === "higher_plan_active"
+      ? `მიმდინარე გამოწერა მოქმედებს ${formatDate(eligibility?.validUntil)}-მდე.`
+      : `გამოწერა მოქმედებს: ${formatDate(eligibility?.validUntil)}-მდე`;
 
 
 
@@ -309,10 +311,18 @@ function Checkout() {
             >
               {busy
                 ? "Opening secure checkout…"
-                : status === "upgrade_prorated"
-                  ? `Upgrade for ${(eligibility?.finalAmount ?? 0).toFixed(2)} ₾ →`
-                  : checkoutButtonLabel(provider, plan)}
+                : retryable
+                  ? "გადახდის ხელახლა ცდა →"
+                  : status === "upgrade_prorated"
+                    ? `Upgrade for ${(eligibility?.finalAmount ?? 0).toFixed(2)} ₾ →`
+                    : checkoutButtonLabel(provider, plan)}
             </button>
+            {retryable && (
+              <p className="mt-3 text-center text-xs text-white/50">
+                წინა დაუსრულებელი გადახდა აღმოჩენილია. შეგიძლიათ აქედანვე, ნებისმიერი
+                მოწყობილობიდან დაასრულოთ გადახდა.
+              </p>
+            )}
             <p className="mt-3 text-center text-xs text-white/40">{PROVIDER_NOTES[provider]}</p>
             <p className="mt-1 text-center text-xs text-white/40">Your membership activates once the payment is confirmed.</p>
           </>

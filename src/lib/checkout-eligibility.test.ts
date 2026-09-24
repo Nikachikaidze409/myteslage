@@ -217,7 +217,25 @@ describe("callback verification and upgrade period", () => {
 });
 
 describe("race protection", () => {
-  it("15. a recent pending checkout blocks a second payment", () => {
+  it("15. a just-started checkout blocks an instant double-click", () => {
+    const result = decideCheckoutEligibility({
+      ...baseInput,
+      provider: "bog",
+      plan: "quarterly",
+      pendingOrders: [
+        {
+          id: "p1",
+          plan: "quarterly",
+          provider: "bog",
+          created_at: "2026-03-15T11:59:50Z",
+          pricing_reason: "standard",
+        },
+      ],
+    });
+    expect(result.status).toBe("payment_in_progress");
+  });
+
+  it("15b. a checkout left unfinished on another device does not block paying here", () => {
     const result = decideCheckoutEligibility({
       ...baseInput,
       provider: "bog",
@@ -232,7 +250,7 @@ describe("race protection", () => {
         },
       ],
     });
-    expect(result.status).toBe("payment_in_progress");
+    expect(result.status).toBe("new_purchase");
   });
 
   it("16. the pending reservation is created before the bank order", () => {

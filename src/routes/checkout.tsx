@@ -311,10 +311,18 @@ function Checkout() {
             >
               {busy
                 ? "Opening secure checkout…"
-                : status === "upgrade_prorated"
-                  ? `Upgrade for ${(eligibility?.finalAmount ?? 0).toFixed(2)} ₾ →`
-                  : checkoutButtonLabel(provider, plan)}
+                : retryable
+                  ? "გადახდის ხელახლა ცდა →"
+                  : status === "upgrade_prorated"
+                    ? `Upgrade for ${(eligibility?.finalAmount ?? 0).toFixed(2)} ₾ →`
+                    : checkoutButtonLabel(provider, plan)}
             </button>
+            {retryable && (
+              <p className="mt-3 text-center text-xs text-white/50">
+                წინა დაუსრულებელი გადახდა აღმოჩენილია. შეგიძლიათ აქედანვე, ნებისმიერი
+                მოწყობილობიდან დაასრულოთ გადახდა.
+              </p>
+            )}
             <p className="mt-3 text-center text-xs text-white/40">{PROVIDER_NOTES[provider]}</p>
             <p className="mt-1 text-center text-xs text-white/40">Your membership activates once the payment is confirmed.</p>
           </>

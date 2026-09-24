@@ -63,13 +63,15 @@ export async function autocompletePlacesCore(
     typeof data.lat === "number" && typeof data.lng === "number"
       ? { circle: { center: { latitude: data.lat, longitude: data.lng }, radius: 50000 } }
       : undefined;
+  const region = regionFor(data.lat, data.lng);
 
   const res = await fetch(`${PLACES_API}/places:autocomplete`, {
     method: "POST",
     headers,
     body: JSON.stringify({
       input: q,
-      includedRegionCodes: ["ge"],
+      includedRegionCodes: region.codes,
+
       ...(bias ? { locationBias: bias } : {}),
     }),
   });

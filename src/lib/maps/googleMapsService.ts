@@ -64,7 +64,13 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
     backgroundColor: "#f1f5f9",
     mapId: MAP_ID,
   };
-  if (google.maps.RenderingType?.VECTOR) {
+  // Outside Georgia (e.g. Armenia) the in-car browser's vector renderer draws
+  // only grey tiles / bare lines: it needs local fonts it doesn't have.
+  // Server-rendered raster tiles always work, so use them there.
+  const useRaster = shouldUseRaster(start);
+  if (useRaster && google.maps.RenderingType?.RASTER) {
+    options.renderingType = google.maps.RenderingType.RASTER;
+  } else if (google.maps.RenderingType?.VECTOR) {
     options.renderingType = google.maps.RenderingType.VECTOR;
     // Gesture-driven tilt / rotate are off: display mode owns pitch and the
     // navigation camera owns heading.
@@ -84,6 +90,23 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
 
   const vector = detectVector(google, map);
   return { google, map, vector };
+}
+
+/** Rough Georgia bounding box. */
+function inGeorgia(p: { lat: number; lng: number }): boolean {
+  return p.lat >= 41.0 && p.lat <= 43.7 && p.lng >= 39.9 && p.lng <= 46.8;
+}
+
+function shouldUseRaster(start: { lat: number; lng: number } | null): boolean {
+  try {
+    if (start && !inGeorgia(start)) return true;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    if (tz === "Asia/Yerevan") return true;
+    if (window.location.hostname.endsWith("tmap.am")) return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
 }
 
 function detectVector(google: any, map: any): boolean {

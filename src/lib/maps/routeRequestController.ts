@@ -107,6 +107,8 @@ export class RouteRequestController {
       signal: controller.signal,
     };
     this.active = ticket;
+    if (purpose === "reroute") this.lastRerouteAt = Date.now();
+
     countApi(
       purpose === "reroute" ? "route.reroute" : purpose === "traffic" ? "route.traffic" : "route.request",
     );

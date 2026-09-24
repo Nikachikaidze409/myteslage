@@ -112,7 +112,7 @@ export async function autocompletePlacesCore(
     },
     body: JSON.stringify({
       textQuery: q,
-      regionCode: "GE",
+      regionCode: region.region,
       maxResultCount: 6,
       ...(bias ? { locationBias: bias } : {}),
     }),

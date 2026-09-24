@@ -73,7 +73,7 @@ export function validateRouteInput(data: unknown): GuardRouteInput & { purpose: 
  * from the validated payload rather than trusted from the browser.
  */
 export function normalizeRouteFingerprint(input: GuardRouteInput & { purpose: GuardPurpose }): string {
-  const o = `${input.origin.lat.toFixed(3)},${input.origin.lng.toFixed(3)}`;
+  const o = `${input.origin.lat.toFixed(4)},${input.origin.lng.toFixed(4)}`;
   const d = `${input.destination.lat.toFixed(5)},${input.destination.lng.toFixed(5)}`;
   const w = (input.waypoints ?? [])
     .map((p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`)

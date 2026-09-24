@@ -633,12 +633,20 @@ export function MapView({
         </div>
       )}
 
-      {(rerouting || weakSignal) && (
+      {rerouting && (
         <div className="pointer-events-none absolute inset-x-0 top-24 z-30 flex justify-center">
           <div className="animate-pulse rounded-full bg-foreground/85 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-background shadow-lg">
-            {rerouting ? "Rerouting…" : "Weak GPS signal"}
+            Rerouting…
           </div>
         </div>
+      )}
+
+      {!rerouting && weakSignal && (
+        <span
+          aria-label="Weak GPS signal"
+          title="Weak GPS signal"
+          className="pointer-events-none absolute right-3 top-3 z-30 h-2 w-2 rounded-full bg-amber-400/70 shadow-sm"
+        />
       )}
 
       <button

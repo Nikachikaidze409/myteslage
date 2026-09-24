@@ -97,7 +97,15 @@ function AuthPage() {
       }
       const { error: signErr } = await supabase.auth.signInWithPassword({ email, password });
       if (signErr) throw new Error(signErr.message);
+      // An explicit email+password sign-in is the only event that takes over the
+      // active device slot (subscription-sharing protection).
+      try {
+        await claimDevice({ data: { deviceId: getOrCreateDeviceId(), label: getDeviceLabel() } });
+      } catch {
+        /* soft-fail: sign-in still succeeds */
+      }
       navigate({ to: nextDest() });
+
     } catch (e: any) {
       setError(e?.message ?? "Something went wrong");
     } finally {

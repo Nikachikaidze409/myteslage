@@ -13,6 +13,15 @@ const PRIORITY: Record<RoutePurpose, number> = { reroute: 3, user: 2, traffic: 1
 /** Repeating the exact same traffic refresh sooner than this is pointless. */
 const TRAFFIC_DEDUPE_MS = 60_000;
 
+/**
+ * Hard cost ceiling: however often the engine thinks the car left the route,
+ * no two reroute requests may leave the browser closer together than this.
+ * The finer origin fingerprint makes detection sharper without letting the
+ * number of billed Google calls grow.
+ */
+export const REROUTE_MIN_INTERVAL_MS = 5_000;
+
+
 export interface RouteTicket {
   id: number;
   purpose: RoutePurpose;

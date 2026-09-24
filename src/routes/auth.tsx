@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { signupWithCode } from "@/lib/auth.functions";
+import { signupWithCode, claimDevice } from "@/lib/auth.functions";
+import { getOrCreateDeviceId, getDeviceLabel } from "@/lib/device";
+
 import { LegalFooter } from "@/components/LegalFooter";
 
 export const Route = createFileRoute("/auth")({

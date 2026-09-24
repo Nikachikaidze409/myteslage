@@ -13,6 +13,15 @@ const PRIORITY: Record<RoutePurpose, number> = { reroute: 3, user: 2, traffic: 1
 /** Repeating the exact same traffic refresh sooner than this is pointless. */
 const TRAFFIC_DEDUPE_MS = 60_000;
 
+/**
+ * Hard cost ceiling: however often the engine thinks the car left the route,
+ * no two reroute requests may leave the browser closer together than this.
+ * The finer origin fingerprint makes detection sharper without letting the
+ * number of billed Google calls grow.
+ */
+export const REROUTE_MIN_INTERVAL_MS = 5_000;
+
+
 export interface RouteTicket {
   id: number;
   purpose: RoutePurpose;
@@ -32,8 +41,10 @@ export function routeFingerprint(input: {
   avoid?: string[];
   avoidUnpaved?: boolean;
 }): string {
-  // ~100 m origin resolution: tiny GPS movement must not look like a new request.
-  const o = `${input.origin.lat.toFixed(3)},${input.origin.lng.toFixed(3)}`;
+  // ~10 m origin resolution: fine enough that turning into a side street is a
+  // genuinely new request, coarse enough that standing-still jitter is not.
+  const o = `${input.origin.lat.toFixed(4)},${input.origin.lng.toFixed(4)}`;
+
   const d = `${input.destination.lat.toFixed(5)},${input.destination.lng.toFixed(5)}`;
   const w = (input.waypoints ?? []).map((p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join("|");
   const a = [...(input.avoid ?? [])].sort().join(",");
@@ -44,6 +55,8 @@ export class RouteRequestController {
   private active: Active | null = null;
   private nextId = 1;
   private lastDone = new Map<string, number>();
+  private lastRerouteAt = 0;
+
 
   /** True while a reroute is being computed. */
   get rerouting(): boolean {
@@ -79,6 +92,12 @@ export class RouteRequestController {
       }
     }
 
+    if (purpose === "reroute" && Date.now() - this.lastRerouteAt < REROUTE_MIN_INTERVAL_MS) {
+      countApi("route.duplicate");
+      return null;
+    }
+
+
     const controller = new AbortController();
     const ticket: Active = {
       id: this.nextId++,
@@ -88,6 +107,8 @@ export class RouteRequestController {
       signal: controller.signal,
     };
     this.active = ticket;
+    if (purpose === "reroute") this.lastRerouteAt = Date.now();
+
     countApi(
       purpose === "reroute" ? "route.reroute" : purpose === "traffic" ? "route.traffic" : "route.request",
     );

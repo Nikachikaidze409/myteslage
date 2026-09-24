@@ -22,11 +22,32 @@ export interface PlaceDetail {
 
 const fail = googleFail;
 
+/**
+ * Which country to bias place search to. Costs nothing extra — the same single
+ * Google call is made, only its region hint changes with the driver position.
+ */
+function regionFor(lat?: number, lng?: number): { codes: string[]; region: string } {
+  if (typeof lat === "number" && typeof lng === "number") {
+    // Armenia
+    if (lat >= 38.8 && lat <= 41.4 && lng >= 43.4 && lng <= 46.7) {
+      return { codes: ["am"], region: "AM" };
+    }
+    // Georgia
+    if (lat >= 41.0 && lat <= 43.7 && lng >= 39.9 && lng <= 46.8) {
+      return { codes: ["ge"], region: "GE" };
+    }
+    // Anywhere else in the neighbourhood: allow both markets.
+    return { codes: ["ge", "am"], region: "GE" };
+  }
+  return { codes: ["ge", "am"], region: "GE" };
+}
+
 /** Input check for autocompletePlaces (shared with the mobile API). */
 export const autocompletePlacesInput = (data: { query: string; lat?: number; lng?: number }) => {
   if (!data || typeof data.query !== "string") throw new Error("Invalid query");
   return data;
 };
+
 
 /** autocompletePlaces without the RPC wrapper, so the mobile API can call it too. */
 export async function autocompletePlacesCore(
@@ -42,13 +63,15 @@ export async function autocompletePlacesCore(
     typeof data.lat === "number" && typeof data.lng === "number"
       ? { circle: { center: { latitude: data.lat, longitude: data.lng }, radius: 50000 } }
       : undefined;
+  const region = regionFor(data.lat, data.lng);
 
   const res = await fetch(`${PLACES_API}/places:autocomplete`, {
     method: "POST",
     headers,
     body: JSON.stringify({
       input: q,
-      includedRegionCodes: ["ge"],
+      includedRegionCodes: region.codes,
+
       ...(bias ? { locationBias: bias } : {}),
     }),
   });
@@ -89,7 +112,7 @@ export async function autocompletePlacesCore(
     },
     body: JSON.stringify({
       textQuery: q,
-      regionCode: "GE",
+      regionCode: region.region,
       maxResultCount: 6,
       ...(bias ? { locationBias: bias } : {}),
     }),

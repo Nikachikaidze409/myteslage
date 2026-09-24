@@ -129,6 +129,9 @@ function Checkout() {
       );
       // The server refused to charge again (already active / in progress).
       if (outcome.status !== "new_purchase" && outcome.status !== "upgrade_prorated") {
+        if (outcome.status === "payment_in_progress") {
+          setError("გადახდა ახლახან დაიწყო. გთხოვთ, დაელოდოთ რამდენიმე წამს და სცადოთ ხელახლა.");
+        }
         await refreshEligibility();
         setBusy(false);
         return;

@@ -153,7 +153,7 @@ export function decideCheckoutEligibility(input: EligibilityInput): Eligibility 
     (order) =>
       order.plan === input.plan &&
       order.provider === input.provider &&
-      input.now - (ms(order.created_at) ?? 0) < PENDING_CHECKOUT_TTL_MS,
+      input.now - (ms(order.created_at) ?? 0) < PENDING_CHECKOUT_BLOCK_MS,
   );
 
   if (!current) {

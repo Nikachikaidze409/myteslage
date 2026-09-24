@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { signupWithCode } from "@/lib/auth.functions";
+import { signupWithCode, claimDevice } from "@/lib/auth.functions";
+import { getOrCreateDeviceId, getDeviceLabel } from "@/lib/device";
+
 import { LegalFooter } from "@/components/LegalFooter";
 
 export const Route = createFileRoute("/auth")({
@@ -95,7 +97,15 @@ function AuthPage() {
       }
       const { error: signErr } = await supabase.auth.signInWithPassword({ email, password });
       if (signErr) throw new Error(signErr.message);
+      // An explicit email+password sign-in is the only event that takes over the
+      // active device slot (subscription-sharing protection).
+      try {
+        await claimDevice({ data: { deviceId: getOrCreateDeviceId(), label: getDeviceLabel() } });
+      } catch {
+        /* soft-fail: sign-in still succeeds */
+      }
       navigate({ to: nextDest() });
+
     } catch (e: any) {
       setError(e?.message ?? "Something went wrong");
     } finally {

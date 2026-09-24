@@ -290,22 +290,21 @@ function Index() {
     selectorRef.current?.setHudMode(hudMode);
   }, [hudMode]);
 
-  // The phone ended the session or went silent past the dead threshold:
-  // never leave the Tesla stuck on a dead remote display — hand control back.
+  // The phone ended the session or went silent (screen off, network sleep):
+  // hand control back to the car's own GPS but KEEP the active route and
+  // destination so navigation continues uninterrupted.
   useEffect(() => {
     if (!hudMode) return;
     if (!shouldReturnToDirectMode(remoteState)) return;
     setHudMode(false);
-    setNavigating(false);
-    setDestination(null);
-    setRoutes([]);
     setRerouting(false);
     setPairNote(
       remoteState === "disconnected_by_user"
-        ? "Phone disconnected — you're back in direct control."
-        : "Phone connection lost — you're back in direct control.",
+        ? "Phone disconnected — navigation continues on the car's GPS."
+        : "Phone connection lost — navigation continues on the car's GPS.",
     );
   }, [remoteState, hudMode]);
+
 
   // Auto-dismiss the phone-session notice.
   useEffect(() => {

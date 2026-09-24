@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { claimDevice, verifyDevice } from "@/lib/auth.functions";
-import { getOrCreateDeviceId, getDeviceLabel } from "@/lib/device";
+import { verifyDevice } from "@/lib/auth.functions";
+import { getOrCreateDeviceId } from "@/lib/device";
+
 import { getPaddleEnvironment } from "@/lib/paddle";
 import { anyMembershipValid } from "@/lib/membership";
 
@@ -57,13 +58,12 @@ export function AuthGate({ children }: Props) {
           return;
         }
       }
-      try {
-        await claimDevice({ data: { deviceId, label: getDeviceLabel() } });
-      } catch {
-        /* soft-fail; realtime kick still works */
-      }
+      // Do NOT claim the device here: merely opening /map (e.g. on the phone
+      // after scanning the QR) must never steal the active device and kick the
+      // car out. Claiming happens only on an explicit email+password sign-in.
       if (!alive) return;
       setStatus("authed");
+
 
       // Reliable fallback for the realtime kick: ask the server every 30s (and
       // whenever the tab wakes up) whether this is still the active device.

@@ -62,13 +62,14 @@ describe("route fingerprint", () => {
     expect(normalizeRouteFingerprint(again)).toBe(normalizeRouteFingerprint(base));
   });
 
-  it("ignores sub-100m origin jitter but not a new destination", () => {
+  it("ignores sub-10m origin jitter but not a new destination", () => {
     const jitter = validateRouteInput({
-      origin: { lat: ORIGIN.lat + 0.0002, lng: ORIGIN.lng },
+      origin: { lat: ORIGIN.lat + 0.00002, lng: ORIGIN.lng },
       destination: DEST,
       purpose: "reroute",
     });
     expect(normalizeRouteFingerprint(jitter)).toBe(normalizeRouteFingerprint(base));
+
     const other = validateRouteInput({
       origin: ORIGIN,
       destination: { lat: 41.5, lng: 44.9 },

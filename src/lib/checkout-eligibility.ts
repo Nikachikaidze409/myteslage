@@ -20,8 +20,16 @@ export const PLAN_PRICES_GEL: Record<PlanKey, number> = {
 
 const PLAN_RANK: Record<PlanKey, number> = { monthly: 1, quarterly: 2, annual: 3 };
 
-/** How long a pending checkout blocks a second one before it is abandoned. */
+/** How long a pending checkout row stays alive before it is abandoned. */
 export const PENDING_CHECKOUT_TTL_MS = 30 * 60 * 1000;
+
+/**
+ * A pending checkout only blocks a second attempt for a short moment: just
+ * long enough to stop a double-click or two tabs racing. After that the driver
+ * may retry from ANY device (phone, laptop, car browser) — a checkout started
+ * in the Tesla browser must never lock the account out of paying elsewhere.
+ */
+export const PENDING_CHECKOUT_BLOCK_MS = 60 * 1000;
 
 /** Safe currency rounding to 2 decimals. */
 export function roundMoney(value: number): number {

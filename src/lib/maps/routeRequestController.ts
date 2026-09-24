@@ -92,6 +92,12 @@ export class RouteRequestController {
       }
     }
 
+    if (purpose === "reroute" && Date.now() - this.lastRerouteAt < REROUTE_MIN_INTERVAL_MS) {
+      countApi("route.duplicate");
+      return null;
+    }
+
+
     const controller = new AbortController();
     const ticket: Active = {
       id: this.nextId++,

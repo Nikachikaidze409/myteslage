@@ -160,19 +160,18 @@ function Checkout() {
     iso ? new Date(iso).toLocaleDateString("ka-GE", { year: "numeric", month: "long", day: "numeric" }) : "";
 
   const status = eligibility?.status ?? "new_purchase";
-  const blocked = status !== "new_purchase" && status !== "upgrade_prorated";
+  // A checkout left unfinished on another device never blocks this one: the
+  // driver may always retry the payment from the device they are using now.
+  const retryable = status === "payment_in_progress";
+  const blocked = status !== "new_purchase" && status !== "upgrade_prorated" && !retryable;
   const blockedTitle =
     status === "higher_plan_active"
       ? "თქვენ უკვე გაქვთ უფრო ხანგრძლივი აქტიური გამოწერა."
-      : status === "payment_in_progress"
-        ? "გადახდა უკვე მიმდინარეობს."
-        : "თქვენ უკვე გაქვთ აქტიური გამოწერა.";
+      : "თქვენ უკვე გაქვთ აქტიური გამოწერა.";
   const blockedNote =
-    status === "payment_in_progress"
-      ? "დაასრულეთ დაწყებული გადახდა ან სცადეთ ცოტა ხანში."
-      : status === "higher_plan_active"
-        ? `მიმდინარე გამოწერა მოქმედებს ${formatDate(eligibility?.validUntil)}-მდე.`
-        : `გამოწერა მოქმედებს: ${formatDate(eligibility?.validUntil)}-მდე`;
+    status === "higher_plan_active"
+      ? `მიმდინარე გამოწერა მოქმედებს ${formatDate(eligibility?.validUntil)}-მდე.`
+      : `გამოწერა მოქმედებს: ${formatDate(eligibility?.validUntil)}-მდე`;
 
 
 

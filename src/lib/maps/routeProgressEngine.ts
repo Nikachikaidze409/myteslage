@@ -85,11 +85,12 @@ const MIN_HEADING_SPEED = 1.5;
 const MIN_OFF_ROUTE_M = 10;
 const MAX_OFF_ROUTE_M = 35;
 /** Consecutive credible readings needed to confirm a generic deviation. */
-const STRIKES_TO_CONFIRM = 3;
+const STRIKES_TO_CONFIRM = 2;
 /** …and the evidence must span at least this long. */
-const CONFIRM_SPAN_MS = 1200;
+const CONFIRM_SPAN_MS = 800;
 /** Right after a reroute the car needs a moment to settle on the new line. */
-const STABILISE_MS = 2500;
+const STABILISE_MS = 1500;
+
 /** The deviation must exceed the reported accuracy by this factor to count. */
 const ACCURACY_MARGIN = 1.1;
 

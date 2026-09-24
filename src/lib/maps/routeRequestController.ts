@@ -55,6 +55,8 @@ export class RouteRequestController {
   private active: Active | null = null;
   private nextId = 1;
   private lastDone = new Map<string, number>();
+  private lastRerouteAt = 0;
+
 
   /** True while a reroute is being computed. */
   get rerouting(): boolean {

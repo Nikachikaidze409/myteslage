@@ -177,7 +177,7 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
 
           <div className="grid items-start gap-5 md:grid-cols-3">
             <PricingCard
-              className={armenia ? "md:order-2" : undefined}
+              className={armenia ? "md:order-1" : "md:order-3"}
               highlighted
               featured={armenia}
               title={t.annualTitle}
@@ -191,7 +191,7 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
               to="/pricing"
             />
             <PricingCard
-              className={armenia ? "md:order-1" : "md:-order-1"}
+              className={armenia ? "md:order-2" : "md:order-1"}
               title={t.monthlyTitle}
               price={prices.monthly}
               period={t.monthlyPeriod}
@@ -201,7 +201,7 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
               to="/pricing"
             />
             <PricingCard
-              className="md:order-3"
+              className={armenia ? "md:order-3" : "md:order-2"}
               title={t.quarterlyTitle}
               price={prices.quarterly}
               period={t.quarterlyTotal}

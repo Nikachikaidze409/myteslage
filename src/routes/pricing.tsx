@@ -240,6 +240,8 @@ function PlanCard({
   perMonth,
   badge,
   highlighted,
+  featured,
+  className,
 }: {
   plan: Plan;
   selected: boolean;
@@ -251,6 +253,8 @@ function PlanCard({
   perMonth: string;
   badge?: string;
   highlighted?: boolean;
+  featured?: boolean;
+  className?: string;
 }) {
   return (
     <button
@@ -260,7 +264,11 @@ function PlanCard({
         selected
           ? "border-[#3b82f6] bg-gradient-to-br from-[#3b82f6]/15 to-[#e9b149]/5 shadow-[0_20px_80px_-20px_rgba(59,130,246,0.5)]"
           : "border-white/10 bg-white/[0.02] hover:border-white/25"
-      }`}
+      } ${
+        featured
+          ? "ring-2 ring-[#e9b149]/70 md:-my-3 md:scale-[1.04] md:py-10 md:shadow-[0_30px_100px_-20px_rgba(233,177,73,0.45)]"
+          : ""
+      } ${className ?? ""}`}
     >
       {(badge ?? (highlighted ? "Save 10%" : null)) && (
         <div className="absolute -top-3 left-6 rounded-full bg-[#e9b149] px-3 py-1 text-[11px] font-black uppercase tracking-widest text-black">
@@ -273,7 +281,9 @@ function PlanCard({
             {title}
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="font-display text-4xl font-black">{price}</span>
+            <span className={`font-display font-black ${featured ? "text-4xl md:text-5xl" : "text-4xl"}`}>
+              {price}
+            </span>
             <span className="text-sm text-white/50">{period}</span>
           </div>
           <div className="mt-1 text-sm text-[#e9b149]">{perMonth}</div>

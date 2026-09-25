@@ -7,6 +7,7 @@
 // Docs: https://api.bog.ge/docs/payments/introduction
 
 import { createVerify } from "crypto";
+import { allowedBogAmounts } from "@/lib/market";
 
 export const BOG_OAUTH_URL = "https://oauth2.bog.ge/auth/realms/bog/protocol/openid-connect/token";
 export const BOG_ORDERS_URL = "https://api.bog.ge/payments/v1/ecommerce/orders";

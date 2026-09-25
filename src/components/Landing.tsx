@@ -247,11 +247,13 @@ function Nav({
   t,
   lang,
   onLang,
+  armenia,
 }: {
   signedIn: boolean;
   t: Translation;
   lang: Lang;
   onLang: (l: Lang) => void;
+  armenia: boolean;
 }) {
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-[#050708]/80 backdrop-blur-xl">
@@ -260,7 +262,7 @@ function Nav({
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
             ⚡
           </span>
-          TMap Georgia
+          {armenia ? "TMap" : "TMap Georgia"}
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
           <a href="#pricing" className="hover:text-white">
@@ -268,29 +270,40 @@ function Nav({
           </a>
         </nav>
         <div className="flex items-center gap-2">
-          <div className="mr-1 flex items-center rounded-lg border border-white/10 bg-white/[0.03] p-0.5 text-[11px] font-bold">
-            {LANGS.map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => onLang(l)}
-                className={`rounded-md px-2 py-1 transition ${
-                  lang === l ? "bg-white text-black" : "text-white/60 hover:text-white"
-                }`}
-                aria-pressed={lang === l}
-              >
-                {LANG_LABEL[l]}
-              </button>
-            ))}
-          </div>
+          {!armenia && (
+            <div className="mr-1 flex items-center rounded-lg border border-white/10 bg-white/[0.03] p-0.5 text-[11px] font-bold">
+              {LANGS.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => onLang(l)}
+                  className={`rounded-md px-2 py-1 transition ${
+                    lang === l ? "bg-white text-black" : "text-white/60 hover:text-white"
+                  }`}
+                  aria-pressed={lang === l}
+                >
+                  {LANG_LABEL[l]}
+                </button>
+              ))}
+            </div>
+          )}
           {signedIn ? (
             <>
-              <Link
-                to="/map"
-                className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
-              >
-                {t.navOpenApp}
-              </Link>
+              {armenia ? (
+                <a
+                  href={APP_MAP_URL}
+                  className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
+                >
+                  {t.navOpenApp}
+                </a>
+              ) : (
+                <Link
+                  to="/map"
+                  className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
+                >
+                  {t.navOpenApp}
+                </Link>
+              )}
               <AccountMenu signOutLabel={SIGN_OUT_LABEL[lang]} />
             </>
           ) : (

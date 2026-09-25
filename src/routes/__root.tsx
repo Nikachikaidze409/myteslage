@@ -158,6 +158,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { market } = Route.useLoaderData();
 
   // Warm the Google Maps script up while the user is still signing in, so the
   // map screen has nothing left to download when it opens.
@@ -175,9 +176,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <PaymentTestModeBanner />
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <MarketProvider market={market}>
+        <PaymentTestModeBanner />
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </MarketProvider>
     </QueryClientProvider>
   );
 }

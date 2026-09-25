@@ -45,6 +45,7 @@ export const Route = createFileRoute("/checkout")({
 
 function Checkout() {
   const navigate = useNavigate();
+  const market = useMarket();
   const [plan, setPlan] = useState<Plan>("quarterly");
   const [provider, setProvider] = useState<PaymentProvider>("bog");
   const [email, setEmail] = useState("");

@@ -56,6 +56,11 @@ const LEGACY_HOSTS = new Set([
 ]);
 const CANONICAL_HOST = "tmap.ge";
 
+/** The Armenian storefront: landing + checkout only, the map lives on tmap.ge. */
+const AM_HOST = "tmap.am";
+/** Everything that must always run on the canonical Georgian host. */
+const APP_ONLY_PATHS = ["/map", "/phone", "/pair"];
+
 export function legacyRedirectTarget(rawUrl: string): string | null {
   let url: URL;
   try {
@@ -63,7 +68,25 @@ export function legacyRedirectTarget(rawUrl: string): string | null {
   } catch {
     return null;
   }
-  if (!LEGACY_HOSTS.has(url.hostname.toLowerCase())) return null;
+  const host = url.hostname.toLowerCase();
+
+  // www of the Armenian domain folds into the bare Armenian host.
+  if (host === `www.${AM_HOST}`) {
+    url.protocol = "https:";
+    url.hostname = AM_HOST;
+    url.port = "";
+    return url.toString();
+  }
+
+  // The car session, QR pairing and the map itself only ever run on tmap.ge.
+  if (host === AM_HOST && APP_ONLY_PATHS.some((p) => url.pathname === p || url.pathname.startsWith(`${p}/`))) {
+    url.protocol = "https:";
+    url.hostname = CANONICAL_HOST;
+    url.port = "";
+    return url.toString();
+  }
+
+  if (!LEGACY_HOSTS.has(host)) return null;
   url.protocol = "https:";
   url.hostname = CANONICAL_HOST;
   url.port = "";

@@ -47,7 +47,11 @@ export const MARKET_PADDLE_LABELS: Record<Market, Record<MarketPlan, string>> = 
   am: { monthly: "$5.40", quarterly: "$14.40", annual: "$53.50" },
 };
 
-/** Paddle catalogue ids per market. */
+/**
+ * Paddle catalogue ids per market. The Georgian rows are external ids that are
+ * resolved through the catalogue; the Armenian rows are Paddle price ids and
+ * are used as-is.
+ */
 export const MARKET_PADDLE_PRICE_IDS: Record<Market, Record<MarketPlan, string>> = {
   ge: {
     monthly: "tesla_map_georgia_monthly",
@@ -55,9 +59,9 @@ export const MARKET_PADDLE_PRICE_IDS: Record<Market, Record<MarketPlan, string>>
     annual: "tesla_map_georgia_annual",
   },
   am: {
-    monthly: "tmap_am_monthly",
-    quarterly: "tmap_am_quarterly",
-    annual: "tmap_am_annual",
+    monthly: "pri_01m3c5az2xx0bejgvb7aawpyca",
+    quarterly: "pri_01m3c5azav7e57qemfc9w8jxa0",
+    annual: "pri_01m3c5azh9mpexb8nzdrm9bvkd",
   },
 };
 

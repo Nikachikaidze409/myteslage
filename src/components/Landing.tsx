@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { AccountMenu } from "@/components/AccountMenu";
 import heroImg from "@/assets/hero-dashboard.jpg";
 import pairingImg from "@/assets/feature-pairing.jpg";
+import { useMarket } from "@/lib/market-context";
+import { APP_MAP_URL, MARKET_BOG_LABELS } from "@/lib/market";
+import { AM_LANDING_OVERRIDES } from "@/lib/landing-am";
 import {
   LANGS,
   LANG_KEY,
@@ -18,13 +21,16 @@ import {
 /**
  * Public landing page. `forcedLang` comes from the localized URLs (/en, /hy,
  * /ru); the bare "/" route falls back to Georgian and remembers the visitor's
- * last manual choice.
+ * last manual choice. On tmap.am the page is Armenian only, with AMD prices.
  */
 export function Landing({ forcedLang }: { forcedLang?: Lang }) {
+  const market = useMarket();
+  const armenia = market === "am";
   const [signedIn, setSignedIn] = useState(false);
-  const [lang, setLang] = useState<Lang>(forcedLang ?? "ka");
+  const [lang, setLang] = useState<Lang>(armenia ? "hy" : (forcedLang ?? "ka"));
 
   useEffect(() => {
+    if (armenia) return;
     if (forcedLang) {
       try {
         window.localStorage.setItem(LANG_KEY, forcedLang);
@@ -39,7 +45,7 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
     } catch {
       /* ignore */
     }
-  }, [forcedLang]);
+  }, [forcedLang, armenia]);
 
   const setLangPersist = (l: Lang) => {
     setLang(l);
@@ -56,7 +62,8 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const t = T[lang];
+  const t: Translation = armenia ? { ...T.hy, ...AM_LANDING_OVERRIDES } : T[lang];
+  const prices = MARKET_BOG_LABELS[market];
 
   return (
     <div className="min-h-screen bg-[#050708] text-white" lang={lang}>

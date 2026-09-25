@@ -452,7 +452,8 @@ export function canBeAutoRenewParent(
 ): boolean {
   if (pricingReason === "monthly_to_quarterly_proration") return false;
   if (pricingReason !== "standard" && pricingReason != null) return false;
-  return Math.abs(bogAmount(amount) - BOG_RECURRING_AMOUNTS[plan]) < 0.005;
+  // Either market's full recurring price may renew automatically.
+  return allowedBogAmounts(plan).some((a) => Math.abs(bogAmount(amount) - a) < 0.005);
 }
 
 /**

@@ -67,7 +67,13 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
 
   return (
     <div className="min-h-screen bg-[#050708] text-white" lang={lang}>
-      <Nav signedIn={signedIn} t={t} lang={lang} onLang={setLangPersist} />
+      <Nav
+        signedIn={signedIn}
+        t={t}
+        lang={lang}
+        onLang={setLangPersist}
+        armenia={armenia}
+      />
 
       {/* HERO */}
       <section className="relative overflow-hidden">

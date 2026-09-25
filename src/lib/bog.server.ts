@@ -560,7 +560,9 @@ export function renewalPaymentMatches(
   if (details.paymentOption !== "subscription") return false;
   if (!details.parentOrderId || details.parentOrderId !== expected.parentOrderId) return false;
   // Trusted full recurring price only — never a discounted amount.
-  return Math.abs(Number(order.amount) - BOG_RECURRING_AMOUNTS[expected.plan]) < 0.005;
+  return allowedBogAmounts(expected.plan).some(
+    (a) => Math.abs(Number(order.amount) - a) < 0.005,
+  );
 }
 
 /**

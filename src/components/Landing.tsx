@@ -62,7 +62,9 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const t: Translation = armenia ? { ...T.hy, ...AM_LANDING_OVERRIDES } : T[lang];
+  const t = (
+    armenia ? { ...T.hy, ...AM_LANDING_OVERRIDES } : T[lang]
+  ) as unknown as Translation;
   const prices = MARKET_BOG_LABELS[market];
 
   return (

@@ -3,9 +3,77 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AccountBar } from "@/components/AccountBar";
 import { LegalFooter } from "@/components/LegalFooter";
+import { useMarket } from "@/lib/market-context";
+import { AM_CONVERSION_NOTE, MARKET_BOG_LABELS } from "@/lib/market";
 
 type Plan = "monthly" | "quarterly" | "annual";
 const PLAN_KEY = "tsl.pending-plan";
+
+/** Page copy per market: Georgian site stays English, tmap.am is Armenian. */
+const COPY = {
+  ge: {
+    eyebrow: "Membership",
+    title: "Pick your plan",
+    subtitle: "One account = one device. Cancel anytime, no lock-in.",
+    monthlyTitle: "Monthly",
+    monthlyPeriod: "per month",
+    monthlySub: "Billed every month",
+    monthlyPerMonth: "8 ₾/mo",
+    quarterlyTitle: "3 months",
+    quarterlyPeriod: "every 3 months",
+    quarterlySub: "10% off",
+    quarterlyPerMonth: "7.20 ₾/mo",
+    annualTitle: "1 year",
+    annualPeriod: "per year",
+    annualSub: "Best value - one payment a year",
+    annualPerMonth: "7.08 ₾/mo",
+    annualBadge: "Save 11%",
+    included: "What you get",
+    features: [
+      "Live in-car navigation optimized for Tesla",
+      "Phone GPS pairing (real 1 m accuracy)",
+      "Turn-by-turn HUD & voice guidance",
+      "Live traffic + auto-rerouting",
+      "Georgian streets, addresses, POIs",
+      "Supercharger stop planning",
+    ],
+    ctaSignup: "Create account & continue →",
+    ctaCheckout: "Continue to checkout →",
+    note: "Secure checkout. No hidden fees. Cancel anytime from your account.",
+    back: "← Back",
+  },
+  am: {
+    eyebrow: "Բաժանորդագրություն",
+    title: "Ընտրեք ձեր փաթեթը",
+    subtitle: "Մեկ հաշիվ = մեկ սարք։ Չեղարկեք ցանկացած պահի։",
+    monthlyTitle: "Ամսական",
+    monthlyPeriod: "ամսական",
+    monthlySub: "Գանձվում է ամեն ամիս",
+    monthlyPerMonth: "2,099 AMD/ամիս",
+    quarterlyTitle: "3 ամիս",
+    quarterlyPeriod: "3 ամիսը մեկ",
+    quarterlySub: "11% զեղչ",
+    quarterlyPerMonth: "1,867 AMD/ամիս",
+    annualTitle: "1 տարի · 2 ամիս ՆՎԵՐ",
+    annualPeriod: "տարեկան",
+    annualSub: "Վճարում եք 10 ամսվա համար, օգտվում՝ 12 ամիս",
+    annualPerMonth: "1,735 AMD/ամիս",
+    annualBadge: "2 ամիս ՆՎԵՐ 🎁",
+    included: "Ի՞նչ եք ստանում",
+    features: [
+      "Կենդանի նավիգացիա մեքենայի էկրանին",
+      "Հեռախոսի GPS զուգակցում (իրական ճշգրտություն)",
+      "Քայլ առ քայլ HUD և ձայնային ուղեկցում",
+      "Կենդանի երթևեկություն և ավտո-վերաերթուղում",
+      "Հայկական և վրացական հասցեներ ու փողոցներ",
+      "Supercharger կանգառների պլանավորում",
+    ],
+    ctaSignup: "Ստեղծել հաշիվ և շարունակել →",
+    ctaCheckout: "Անցնել վճարման →",
+    note: AM_CONVERSION_NOTE,
+    back: "← Հետ",
+  },
+} as const;
 
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,

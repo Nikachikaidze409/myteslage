@@ -17,6 +17,8 @@ import {
   type Plan,
 } from "@/lib/checkout-provider";
 import { AccountBar } from "@/components/AccountBar";
+import { useMarket } from "@/lib/market-context";
+import { APP_MAP_URL } from "@/lib/market";
 import { LegalFooter } from "@/components/LegalFooter";
 
 const PLAN_KEY = "tsl.pending-plan";
@@ -117,7 +119,7 @@ function Checkout() {
       await saveProfileDetails({ data: { fullName: fullName.trim(), phone: phone.trim() } });
       // The browser sends only the plan name — never a price.
       const outcome = await startProviderCheckout(
-        { provider, plan, userId, email },
+        { provider, plan, userId, email, market },
         {
           createBogCheckout: (args) => createBogCheckout(args),
           initializePaddle,
@@ -157,7 +159,7 @@ function Checkout() {
   }
 
   const selectedPlan = PLANS[plan];
-  const price = providerPrice(provider, plan);
+  const price = providerPrice(provider, plan, market);
 
   const formatDate = (iso?: string | null) =>
     iso ? new Date(iso).toLocaleDateString("ka-GE", { year: "numeric", month: "long", day: "numeric" }) : "";
@@ -293,9 +295,15 @@ function Checkout() {
             <div className="text-lg font-bold">{blockedTitle}</div>
             <p className="mt-2 text-sm text-white/60">{blockedNote}</p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
-              <Link to="/map" className="font-display flex h-12 items-center justify-center rounded-2xl bg-[#3b82f6] px-6 text-sm font-bold text-white hover:brightness-110">
-                აპლიკაციის გახსნა
-              </Link>
+              {market === "am" ? (
+                <a href={APP_MAP_URL} className="font-display flex h-12 items-center justify-center rounded-2xl bg-[#3b82f6] px-6 text-sm font-bold text-white hover:brightness-110">
+                  Բացել քարտեզը
+                </a>
+              ) : (
+                <Link to="/map" className="font-display flex h-12 items-center justify-center rounded-2xl bg-[#3b82f6] px-6 text-sm font-bold text-white hover:brightness-110">
+                  აპლიკაციის გახსნა
+                </Link>
+              )}
               <Link to="/" className="flex h-12 items-center justify-center rounded-2xl border border-white/15 px-6 text-sm font-bold text-white/80 hover:text-white">
                 მთავარ გვერდზე დაბრუნება
               </Link>
@@ -315,7 +323,7 @@ function Checkout() {
                   ? "გადახდის ხელახლა ცდა →"
                   : status === "upgrade_prorated"
                     ? `Upgrade for ${(eligibility?.finalAmount ?? 0).toFixed(2)} ₾ →`
-                    : checkoutButtonLabel(provider, plan)}
+                    : checkoutButtonLabel(provider, plan, market)}
             </button>
             {retryable && (
               <p className="mt-3 text-center text-xs text-white/50">

@@ -396,7 +396,9 @@ function PricingCard({
   cta,
   to,
   highlighted,
+  featured,
   badgeLabel,
+  className,
 }: {
   title: string;
   price: string;
@@ -407,7 +409,9 @@ function PricingCard({
   cta: string;
   to: string;
   highlighted?: boolean;
+  featured?: boolean;
   badgeLabel?: string;
+  className?: string;
 }) {
   return (
     <div
@@ -415,19 +419,33 @@ function PricingCard({
         highlighted
           ? "border-[#3b82f6]/60 bg-gradient-to-br from-[#3b82f6]/15 via-transparent to-[#e9b149]/10 shadow-[0_20px_80px_-20px_rgba(59,130,246,0.5)]"
           : "border-white/10 bg-white/[0.02]"
-      }`}
+      } ${
+        featured
+          ? "ring-2 ring-[#e9b149]/70 md:-my-3 md:scale-[1.04] md:py-11 md:shadow-[0_30px_100px_-20px_rgba(233,177,73,0.45)]"
+          : ""
+      } ${className ?? ""}`}
     >
       {highlighted && (
-        <div className="absolute -top-3 left-8 rounded-full bg-[#e9b149] px-3 py-1 text-[11px] font-black uppercase tracking-widest text-black">
+        <div
+          className={`absolute -top-3 left-8 rounded-full bg-[#e9b149] px-3 py-1 font-black uppercase tracking-widest text-black ${
+            featured ? "text-xs" : "text-[11px]"
+          }`}
+        >
           {badgeLabel ?? "Save 10%"}
         </div>
       )}
       <div className="text-[11px] font-bold uppercase tracking-widest text-white/60">{title}</div>
       <div className="mt-3 flex items-baseline gap-1">
-        <span className="font-display text-5xl font-black">{price}</span>
+        <span className={`font-display font-black ${featured ? "text-5xl md:text-6xl" : "text-5xl"}`}>
+          {price}
+        </span>
         <span className="text-white/60">{period}</span>
       </div>
-      {subprice && <div className="mt-1 text-sm text-[#e9b149]">{subprice}</div>}
+      {subprice && (
+        <div className={`mt-1 text-[#e9b149] ${featured ? "text-base font-semibold" : "text-sm"}`}>
+          {subprice}
+        </div>
+      )}
       <div className="mt-1 text-xs text-white/50">{tag}</div>
 
       <ul className="mt-6 space-y-2.5 text-sm text-white/70">

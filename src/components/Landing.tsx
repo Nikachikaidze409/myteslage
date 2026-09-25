@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { AccountMenu } from "@/components/AccountMenu";
 import heroImg from "@/assets/hero-dashboard.jpg";
 import pairingImg from "@/assets/feature-pairing.jpg";
+import { useMarket } from "@/lib/market-context";
+import { APP_MAP_URL, MARKET_BOG_LABELS } from "@/lib/market";
+import { AM_LANDING_OVERRIDES } from "@/lib/landing-am";
 import {
   LANGS,
   LANG_KEY,
@@ -18,13 +21,16 @@ import {
 /**
  * Public landing page. `forcedLang` comes from the localized URLs (/en, /hy,
  * /ru); the bare "/" route falls back to Georgian and remembers the visitor's
- * last manual choice.
+ * last manual choice. On tmap.am the page is Armenian only, with AMD prices.
  */
 export function Landing({ forcedLang }: { forcedLang?: Lang }) {
+  const market = useMarket();
+  const armenia = market === "am";
   const [signedIn, setSignedIn] = useState(false);
-  const [lang, setLang] = useState<Lang>(forcedLang ?? "ka");
+  const [lang, setLang] = useState<Lang>(armenia ? "hy" : (forcedLang ?? "ka"));
 
   useEffect(() => {
+    if (armenia) return;
     if (forcedLang) {
       try {
         window.localStorage.setItem(LANG_KEY, forcedLang);
@@ -39,7 +45,7 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
     } catch {
       /* ignore */
     }
-  }, [forcedLang]);
+  }, [forcedLang, armenia]);
 
   const setLangPersist = (l: Lang) => {
     setLang(l);
@@ -56,11 +62,20 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const t = T[lang];
+  const t = (
+    armenia ? { ...T.hy, ...AM_LANDING_OVERRIDES } : T[lang]
+  ) as unknown as Translation;
+  const prices = MARKET_BOG_LABELS[market];
 
   return (
     <div className="min-h-screen bg-[#050708] text-white" lang={lang}>
-      <Nav signedIn={signedIn} t={t} lang={lang} onLang={setLangPersist} />
+      <Nav
+        signedIn={signedIn}
+        t={t}
+        lang={lang}
+        onLang={setLangPersist}
+        armenia={armenia}
+      />
 
       {/* HERO */}
       <section className="relative overflow-hidden">
@@ -162,10 +177,25 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
             <h2 className="font-display text-4xl font-black md:text-5xl">{t.pricingTitle}</h2>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-3">
+          <div className="grid items-start gap-5 md:grid-cols-3">
             <PricingCard
+              className={armenia ? "md:order-1" : "md:order-3"}
+              highlighted
+              featured={armenia}
+              title={t.annualTitle}
+              price={prices.annual}
+              period={t.annualTotal}
+              subprice={t.annualSub}
+              tag={t.annualTag}
+              features={t.annualFeatures}
+              cta={t.annualCta}
+              badgeLabel={t.annualBadge}
+              to="/pricing"
+            />
+            <PricingCard
+              className={armenia ? "md:order-2" : "md:order-1"}
               title={t.monthlyTitle}
-              price="8 ₾"
+              price={prices.monthly}
               period={t.monthlyPeriod}
               tag={t.monthlyTag}
               features={t.monthlyFeatures}
@@ -173,26 +203,15 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
               to="/pricing"
             />
             <PricingCard
+              className={armenia ? "md:order-3" : "md:order-2"}
               title={t.quarterlyTitle}
-              price="21.60 ₾"
+              price={prices.quarterly}
               period={t.quarterlyTotal}
               subprice={t.quarterlySub}
               tag={t.quarterlyTag}
               features={t.quarterlyFeatures}
               cta={t.quarterlyCta}
               badgeLabel={t.saveBadge}
-              to="/pricing"
-            />
-            <PricingCard
-              highlighted
-              title={t.annualTitle}
-              price="85 ₾"
-              period={t.annualTotal}
-              subprice={t.annualSub}
-              tag={t.annualTag}
-              features={t.annualFeatures}
-              cta={t.annualCta}
-              badgeLabel={t.annualBadge}
               to="/pricing"
             />
           </div>
@@ -230,11 +249,13 @@ function Nav({
   t,
   lang,
   onLang,
+  armenia,
 }: {
   signedIn: boolean;
   t: Translation;
   lang: Lang;
   onLang: (l: Lang) => void;
+  armenia: boolean;
 }) {
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-[#050708]/80 backdrop-blur-xl">
@@ -243,7 +264,7 @@ function Nav({
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
             ⚡
           </span>
-          TMap Georgia
+          {armenia ? "TMap" : "TMap Georgia"}
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
           <a href="#pricing" className="hover:text-white">
@@ -251,29 +272,40 @@ function Nav({
           </a>
         </nav>
         <div className="flex items-center gap-2">
-          <div className="mr-1 flex items-center rounded-lg border border-white/10 bg-white/[0.03] p-0.5 text-[11px] font-bold">
-            {LANGS.map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => onLang(l)}
-                className={`rounded-md px-2 py-1 transition ${
-                  lang === l ? "bg-white text-black" : "text-white/60 hover:text-white"
-                }`}
-                aria-pressed={lang === l}
-              >
-                {LANG_LABEL[l]}
-              </button>
-            ))}
-          </div>
+          {!armenia && (
+            <div className="mr-1 flex items-center rounded-lg border border-white/10 bg-white/[0.03] p-0.5 text-[11px] font-bold">
+              {LANGS.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => onLang(l)}
+                  className={`rounded-md px-2 py-1 transition ${
+                    lang === l ? "bg-white text-black" : "text-white/60 hover:text-white"
+                  }`}
+                  aria-pressed={lang === l}
+                >
+                  {LANG_LABEL[l]}
+                </button>
+              ))}
+            </div>
+          )}
           {signedIn ? (
             <>
-              <Link
-                to="/map"
-                className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
-              >
-                {t.navOpenApp}
-              </Link>
+              {armenia ? (
+                <a
+                  href={APP_MAP_URL}
+                  className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
+                >
+                  {t.navOpenApp}
+                </a>
+              ) : (
+                <Link
+                  to="/map"
+                  className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
+                >
+                  {t.navOpenApp}
+                </Link>
+              )}
               <AccountMenu signOutLabel={SIGN_OUT_LABEL[lang]} />
             </>
           ) : (
@@ -366,7 +398,9 @@ function PricingCard({
   cta,
   to,
   highlighted,
+  featured,
   badgeLabel,
+  className,
 }: {
   title: string;
   price: string;
@@ -377,7 +411,9 @@ function PricingCard({
   cta: string;
   to: string;
   highlighted?: boolean;
+  featured?: boolean;
   badgeLabel?: string;
+  className?: string;
 }) {
   return (
     <div
@@ -385,19 +421,33 @@ function PricingCard({
         highlighted
           ? "border-[#3b82f6]/60 bg-gradient-to-br from-[#3b82f6]/15 via-transparent to-[#e9b149]/10 shadow-[0_20px_80px_-20px_rgba(59,130,246,0.5)]"
           : "border-white/10 bg-white/[0.02]"
-      }`}
+      } ${
+        featured
+          ? "ring-2 ring-[#e9b149]/70 md:-my-3 md:scale-[1.04] md:py-11 md:shadow-[0_30px_100px_-20px_rgba(233,177,73,0.45)]"
+          : ""
+      } ${className ?? ""}`}
     >
       {highlighted && (
-        <div className="absolute -top-3 left-8 rounded-full bg-[#e9b149] px-3 py-1 text-[11px] font-black uppercase tracking-widest text-black">
+        <div
+          className={`absolute -top-3 left-8 rounded-full bg-[#e9b149] px-3 py-1 font-black uppercase tracking-widest text-black ${
+            featured ? "text-xs" : "text-[11px]"
+          }`}
+        >
           {badgeLabel ?? "Save 10%"}
         </div>
       )}
       <div className="text-[11px] font-bold uppercase tracking-widest text-white/60">{title}</div>
       <div className="mt-3 flex items-baseline gap-1">
-        <span className="font-display text-5xl font-black">{price}</span>
+        <span className={`font-display font-black ${featured ? "text-5xl md:text-6xl" : "text-5xl"}`}>
+          {price}
+        </span>
         <span className="text-white/60">{period}</span>
       </div>
-      {subprice && <div className="mt-1 text-sm text-[#e9b149]">{subprice}</div>}
+      {subprice && (
+        <div className={`mt-1 text-[#e9b149] ${featured ? "text-base font-semibold" : "text-sm"}`}>
+          {subprice}
+        </div>
+      )}
       <div className="mt-1 text-xs text-white/50">{tag}</div>
 
       <ul className="mt-6 space-y-2.5 text-sm text-white/70">

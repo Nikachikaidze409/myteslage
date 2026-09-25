@@ -103,10 +103,22 @@ export const createBogCheckout = createServerFn({ method: "POST" })
       .lt("created_at", new Date(Date.now() - PENDING_CHECKOUT_BLOCK_MS).toISOString());
 
     const plan = BOG_PLANS[data.plan];
+
+    // The market comes from the request host only — never from the browser.
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const { marketFromHost, bogAmountFor } = await import("@/lib/market");
+    const request = getRequest();
+    const market = marketFromHost(
+      request.headers.get("x-forwarded-host") ??
+        request.headers.get("host") ??
+        new URL(request.url).host,
+    );
+    const planAmount = bogAmountFor(market, data.plan);
+
     const upgrade = eligibility.status === "upgrade_prorated";
-    const baseAmount = upgrade ? (eligibility.baseAmount ?? plan.amount) : plan.amount;
+    const baseAmount = upgrade ? (eligibility.baseAmount ?? planAmount) : planAmount;
     const creditAmount = upgrade ? (eligibility.creditAmount ?? 0) : 0;
-    const finalAmount = upgrade ? (eligibility.finalAmount ?? plan.amount) : plan.amount;
+    const finalAmount = upgrade ? (eligibility.finalAmount ?? planAmount) : planAmount;
 
     // Opaque: carries no user identifier.
     const externalOrderId = `tsn_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;

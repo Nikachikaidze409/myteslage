@@ -4,21 +4,24 @@
  * trusted server-side price, never a value sent from the browser.
  */
 
+import {
+  MARKET_BOG_LABELS,
+  MARKET_PADDLE_LABELS,
+  MARKET_PADDLE_PRICE_IDS,
+  type Market,
+} from "@/lib/market";
+
 export type PaymentProvider = "bog" | "paddle";
 export type Plan = "monthly" | "quarterly" | "annual";
 
 export const PROVIDER_KEY = "tsl.payment-provider";
 
 export const PROVIDER_PRICES: Record<PaymentProvider, Record<Plan, string>> = {
-  bog: { monthly: "8 ₾", quarterly: "21.60 ₾", annual: "85 ₾" },
-  paddle: { monthly: "$2.99", quarterly: "$7.99", annual: "$31.99" },
+  bog: MARKET_BOG_LABELS.ge,
+  paddle: MARKET_PADDLE_LABELS.ge,
 };
 
-export const PADDLE_PRICE_IDS: Record<Plan, string> = {
-  monthly: "tesla_map_georgia_monthly",
-  quarterly: "tesla_map_georgia_quarterly",
-  annual: "tesla_map_georgia_annual",
-};
+export const PADDLE_PRICE_IDS: Record<Plan, string> = MARKET_PADDLE_PRICE_IDS.ge;
 
 export const PROVIDER_LABELS: Record<PaymentProvider, { label: string; sublabel: string }> = {
   bog: { label: "Bank of Georgia", sublabel: "Pay in GEL" },
@@ -40,12 +43,16 @@ export function readStoredProvider(raw: string | null | undefined): PaymentProvi
   return isPaymentProvider(raw) ? raw : "bog";
 }
 
-export function providerPrice(provider: PaymentProvider, plan: Plan): string {
-  return PROVIDER_PRICES[provider][plan];
+export function providerPrice(provider: PaymentProvider, plan: Plan, market: Market = "ge"): string {
+  return provider === "bog" ? MARKET_BOG_LABELS[market][plan] : MARKET_PADDLE_LABELS[market][plan];
 }
 
-export function checkoutButtonLabel(provider: PaymentProvider, plan: Plan): string {
-  const price = providerPrice(provider, plan);
+export function checkoutButtonLabel(
+  provider: PaymentProvider,
+  plan: Plan,
+  market: Market = "ge",
+): string {
+  const price = providerPrice(provider, plan, market);
   return provider === "bog" ? `Pay ${price} with Bank of Georgia →` : `Pay ${price} with Paddle →`;
 }
 
@@ -62,15 +69,21 @@ export interface CheckoutDeps {
 
 /**
  * Runs the checkout for the chosen provider. BOG redirects to the bank page;
- * Paddle opens its overlay. Neither path sends a price from the browser.
- *
- * Returns the server's decision: when the server refuses to charge again the
- * status is returned and no redirect happens.
+ * Paddle opens its overlay. Neither path sends a price from the browser — the
+ * market only decides WHICH trusted catalogue entry is used.
  */
 export async function startProviderCheckout(
-  args: { provider: PaymentProvider; plan: Plan; userId: string; email?: string },
+  args: {
+    provider: PaymentProvider;
+    plan: Plan;
+    userId: string;
+    email?: string;
+    market?: Market;
+  },
   deps: CheckoutDeps,
 ): Promise<{ status: string }> {
+  const market: Market = args.market ?? "ge";
+
   if (args.provider === "bog") {
     const result = await deps.createBogCheckout({ data: { plan: args.plan } });
     if (!result.redirectUrl) return { status: result.status ?? "already_active" };
@@ -79,7 +92,11 @@ export async function startProviderCheckout(
   }
 
   await deps.initializePaddle();
-  const paddlePriceId = await deps.getPaddlePriceId(PADDLE_PRICE_IDS[args.plan]);
+  const catalogueId = MARKET_PADDLE_PRICE_IDS[market][args.plan];
+  // Armenian rows are already Paddle price ids; Georgian rows are external ids.
+  const paddlePriceId = catalogueId.startsWith("pri_")
+    ? catalogueId
+    : await deps.getPaddlePriceId(catalogueId);
   deps.openPaddleCheckout({
     items: [{ priceId: paddlePriceId, quantity: 1 }],
     customer: args.email ? { email: args.email } : undefined,

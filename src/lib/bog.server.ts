@@ -7,6 +7,7 @@
 // Docs: https://api.bog.ge/docs/payments/introduction
 
 import { createVerify } from "crypto";
+import { allowedBogAmounts } from "@/lib/market";
 
 export const BOG_OAUTH_URL = "https://oauth2.bog.ge/auth/realms/bog/protocol/openid-connect/token";
 export const BOG_ORDERS_URL = "https://api.bog.ge/payments/v1/ecommerce/orders";
@@ -451,7 +452,8 @@ export function canBeAutoRenewParent(
 ): boolean {
   if (pricingReason === "monthly_to_quarterly_proration") return false;
   if (pricingReason !== "standard" && pricingReason != null) return false;
-  return Math.abs(bogAmount(amount) - BOG_RECURRING_AMOUNTS[plan]) < 0.005;
+  // Either market's full recurring price may renew automatically.
+  return allowedBogAmounts(plan).some((a) => Math.abs(bogAmount(amount) - a) < 0.005);
 }
 
 /**
@@ -558,7 +560,9 @@ export function renewalPaymentMatches(
   if (details.paymentOption !== "subscription") return false;
   if (!details.parentOrderId || details.parentOrderId !== expected.parentOrderId) return false;
   // Trusted full recurring price only — never a discounted amount.
-  return Math.abs(Number(order.amount) - BOG_RECURRING_AMOUNTS[expected.plan]) < 0.005;
+  return allowedBogAmounts(expected.plan).some(
+    (a) => Math.abs(Number(order.amount) - a) < 0.005,
+  );
 }
 
 /**

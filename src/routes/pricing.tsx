@@ -99,6 +99,10 @@ function PricingPage() {
   const [selected, setSelected] = useState<Plan>("annual");
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [noMembership, setNoMembership] = useState(false);
+  const market = useMarket();
+  const am = market === "am";
+  const c = COPY[market];
+  const prices = MARKET_BOG_LABELS[market];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));

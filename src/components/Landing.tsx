@@ -175,10 +175,25 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
             <h2 className="font-display text-4xl font-black md:text-5xl">{t.pricingTitle}</h2>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-3">
+          <div className="grid items-start gap-5 md:grid-cols-3">
             <PricingCard
+              className={armenia ? "md:order-2" : undefined}
+              highlighted
+              featured={armenia}
+              title={t.annualTitle}
+              price={prices.annual}
+              period={t.annualTotal}
+              subprice={t.annualSub}
+              tag={t.annualTag}
+              features={t.annualFeatures}
+              cta={t.annualCta}
+              badgeLabel={t.annualBadge}
+              to="/pricing"
+            />
+            <PricingCard
+              className={armenia ? "md:order-1" : "md:-order-1"}
               title={t.monthlyTitle}
-              price="8 ₾"
+              price={prices.monthly}
               period={t.monthlyPeriod}
               tag={t.monthlyTag}
               features={t.monthlyFeatures}
@@ -186,26 +201,15 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
               to="/pricing"
             />
             <PricingCard
+              className="md:order-3"
               title={t.quarterlyTitle}
-              price="21.60 ₾"
+              price={prices.quarterly}
               period={t.quarterlyTotal}
               subprice={t.quarterlySub}
               tag={t.quarterlyTag}
               features={t.quarterlyFeatures}
               cta={t.quarterlyCta}
               badgeLabel={t.saveBadge}
-              to="/pricing"
-            />
-            <PricingCard
-              highlighted
-              title={t.annualTitle}
-              price="85 ₾"
-              period={t.annualTotal}
-              subprice={t.annualSub}
-              tag={t.annualTag}
-              features={t.annualFeatures}
-              cta={t.annualCta}
-              badgeLabel={t.annualBadge}
               to="/pricing"
             />
           </div>

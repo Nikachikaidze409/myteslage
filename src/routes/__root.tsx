@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { getMarket } from "@/lib/market.functions";
+import { MarketProvider } from "@/lib/market-context";
 
 
 function NotFoundComponent() {
@@ -116,6 +118,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     ],
   }),
+  // Which domain the visitor arrived on (tmap.ge vs tmap.am) decides the
+  // language and the prices; it is resolved once, on the server.
+  loader: async () => ({ market: await getMarket() }),
+  staleTime: Infinity,
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

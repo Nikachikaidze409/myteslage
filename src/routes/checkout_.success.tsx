@@ -4,6 +4,8 @@ import { getBogPaymentState, getMembershipState } from "@/lib/bog.functions";
 import { paddlePurchaseRecentlyTracked, trackPurchaseOnce } from "@/lib/meta-pixel";
 import { PROVIDER_PRICES, type Plan } from "@/lib/checkout-provider";
 import { LegalFooter } from "@/components/LegalFooter";
+import { useMarket } from "@/lib/market-context";
+import { APP_MAP_URL } from "@/lib/market";
 
 export const Route = createFileRoute("/checkout_/success")({
   component: CheckoutSuccess,
@@ -37,6 +39,8 @@ function CheckoutSuccess() {
   // The redirect back from the bank is not proof of payment — only the
   // verified callback, reflected in our own database, activates a membership.
   const [state, setState] = useState<"checking" | "active" | "waiting" | "failed">("checking");
+  const market = useMarket();
+  const am = market === "am";
   const attempts = useRef(0);
 
   useEffect(() => {
@@ -115,15 +119,30 @@ function CheckoutSuccess() {
         {state === "active" ? (
           <>
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-400/15 text-3xl text-emerald-300">✓</div>
-            <h1 className="font-display mt-6 text-3xl font-black md:text-4xl">გადახდა წარმატებით შესრულდა</h1>
-            <p className="mt-4 text-lg text-white/70">გსურთ აპლიკაციის გახსნა თუ მთავარ გვერდზე დაბრუნება?</p>
+            <h1 className="font-display mt-6 text-3xl font-black md:text-4xl">
+              {am ? "Վճարումը հաջողությամբ կատարվեց" : "გადახდა წარმატებით შესრულდა"}
+            </h1>
+            <p className="mt-4 text-lg text-white/70">
+              {am
+                ? "Բացեք քարտեզը ձեր մեքենայի դիտարկիչում՝ tmap.ge/map հասցեով։"
+                : "გსურთ აპლიკაციის გახსნა თუ მთავარ გვერდზე დაბრუნება?"}
+            </p>
             <div className="mt-8 flex flex-col gap-3">
-              <Link
-                to="/map"
-                className="font-display inline-flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] px-6 text-lg font-bold text-white hover:brightness-110"
-              >
-                აპლიკაციის გახსნა
-              </Link>
+              {am ? (
+                <a
+                  href={APP_MAP_URL}
+                  className="font-display inline-flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] px-6 text-lg font-bold text-white hover:brightness-110"
+                >
+                  Բացել քարտեզը →
+                </a>
+              ) : (
+                <Link
+                  to="/map"
+                  className="font-display inline-flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] px-6 text-lg font-bold text-white hover:brightness-110"
+                >
+                  აპლიკაციის გახსნა
+                </Link>
+              )}
               <Link
                 to="/"
                 className="font-display inline-flex h-14 w-full items-center justify-center rounded-2xl border border-white/15 px-6 text-lg font-bold text-white hover:bg-white/5"

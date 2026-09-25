@@ -21,6 +21,99 @@ export const Route = createFileRoute("/auth")({
   }),
 });
 
+type AuthLang = "base" | "hy" | "ru";
+
+/**
+ * Auth page copy. "base" is the original bilingual Georgian/English text and
+ * stays the default; Armenian and Russian visitors can switch with the chips
+ * in the top-right corner.
+ */
+const AUTH_T: Record<AuthLang, Record<string, string>> = {
+  base: {
+    signIn: "Sign in",
+    createAccount: "Create your account",
+    resetTitle: "Reset password · პაროლის აღდგენა",
+    resetLead:
+      "Enter your email and we'll send you a reset link. · შეიყვანეთ ელფოსტა და გამოგიგზავნით აღდგენის ბმულს.",
+    lead: "Membership required. One account = one device. Signing in on a new device signs the old one out.",
+    kicked:
+      "Your account was signed in on another device. This device was signed out. Sign in again to continue.",
+    signedInAs: "You are signed in as",
+    continue: "Continue →",
+    notYou: "Not you? Sign out",
+    fullName: "Full name",
+    mobile: "Mobile number",
+    email: "Email",
+    password: "Password",
+    forgot: "Forgot password? · დაგავიწყდა პაროლი?",
+    wait: "Please wait…",
+    sendReset: "Send reset link · ბმულის გაგზავნა",
+    createBtn: "Create account",
+    toSignup: "New here? Create an account · დარეგისტრირებისთვის დააჭირე აქ →",
+    toSignin: "← Back to sign in · დაბრუნება",
+    resetSent: "Reset link sent! Check your email. · აღდგენის ბმული გამოგზავნილია ელფოსტაზე.",
+    created: "Account created. Signing you in…",
+    failed: "Something went wrong",
+  },
+  hy: {
+    signIn: "Մուտք",
+    createAccount: "Ստեղծել հաշիվ",
+    resetTitle: "Վերականգնել գաղտնաբառը",
+    resetLead: "Մուտքագրեք ձեր էլ. փոստը և մենք կուղարկենք վերականգնման հղում։",
+    lead: "Պահանջվում է բաժանորդագրություն։ Մեկ հաշիվ = մեկ սարք։ Նոր սարքից մուտք գործելիս նախորդը դուրս է գալիս։",
+    kicked:
+      "Ձեր հաշվով մուտք են գործել այլ սարքից։ Այս սարքը դուրս է եկել։ Շարունակելու համար մուտք գործեք կրկին։",
+    signedInAs: "Դուք մուտք եք գործել որպես",
+    continue: "Շարունակել →",
+    notYou: "Դուք չե՞ք։ Դուրս գալ",
+    fullName: "Անուն Ազգանուն",
+    mobile: "Բջջային համար",
+    email: "Էլ. փոստ",
+    password: "Գաղտնաբառ",
+    forgot: "Մոռացե՞լ եք գաղտնաբառը",
+    wait: "Խնդրում ենք սպասել…",
+    sendReset: "Ուղարկել հղումը",
+    createBtn: "Ստեղծել հաշիվ",
+    toSignup: "Նո՞ր եք այստեղ։ Ստեղծեք հաշիվ →",
+    toSignin: "← Վերադառնալ մուտքին",
+    resetSent: "Վերականգնման հղումն ուղարկված է։ Ստուգեք ձեր էլ. փոստը։",
+    created: "Հաշիվը ստեղծված է։ Մուտք ենք գործում…",
+    failed: "Սխալ տեղի ունեցավ",
+  },
+  ru: {
+    signIn: "Вход",
+    createAccount: "Создать аккаунт",
+    resetTitle: "Восстановление пароля",
+    resetLead: "Введите вашу почту — мы пришлём ссылку для восстановления.",
+    lead: "Требуется подписка. Один аккаунт = одно устройство. Вход с нового устройства отключает предыдущее.",
+    kicked:
+      "В ваш аккаунт вошли с другого устройства. Это устройство отключено. Войдите снова, чтобы продолжить.",
+    signedInAs: "Вы вошли как",
+    continue: "Продолжить →",
+    notYou: "Это не вы? Выйти",
+    fullName: "Имя и фамилия",
+    mobile: "Номер телефона",
+    email: "Эл. почта",
+    password: "Пароль",
+    forgot: "Забыли пароль?",
+    wait: "Пожалуйста, подождите…",
+    sendReset: "Отправить ссылку",
+    createBtn: "Создать аккаунт",
+    toSignup: "Впервые здесь? Создайте аккаунт →",
+    toSignin: "← Назад ко входу",
+    resetSent: "Ссылка для восстановления отправлена. Проверьте почту.",
+    created: "Аккаунт создан. Выполняем вход…",
+    failed: "Что-то пошло не так",
+  },
+};
+
+const AUTH_LANG_KEY = "tsl.auth-lang";
+const AUTH_LANG_CHIPS: { id: AuthLang; label: string }[] = [
+  { id: "base", label: "GE/EN" },
+  { id: "hy", label: "ՀԱՅ" },
+  { id: "ru", label: "РУС" },
+];
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
@@ -35,6 +128,28 @@ function AuthPage() {
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const [kickedDevice, setKickedDevice] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
+  const [lang, setLang] = useState<AuthLang>("base");
+  const t = AUTH_T[lang];
+
+  // Remember the visitor's choice, but always start from the bilingual default
+  // on a fresh browser so nothing changes for existing Georgian users.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(AUTH_LANG_KEY);
+      if (saved === "hy" || saved === "ru" || saved === "base") setLang(saved);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const chooseLang = (next: AuthLang) => {
+    setLang(next);
+    try {
+      window.localStorage.setItem(AUTH_LANG_KEY, next);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const insertAt = () => {
     const el = emailRef.current;
@@ -88,12 +203,12 @@ function AuthPage() {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (resetErr) throw new Error(resetErr.message);
-        setInfo("Reset link sent! Check your email. · აღდგენის ბმული გამოგზავნილია ელფოსტაზე.");
+        setInfo(t.resetSent!);
         return;
       }
       if (mode === "signup") {
         await signupWithCode({ data: { email, password, fullName, phone } });
-        setInfo("Account created. Signing you in…");
+        setInfo(t.created!);
       }
       const { error: signErr } = await supabase.auth.signInWithPassword({ email, password });
       if (signErr) throw new Error(signErr.message);
@@ -107,7 +222,7 @@ function AuthPage() {
       navigate({ to: nextDest() });
 
     } catch (e: any) {
-      setError(e?.message ?? "Something went wrong");
+      setError(e?.message ?? t.failed!);
     } finally {
       setBusy(false);
     }
@@ -124,28 +239,45 @@ function AuthPage() {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <main className="grid flex-1 place-items-center p-4">
       <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl">
-        <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
-          TMap Georgia
+        <div className="flex items-start justify-between gap-3">
+          <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
+            TMap Georgia
+          </div>
+          <div className="flex items-center gap-0.5 rounded-lg border border-input bg-muted/40 p-0.5 text-[11px] font-bold">
+            {AUTH_LANG_CHIPS.map((chip) => (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={() => chooseLang(chip.id)}
+                aria-pressed={lang === chip.id}
+                className={`rounded-md px-2 py-1 transition ${
+                  lang === chip.id
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
         </div>
         <h1 className="font-display mt-1 text-2xl font-bold">
-          {mode === "signin" ? "Sign in" : mode === "signup" ? "Create your account" : "Reset password · პაროლის აღდგენა"}
+          {mode === "signin" ? t.signIn : mode === "signup" ? t.createAccount : t.resetTitle}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {mode === "forgot"
-            ? "Enter your email and we'll send you a reset link. · შეიყვანეთ ელფოსტა და გამოგიგზავნით აღდგენის ბმულს."
-            : "Membership required. One account = one device. Signing in on a new device signs the old one out."}
+          {mode === "forgot" ? t.resetLead : t.lead}
         </p>
 
         {kickedDevice && (
           <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm text-primary" role="status">
-            Your account was signed in on another device. This device was signed out. Sign in again to continue.
+            {t.kicked}
           </div>
         )}
 
         {currentEmail && (
           <div className="mt-4 rounded-xl border border-border bg-muted/40 p-3 text-sm">
             <div className="text-muted-foreground">
-              You are signed in as <span className="font-semibold text-foreground">{currentEmail}</span>
+              {t.signedInAs} <span className="font-semibold text-foreground">{currentEmail}</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
@@ -153,14 +285,14 @@ function AuthPage() {
                 onClick={() => navigate({ to: nextDest() })}
                 className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
               >
-                Continue →
+                {t.continue}
               </button>
               <button
                 type="button"
                 onClick={() => void switchAccount()}
                 className="rounded-lg border border-input px-3 py-2 text-xs font-semibold"
               >
-                Not you? Sign out
+                {t.notYou}
               </button>
             </div>
           </div>
@@ -170,7 +302,7 @@ function AuthPage() {
           {mode === "signup" && (
             <>
               <label className="block">
-                <span className="text-xs font-semibold text-muted-foreground">Full name</span>
+                <span className="text-xs font-semibold text-muted-foreground">{t.fullName}</span>
                 <input
                   type="text"
                   required
@@ -182,7 +314,7 @@ function AuthPage() {
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-semibold text-muted-foreground">Mobile number</span>
+                <span className="text-xs font-semibold text-muted-foreground">{t.mobile}</span>
                 <input
                   type="tel"
                   required
@@ -198,7 +330,7 @@ function AuthPage() {
           )}
           <div className="block">
             <label htmlFor="auth-email" className="text-xs font-semibold text-muted-foreground">
-              Email
+              {t.email}
             </label>
             <div className="relative mt-1">
               <input
@@ -224,7 +356,7 @@ function AuthPage() {
           </div>
           {mode !== "forgot" && (
             <label className="block">
-              <span className="text-xs font-semibold text-muted-foreground">Password</span>
+              <span className="text-xs font-semibold text-muted-foreground">{t.password}</span>
               <input
                 type="password"
                 required
@@ -246,7 +378,7 @@ function AuthPage() {
               }}
               className="text-sm font-semibold text-primary hover:brightness-110"
             >
-              Forgot password? · დაგავიწყდა პაროლი?
+              {t.forgot}
             </button>
           )}
           {error && (
@@ -266,12 +398,12 @@ function AuthPage() {
             className="font-display h-12 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-lg shadow-primary/25 hover:brightness-110 disabled:opacity-60"
           >
             {busy
-              ? "Please wait…"
+              ? t.wait
               : mode === "signin"
-                ? "Sign in"
+                ? t.signIn
                 : mode === "signup"
-                  ? "Create account"
-                  : "Send reset link · ბმულის გაგზავნა"}
+                  ? t.createBtn
+                  : t.sendReset}
           </button>
         </form>
 
@@ -284,9 +416,7 @@ function AuthPage() {
           }}
           className="mt-4 w-full text-base font-bold text-primary hover:brightness-110"
         >
-          {mode === "signin"
-            ? "New here? Create an account · დარეგისტრირებისთვის დააჭირე აქ →"
-            : "← Back to sign in · დაბრუნება"}
+          {mode === "signin" ? t.toSignup : t.toSignin}
         </button>
       </div>
       </main>

@@ -70,14 +70,37 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
 
         if (!event.event_type?.startsWith("subscription.")) return new Response("ok");
         const { resolveExternalId } = await import("@/lib/paddle.server");
+        const { MARKET_PADDLE_PRICE_IDS } = await import("@/lib/market");
         const firstItem = data.items?.[0];
         const priceId = firstItem?.price_id ?? firstItem?.price?.id;
         const productId = firstItem?.product_id ?? firstItem?.price?.product_id ?? firstItem?.product?.id ?? data.product_id;
-        const [externalPriceId, externalProductId] = await Promise.all([
+        const [resolvedPriceId, resolvedProductId] = await Promise.all([
           priceId ? resolveExternalId(env, "prices", priceId) : Promise.resolve(null),
           productId ? resolveExternalId(env, "products", productId) : Promise.resolve(null),
         ]);
-        if (!externalPriceId || !externalProductId) return new Response("ok");
+
+        /**
+         * Armenian (tmap.am) prices are plain Paddle price ids without an
+         * import_meta.external_id, so the catalogue lookup returns null for
+         * them. Map those ids onto readable plan keys and fall back to the
+         * raw Paddle ids, so a paid subscription is never silently dropped.
+         */
+        const armenianPlanKeys: Record<string, string> = {
+          [MARKET_PADDLE_PRICE_IDS.am.monthly]: "tmap_armenia_monthly",
+          [MARKET_PADDLE_PRICE_IDS.am.quarterly]: "tmap_armenia_quarterly",
+          [MARKET_PADDLE_PRICE_IDS.am.annual]: "tmap_armenia_annual",
+        };
+        const externalPriceId =
+          resolvedPriceId ?? (priceId ? (armenianPlanKeys[priceId] ?? priceId) : null);
+        const externalProductId = resolvedProductId ?? productId ?? null;
+        if (!externalPriceId || !externalProductId) {
+          console.warn("[paddle-webhook] subscription without resolvable plan ids", {
+            subscriptionId,
+            priceId,
+            productId,
+          });
+          return new Response("ok");
+        }
 
         const status = data.status ?? (event.event_type?.split(".")[1] === "canceled" ? "canceled" : "active");
         const period = data.current_billing_period;

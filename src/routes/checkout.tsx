@@ -31,9 +31,9 @@ export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
       { title: "Secure checkout | TMap Georgia" },
-      { name: "description", content: "Start your TMap Georgia membership with secure Bank of Georgia or Paddle checkout." },
+      { name: "description", content: "Start your TMap Georgia membership with secure Bank of Georgia checkout." },
       { property: "og:title", content: "Secure checkout | TMap Georgia" },
-      { property: "og:description", content: "Start your TMap Georgia membership with secure Bank of Georgia or Paddle checkout." },
+      { property: "og:description", content: "Start your TMap Georgia membership with secure Bank of Georgia checkout." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

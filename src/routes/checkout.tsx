@@ -137,7 +137,7 @@ function Checkout() {
         setBusy(false);
         return;
       }
-      if (provider === "paddle") setBusy(false);
+      // Bank of Georgia redirects away, so the button stays in its busy state.
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : "Checkout could not open. Please try again.");
       setBusy(false);

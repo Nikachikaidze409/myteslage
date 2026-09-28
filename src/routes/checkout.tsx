@@ -6,12 +6,10 @@ import { createBogCheckout, getCheckoutEligibility } from "@/lib/bog.functions";
 import type { Eligibility } from "@/lib/checkout-eligibility";
 import { initializePaddle, getPaddlePriceId } from "@/lib/paddle";
 import {
-  PROVIDER_KEY,
   PROVIDER_LABELS,
   PROVIDER_NOTES,
   checkoutButtonLabel,
   providerPrice,
-  readStoredProvider,
   startProviderCheckout,
   type PaymentProvider,
   type Plan,
@@ -33,9 +31,9 @@ export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
       { title: "Secure checkout | TMap Georgia" },
-      { name: "description", content: "Start your TMap Georgia membership with secure Bank of Georgia or Paddle checkout." },
+      { name: "description", content: "Start your TMap Georgia membership with secure Bank of Georgia checkout." },
       { property: "og:title", content: "Secure checkout | TMap Georgia" },
-      { property: "og:description", content: "Start your TMap Georgia membership with secure Bank of Georgia or Paddle checkout." },
+      { property: "og:description", content: "Start your TMap Georgia membership with secure Bank of Georgia checkout." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -47,7 +45,8 @@ function Checkout() {
   const navigate = useNavigate();
   const market = useMarket();
   const [plan, setPlan] = useState<Plan>("quarterly");
-  const [provider, setProvider] = useState<PaymentProvider>("bog");
+  // Bank of Georgia is the only checkout provider offered on the site.
+  const provider: PaymentProvider = "bog";
   const [email, setEmail] = useState("");
   const [userId, setUserId] = useState("");
   const [fullName, setFullName] = useState("");
@@ -82,7 +81,6 @@ function Checkout() {
     }
     const stored = window.localStorage.getItem(PLAN_KEY);
     if (stored === "monthly" || stored === "quarterly" || stored === "annual") setPlan(stored);
-    setProvider(readStoredProvider(window.localStorage.getItem(PROVIDER_KEY)));
 
 
     supabase.auth.getSession().then(async ({ data }) => {
@@ -139,21 +137,13 @@ function Checkout() {
         setBusy(false);
         return;
       }
-      if (provider === "paddle") setBusy(false);
+      // Bank of Georgia redirects away, so the button stays in its busy state.
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : "Checkout could not open. Please try again.");
       setBusy(false);
     }
   };
 
-  const chooseProvider = (next: PaymentProvider) => {
-    setProvider(next);
-    try {
-      window.localStorage.setItem(PROVIDER_KEY, next);
-    } catch {
-      /* storage unavailable — selection still applies for this visit */
-    }
-  };
 
   if (loading) {
     return <div className="grid min-h-screen place-items-center bg-[#050708] text-white/60">Loading…</div>;
@@ -200,37 +190,14 @@ function Checkout() {
         <h1 className="font-display mt-2 text-4xl font-black">Confirm your subscription</h1>
         <p className="mt-3 text-white/60">Choose how you would like to pay. Card details are always entered on the payment provider's own secure page.</p>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          {(["bog", "paddle"] as const).map((option) => {
-            const active = provider === option;
-            return (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={active}
-                onClick={() => chooseProvider(option)}
-                className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors ${
-                  active ? "border-[#3b82f6] bg-[#3b82f6]/10" : "border-white/10 bg-white/[0.02] hover:border-white/25"
-                }`}
-              >
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/5 text-lg" aria-hidden>
-                  {option === "bog" ? "🏦" : "🌐"}
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-bold">{PROVIDER_LABELS[option].label}</span>
-                  <span className="block text-xs text-white/55">{PROVIDER_LABELS[option].sublabel}</span>
-                </span>
-                <span
-                  className={`ml-auto grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[11px] ${
-                    active ? "border-[#3b82f6] bg-[#3b82f6] text-white" : "border-white/25 text-transparent"
-                  }`}
-                  aria-hidden
-                >
-                  ✓
-                </span>
-              </button>
-            );
-          })}
+        <div className="mt-6 flex items-center gap-3 rounded-2xl border border-[#3b82f6] bg-[#3b82f6]/10 p-4 text-left">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/5 text-lg" aria-hidden>
+            🏦
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-bold">{PROVIDER_LABELS.bog.label}</span>
+            <span className="block text-xs text-white/55">Visa · Mastercard · {PROVIDER_LABELS.bog.sublabel}</span>
+          </span>
         </div>
 
 

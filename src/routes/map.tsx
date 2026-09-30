@@ -69,6 +69,7 @@ import {
   type RemoteState,
 } from "@/lib/remote-state";
 import type { PairedView } from "@/lib/pair-channel";
+import { AM_HOSTS, APP_MAP_URL } from "@/lib/market";
 
 
 const MapView = lazy(() =>
@@ -76,6 +77,16 @@ const MapView = lazy(() =>
 );
 
 export const Route = createFileRoute("/map")({
+  // The map, the Tesla browser session and QR pairing live on tmap.ge only —
+  // the Google Maps browser key is authorised for that host. An Armenian
+  // shopper who lands on tmap.am/map is sent straight to tmap.ge/map instead
+  // of seeing Google's "Oops" unauthorised-site screen.
+  beforeLoad: () => {
+    if (typeof window === "undefined") return;
+    const host = window.location.hostname.toLowerCase();
+    if (!AM_HOSTS.has(host)) return;
+    window.location.replace(`${APP_MAP_URL}${window.location.search}${window.location.hash}`);
+  },
   component: IndexGated,
   head: () => ({
     meta: [

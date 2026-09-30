@@ -20,11 +20,30 @@ export const BOG_DELETE_CARD_URL = "https://api.bog.ge/payments/v1/charges/card"
 export const BOG_CALLBACK_URL = "https://tmap.ge/api/public/payments/bog/callback";
 export const BOG_SUCCESS_BASE_URL = "https://tmap.ge/checkout/success";
 
+/**
+ * The storefront the shopper is actually on. An Armenian shopper who abandons
+ * or retries a payment must come back to tmap.am — coming back to tmap.ge
+ * would silently re-price the retry at the Georgian amount.
+ */
+export type CheckoutOrigin = "https://tmap.ge" | "https://tmap.am";
+
+export function checkoutOriginFor(market: "ge" | "am"): CheckoutOrigin {
+  return market === "am" ? "https://tmap.am" : "https://tmap.ge";
+}
+
 /** Success redirect tied to the specific, opaque payment attempt. */
-export function bogSuccessUrl(externalOrderId: string): string {
-  return `${BOG_SUCCESS_BASE_URL}?provider=bog&order=${encodeURIComponent(externalOrderId)}`;
+export function bogSuccessUrl(
+  externalOrderId: string,
+  origin: CheckoutOrigin = "https://tmap.ge",
+): string {
+  return `${origin}/checkout/success?provider=bog&order=${encodeURIComponent(externalOrderId)}`;
 }
 export const BOG_FAIL_URL = "https://tmap.ge/checkout?payment=failed";
+
+export function bogFailUrl(origin: CheckoutOrigin = "https://tmap.ge"): string {
+  return `${origin}/checkout?payment=failed`;
+}
+
 
 /* ------------------------------------------------------------------ *
  * Trusted plan configuration. The browser may only name a plan key.
@@ -196,10 +215,12 @@ export interface BogOrderPayload {
 export function buildOrderPayload(
   plan: PlanKey,
   externalOrderId: string,
-  trusted?: { amount: number; description?: string },
+  trusted?: { amount?: number; description?: string; origin?: CheckoutOrigin },
 ): BogOrderPayload {
   const config = BOG_PLANS[plan];
-  const price = bogAmount(trusted ? trusted.amount : config.amount);
+  const price = bogAmount(trusted?.amount ?? config.amount);
+
+  const origin: CheckoutOrigin = trusted?.origin ?? "https://tmap.ge";
   return {
     callback_url: BOG_CALLBACK_URL,
     external_order_id: externalOrderId,
@@ -217,7 +238,8 @@ export function buildOrderPayload(
         },
       ],
     },
-    redirect_urls: { success: bogSuccessUrl(externalOrderId), fail: BOG_FAIL_URL },
+    redirect_urls: { success: bogSuccessUrl(externalOrderId, origin), fail: bogFailUrl(origin) },
+
     payment_method: [...BOG_PAYMENT_METHODS],
     config: { apple_pay: { external: false } },
   };

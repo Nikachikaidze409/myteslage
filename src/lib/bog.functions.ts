@@ -78,8 +78,14 @@ export const createBogCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => planSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { BOG_PLANS, buildOrderPayload, createBogOrder, BOG_UPGRADE_DESCRIPTION } =
-      await import("@/lib/bog.server");
+    const {
+      BOG_PLANS,
+      buildOrderPayload,
+      createBogOrder,
+      BOG_UPGRADE_DESCRIPTION,
+      checkoutOriginFor,
+    } = await import("@/lib/bog.server");
+
     const { isPayableStatus } = await import("@/lib/checkout-eligibility");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -159,9 +165,11 @@ export const createBogCheckout = createServerFn({ method: "POST" })
       created = await createBogOrder(
         buildOrderPayload(data.plan, externalOrderId, {
           amount: finalAmount,
+          origin: checkoutOriginFor(market),
           ...(upgrade ? { description: BOG_UPGRADE_DESCRIPTION } : {}),
         }),
       );
+
     } catch (error) {
       // Release the reservation so the user can try again immediately.
       if (reserved?.id) {

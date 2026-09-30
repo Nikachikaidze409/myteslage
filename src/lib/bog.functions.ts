@@ -78,8 +78,14 @@ export const createBogCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => planSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { BOG_PLANS, buildOrderPayload, createBogOrder, BOG_UPGRADE_DESCRIPTION } =
-      await import("@/lib/bog.server");
+    const {
+      BOG_PLANS,
+      buildOrderPayload,
+      createBogOrder,
+      BOG_UPGRADE_DESCRIPTION,
+      checkoutOriginFor,
+    } = await import("@/lib/bog.server");
+
     const { isPayableStatus } = await import("@/lib/checkout-eligibility");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

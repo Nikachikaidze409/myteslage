@@ -16,7 +16,7 @@ export const Route = createFileRoute("/")({
     if (market === "am") {
       const title = "TMap - նավիգացիա Tesla-ի համար Հայաստանում";
       const description =
-        "Կենդանի նավիգացիա ուղիղ ձեր Tesla-ի էկրանին։ Սկսած 2,099 AMD-ից ամսական, տարեկան փաթեթով՝ 2 ամիս նվեր։";
+        "Կենդանի նավիգացիա ուղիղ ձեր Tesla-ի էկրանին։ Սկսած 1,674 AMD-ից ամսական, տարեկան փաթեթով՝ 2 ամիս նվեր։";
       return {
         meta: [
           { title },

@@ -33,13 +33,13 @@ export function isMarket(value: unknown): value is Market {
 /** Trusted Bank of Georgia amounts (always charged in GEL). */
 export const MARKET_BOG_AMOUNTS: Record<Market, Record<MarketPlan, number>> = {
   ge: { monthly: 8.0, quarterly: 21.6, annual: 85.0 },
-  am: { monthly: 14.5, quarterly: 39.0, annual: 145.0 },
+  am: { monthly: 11.5, quarterly: 31.0, annual: 116.0 },
 };
 
 /** Prices shown to the shopper (display only). */
 export const MARKET_BOG_LABELS: Record<Market, Record<MarketPlan, string>> = {
   ge: { monthly: "8 ₾", quarterly: "21.60 ₾", annual: "85 ₾" },
-  am: { monthly: "2,099 AMD", quarterly: "5,600 AMD", annual: "20,825 AMD" },
+  am: { monthly: "1,674 AMD", quarterly: "4,464 AMD", annual: "16,741 AMD" },
 };
 
 export const MARKET_PADDLE_LABELS: Record<Market, Record<MarketPlan, string>> = {
@@ -67,13 +67,23 @@ export const MARKET_PADDLE_PRICE_IDS: Record<Market, Record<MarketPlan, string>>
 
 /** Armenian shoppers are told, in Armenian, exactly how the money moves. */
 export const AM_CONVERSION_NOTE =
-  "Վճարումն իրականացվում է Վրաստանի բանկի միջոցով՝ համարժեք 14.50 ₾ / 39 ₾ / 145 ₾ գումարով։ Ձեր բանկը այն կգանձի դրամով՝ ընթացիկ փոխարժեքով։";
+  "Վճարումն իրականացվում է Վրաստանի բանկի միջոցով՝ համարժեք 11.50 ₾ / 31 ₾ / 116 ₾ գումարով։ Ձեր բանկը այն կգանձի դրամով՝ ընթացիկ փոխարժեքով։";
 
 export function bogAmountFor(market: Market, plan: MarketPlan): number {
   return MARKET_BOG_AMOUNTS[market][plan];
 }
 
+/**
+ * Armenian prices before the 2026-09-30 reduction. New checkouts never use
+ * these, but subscribers who signed up at the old price must keep renewing.
+ */
+export const LEGACY_AM_BOG_AMOUNTS: Record<MarketPlan, number> = {
+  monthly: 14.5,
+  quarterly: 39.0,
+  annual: 145.0,
+};
+
 /** Every amount a given plan may legitimately be charged, in any market. */
 export function allowedBogAmounts(plan: MarketPlan): number[] {
-  return [MARKET_BOG_AMOUNTS.ge[plan], MARKET_BOG_AMOUNTS.am[plan]];
+  return [MARKET_BOG_AMOUNTS.ge[plan], MARKET_BOG_AMOUNTS.am[plan], LEGACY_AM_BOG_AMOUNTS[plan]];
 }

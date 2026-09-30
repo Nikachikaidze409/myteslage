@@ -159,9 +159,11 @@ export const createBogCheckout = createServerFn({ method: "POST" })
       created = await createBogOrder(
         buildOrderPayload(data.plan, externalOrderId, {
           amount: finalAmount,
+          origin: checkoutOriginFor(market),
           ...(upgrade ? { description: BOG_UPGRADE_DESCRIPTION } : {}),
         }),
       );
+
     } catch (error) {
       // Release the reservation so the user can try again immediately.
       if (reserved?.id) {

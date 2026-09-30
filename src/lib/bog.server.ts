@@ -215,10 +215,11 @@ export interface BogOrderPayload {
 export function buildOrderPayload(
   plan: PlanKey,
   externalOrderId: string,
-  trusted?: { amount: number; description?: string },
+  trusted?: { amount: number; description?: string; origin?: CheckoutOrigin },
 ): BogOrderPayload {
   const config = BOG_PLANS[plan];
   const price = bogAmount(trusted ? trusted.amount : config.amount);
+  const origin: CheckoutOrigin = trusted?.origin ?? "https://tmap.ge";
   return {
     callback_url: BOG_CALLBACK_URL,
     external_order_id: externalOrderId,
@@ -236,7 +237,8 @@ export function buildOrderPayload(
         },
       ],
     },
-    redirect_urls: { success: bogSuccessUrl(externalOrderId), fail: BOG_FAIL_URL },
+    redirect_urls: { success: bogSuccessUrl(externalOrderId, origin), fail: bogFailUrl(origin) },
+
     payment_method: [...BOG_PAYMENT_METHODS],
     config: { apple_pay: { external: false } },
   };

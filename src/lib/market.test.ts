@@ -26,9 +26,9 @@ describe("market detection", () => {
 
 describe("market pricing", () => {
   it("charges the trusted GEL equivalent for Armenian shoppers", () => {
-    expect(bogAmountFor("am", "monthly")).toBe(14.5);
-    expect(bogAmountFor("am", "quarterly")).toBe(39);
-    expect(bogAmountFor("am", "annual")).toBe(145);
+    expect(bogAmountFor("am", "monthly")).toBe(11.5);
+    expect(bogAmountFor("am", "quarterly")).toBe(31);
+    expect(bogAmountFor("am", "annual")).toBe(116);
   });
 
   it("leaves Georgian prices untouched", () => {
@@ -40,8 +40,8 @@ describe("market pricing", () => {
   });
 
   it("shows AMD to Armenian shoppers", () => {
-    expect(MARKET_BOG_LABELS.am.annual).toBe("20,825 AMD");
-    expect(providerPrice("bog", "monthly", "am")).toBe("2,099 AMD");
+    expect(MARKET_BOG_LABELS.am.annual).toBe("16,741 AMD");
+    expect(providerPrice("bog", "monthly", "am")).toBe("1,674 AMD");
     expect(providerPrice("paddle", "annual", "am")).toBe("$53.50");
   });
 
@@ -54,7 +54,8 @@ describe("market pricing", () => {
 
 describe("recurring safety", () => {
   it("accepts both markets' full prices as renewal parents", () => {
-    expect(allowedBogAmounts("annual")).toEqual([85, 145]);
+    expect(allowedBogAmounts("annual")).toEqual([85, 116, 145]);
+    expect(canBeAutoRenewParent("standard", 116, "annual")).toBe(true);
     expect(canBeAutoRenewParent("standard", 145, "annual")).toBe(true);
     expect(canBeAutoRenewParent("standard", 85, "annual")).toBe(true);
   });

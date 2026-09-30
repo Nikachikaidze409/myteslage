@@ -73,7 +73,17 @@ export function bogAmountFor(market: Market, plan: MarketPlan): number {
   return MARKET_BOG_AMOUNTS[market][plan];
 }
 
+/**
+ * Armenian prices before the 2026-09-30 reduction. New checkouts never use
+ * these, but subscribers who signed up at the old price must keep renewing.
+ */
+export const LEGACY_AM_BOG_AMOUNTS: Record<MarketPlan, number> = {
+  monthly: 14.5,
+  quarterly: 39.0,
+  annual: 145.0,
+};
+
 /** Every amount a given plan may legitimately be charged, in any market. */
 export function allowedBogAmounts(plan: MarketPlan): number[] {
-  return [MARKET_BOG_AMOUNTS.ge[plan], MARKET_BOG_AMOUNTS.am[plan]];
+  return [MARKET_BOG_AMOUNTS.ge[plan], MARKET_BOG_AMOUNTS.am[plan], LEGACY_AM_BOG_AMOUNTS[plan]];
 }

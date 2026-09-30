@@ -229,11 +229,13 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
             <h2 className="font-display text-3xl font-black md:text-4xl">{t.contactTitle}</h2>
             <p className="mx-auto mt-3 max-w-md text-white/60">{t.contactBody}</p>
             <a
-              href="tel:+995591700312"
+              href="https://www.facebook.com/profile.php?id=61594077238294"
+              target="_blank"
+              rel="noopener noreferrer"
               className="font-display mt-6 inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-white px-7 text-base font-bold text-black transition hover:bg-white/90"
             >
-              <span className="text-lg">📞</span>
-              {t.contactCta}: +995 591 700 312
+              <span className="text-lg">💬</span>
+              {t.contactCta}
             </a>
           </div>
         </div>

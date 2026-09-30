@@ -113,8 +113,8 @@ export const T = {
     contactEyebrow: "კითხვა გაქვს?",
     contactTitle: "დაგვიკავშირდი",
     contactBody:
-      "ნებისმიერი შეკითხვისთვის დაგვირეკე ამ ნომერზე. დაგეხმარებით ნავიგაციის, გადახდის ან ანგარიშის საკითხებში.",
-    contactCta: "დაგვირეკე",
+      "კითხვების ან დახმარების შემთხვევაში მოგვწერეთ ფეისბუქ გვერდზე. დაგეხმარებით ნავიგაციის, გადახდის ან ანგარიშის საკითხებში.",
+    contactCta: "მოგვწერე Facebook-ზე",
     footer: "Tesla-ს მფლობელებისთვის საქართველოში",
   },
   en: {
@@ -203,8 +203,8 @@ export const T = {
     contactEyebrow: "Have a question?",
     contactTitle: "Reach out to us",
     contactBody:
-      "Call us on this number for any question. We help with navigation, payment, or account issues.",
-    contactCta: "Call us",
+      "For any question or help, message us on our Facebook page. We help with navigation, payment, or account issues.",
+    contactCta: "Message us on Facebook",
     footer: "Made for Tesla owners in Georgia",
   },
   hy: {
@@ -299,8 +299,8 @@ export const T = {
     contactEyebrow: "Հարց ունե՞ք",
     contactTitle: "Կապվեք մեզ հետ",
     contactBody:
-      "Ցանկացած հարցի համար զանգահարեք այս համարով։ Մենք կօգնենք նավիգացիայի, վճարման կամ հաշվի հարցերում։",
-    contactCta: "Զանգահարեք մեզ",
+      "Հարցերի կամ օգնության համար գրեք մեզ Facebook-յան էջում։ Մենք կօգնենք նավիգացիայի, վճարման կամ հաշվի հարցերում։",
+    contactCta: "Գրեք մեզ Facebook-ում",
     footer: "Ստեղծված Վրաստանում Tesla-ի սեփականատերերի համար",
   },
   ru: {
@@ -395,8 +395,8 @@ export const T = {
     contactEyebrow: "Есть вопрос?",
     contactTitle: "Свяжитесь с нами",
     contactBody:
-      "Звоните по этому номеру с любым вопросом. Поможем с навигацией, оплатой или аккаунтом.",
-    contactCta: "Позвонить нам",
+      "По любым вопросам или за помощью напишите нам на странице Facebook. Поможем с навигацией, оплатой или аккаунтом.",
+    contactCta: "Написать в Facebook",
     footer: "Сделано для владельцев Tesla в Грузии",
   },
 } as const;

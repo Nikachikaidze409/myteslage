@@ -59,13 +59,13 @@ function BatteryPanelImpl({ routeKm, encodedPolyline, onAddStop }: Props) {
       });
       const stop = places[0];
       if (!stop) {
-        setMsg("No supercharger found nearby. Try a shorter leg.");
+        setMsg("ახლომახლო დამტენი ვერ მოიძებნა. სცადეთ უფრო მოკლე მონაკვეთი.");
         return;
       }
       onAddStop({ lat: stop.lat, lng: stop.lng, name: stop.name });
-      setMsg(`Added ${stop.name}`);
+      setMsg(`დამატებულია: ${stop.name}`);
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Failed to find charger");
+      setMsg(e instanceof Error ? e.message : "დამტენი ვერ მოიძებნა");
     } finally {
       setLoading(false);
     }
@@ -75,7 +75,7 @@ function BatteryPanelImpl({ routeKm, encodedPolyline, onAddStop }: Props) {
     <div className="rounded-2xl border border-border bg-white p-4">
       <div className="mb-2 flex items-center justify-between">
         <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          Battery · range
+          ბატარეა · სავალი მანძილი
         </div>
         <div className="font-display text-sm font-bold text-primary">
           {Math.round(rangeKm)} km
@@ -101,11 +101,11 @@ function BatteryPanelImpl({ routeKm, encodedPolyline, onAddStop }: Props) {
         <div className="mt-3 text-xs">
           {needsCharge ? (
             <div className="text-[color:var(--bad)]">
-              Route is {routeKm.toFixed(0)} km - needs a charging stop.
+              მარშრუტი {routeKm.toFixed(0)} კმ-ია — საჭიროა დამუხტვის გაჩერება.
             </div>
           ) : (
             <div className="text-[color:var(--good,#16a34a)]">
-              Route is {routeKm.toFixed(0)} km - you can make it on current charge.
+              მარშრუტი {routeKm.toFixed(0)} კმ-ია — არსებული მუხტი საკმარისია.
             </div>
           )}
         </div>
@@ -118,7 +118,7 @@ function BatteryPanelImpl({ routeKm, encodedPolyline, onAddStop }: Props) {
           disabled={loading}
           className="mt-3 w-full rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
-          {loading ? "Finding supercharger…" : "Add supercharger stop"}
+          {loading ? "დამტენი იძებნება…" : "დამუხტვის გაჩერების დამატება"}
         </button>
       )}
       {msg && <div className="mt-2 text-[11px] text-muted-foreground">{msg}</div>}

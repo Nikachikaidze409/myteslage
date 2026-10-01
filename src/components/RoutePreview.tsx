@@ -23,7 +23,7 @@ export function RoutePreview({
     <div className="rounded-2xl border border-border bg-white p-5">
       {loading && (
         <div className="text-sm text-muted-foreground">
-          {offRoute ? "Off route - rerouting…" : "Computing route…"}
+          {offRoute ? "მარშრუტს აცდით — ახლდება…" : "მარშრუტი ითვლება…"}
         </div>
       )}
       {error && <div className="text-sm text-[color:var(--bad)]">{error}</div>}
@@ -33,7 +33,7 @@ export function RoutePreview({
           onClick={onRetry}
           className="mt-3 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         >
-          Try again
+          ხელახლა ცდა
         </button>
       )}
 
@@ -41,15 +41,15 @@ export function RoutePreview({
         <>
           <div className="flex items-end justify-between">
             <span className="font-display text-3xl font-bold text-foreground">
-              {Math.round(route.durationSeconds / 60)} min
+              {Math.round(route.durationSeconds / 60)} წთ
             </span>
             <span className="font-display text-sm font-bold text-primary">
               {formatEta(route.durationSeconds)}
             </span>
           </div>
           <p className="mt-1 truncate text-sm text-muted-foreground">
-            {(route.distanceMeters / 1000).toFixed(1)} km · to {destinationName}
-            {offline && " · offline cache"}
+            {(route.distanceMeters / 1000).toFixed(1)} კმ · {destinationName}-მდე
+            {offline && " · შენახული მარშრუტი"}
           </p>
         </>
       )}

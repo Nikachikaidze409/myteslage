@@ -21,14 +21,14 @@ function AlternativesPanelImpl({
 
   const toggle = (k: keyof RoutePrefs) => onPrefsChange({ ...prefs, [k]: !prefs[k] });
   const toggles: { k: keyof RoutePrefs; label: string }[] = [
-    { k: "avoidHighways", label: "Avoid highways" },
-    { k: "avoidUnpaved", label: "Avoid unpaved" },
+    { k: "avoidHighways", label: "მაგისტრალების არიდება" },
+    { k: "avoidUnpaved", label: "გრუნტის გზების არიდება" },
   ];
 
   return (
     <div className="rounded-2xl border border-border bg-white p-4">
       <div className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-        Route options
+        მარშრუტის არჩევანი
       </div>
       <ul className="mb-3 flex flex-col gap-2">
         {routes.map((r, i) => {
@@ -47,10 +47,10 @@ function AlternativesPanelImpl({
               >
                 <div>
                   <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                    {r.label ?? (i === 0 ? "Fastest" : `Alternate ${i}`)}
+                    {r.label ?? (i === 0 ? "უსწრაფესი" : `ალტერნატიული ${i}`)}
                     {hasWarning && (
                       <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-700" title={(r.warnings ?? []).join(" · ")}>
-                        ⚠ Rough road
+                        ⚠ რთული გზა
                       </span>
                     )}
                   </div>
@@ -63,7 +63,7 @@ function AlternativesPanelImpl({
                     selected ? "text-primary" : "text-foreground"
                   }`}
                 >
-                  {Math.round(r.durationSeconds / 60)} min
+                  {Math.round(r.durationSeconds / 60)} წთ
                 </div>
               </button>
             </li>

@@ -14,14 +14,14 @@ interface Props {
 export function LocationButton({ status, onStart, onStop }: Props) {
   const label =
     status === "live"
-      ? "Tracking on"
+      ? "მდებარეობა ჩართულია"
       : status === "starting"
-        ? "Searching for live GPS…"
+        ? "GPS სიგნალი იძებნება…"
         : status === "denied"
-          ? "Location blocked - enable it in browser settings"
+          ? "მდებარეობა დაბლოკილია — ჩართეთ ბრაუზერის პარამეტრებში"
           : status === "unavailable"
-            ? "Location unavailable - retry"
-            : "Start tracking";
+            ? "მდებარეობა მიუწვდომელია — ხელახლა სცადეთ"
+            : "მდებარეობის ჩართვა";
 
   const live = status === "live" || status === "starting";
 

@@ -90,10 +90,10 @@ export const Route = createFileRoute("/map")({
   component: IndexGated,
   head: () => ({
     meta: [
-      { title: "Navigation | TMap Georgia" },
-      { name: "description", content: "Live browser navigation for compatible Tesla vehicles in Georgia." },
-      { property: "og:title", content: "Navigation | TMap Georgia" },
-      { property: "og:description", content: "Live browser navigation for compatible Tesla vehicles in Georgia." },
+      { title: "ნავიგაცია | TMap Georgia" },
+      { name: "description", content: "პირდაპირი ბრაუზერული ნავიგაცია საქართველოში თავსებადი Tesla-ს ავტომობილებისთვის." },
+      { property: "og:title", content: "ნავიგაცია | TMap Georgia" },
+      { property: "og:description", content: "პირდაპირი ბრაუზერული ნავიგაცია საქართველოში თავსებადი Tesla-ს ავტომობილებისთვის." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
@@ -102,11 +102,11 @@ export const Route = createFileRoute("/map")({
 });
 
 const MAP_CATEGORIES: { key: string; label: string; emoji: string }[] = [
-  { key: "supercharger", label: "Charging", emoji: "⚡" },
-  { key: "gas", label: "Gas", emoji: "⛽" },
-  { key: "food", label: "Food", emoji: "🍽" },
-  { key: "coffee", label: "Coffee", emoji: "☕" },
-  { key: "parking", label: "Parking", emoji: "🅿" },
+  { key: "supercharger", label: "დამუხტვა", emoji: "⚡" },
+  { key: "gas", label: "საწვავი", emoji: "⛽" },
+  { key: "food", label: "საკვები", emoji: "🍽" },
+  { key: "coffee", label: "ყავა", emoji: "☕" },
+  { key: "parking", label: "პარკინგი", emoji: "🅿" },
 ];
 
 // Diagnostics formatting only — never renders coordinates.
@@ -311,8 +311,8 @@ function Index() {
     setRerouting(false);
     setPairNote(
       remoteState === "disconnected_by_user"
-        ? "Phone disconnected — navigation continues on the car's GPS."
-        : "Phone connection lost — navigation continues on the car's GPS.",
+        ? "ტელეფონი გაითიშა — ნავიგაცია მანქანის GPS-ით გრძელდება."
+        : "ტელეფონთან კავშირი გაწყდა — ნავიგაცია მანქანის GPS-ით გრძელდება.",
     );
   }, [remoteState, hudMode]);
 
@@ -596,7 +596,7 @@ function Index() {
             limited
               ? hasLiveRoute
                 ? null
-                : "Route service is busy — retrying shortly."
+                : "მარშრუტის სერვისი დატვირთულია — მალე ხელახლა ვცდით."
               : message,
           );
           if (hasLiveRoute) return;
@@ -613,7 +613,7 @@ function Index() {
                 durationSeconds: cached.durationSeconds,
                 encodedPolyline: cached.encodedPolyline,
                 steps: [],
-                label: "Cached",
+                label: "შენახული",
               },
             ]);
             setSelectedRouteIdx(0);
@@ -654,7 +654,7 @@ function Index() {
     }
     const routeFix = lastRouteUsableFixRef.current;
     if (!routeFix) {
-      setRouteError("Waiting for a live location fix from the Tesla browser or paired phone.");
+      setRouteError("ველოდებით მდებარეობას Tesla-ს ბრაუზერიდან ან დაკავშირებული ტელეფონიდან.");
       return;
     }
     pushRecent({ lat: destination.lat, lng: destination.lng, name: destination.name });
@@ -794,7 +794,7 @@ function Index() {
   const handleMapClick = useCallback(
     (p: { lat: number; lng: number; placeId?: string }) => {
       if (navigating || hudMode) return;
-      setPreview({ lat: p.lat, lng: p.lng, name: "Loading…" });
+      setPreview({ lat: p.lat, lng: p.lng, name: "იტვირთება…" });
       const load = p.placeId
         ? placeDetails({ data: { placeId: p.placeId } }).then((d) => ({
             lat: d.lat,
@@ -810,7 +810,7 @@ function Index() {
           }));
       load
         .then(setPreview)
-        .catch(() => setPreview({ lat: p.lat, lng: p.lng, name: "Dropped pin" }));
+        .catch(() => setPreview({ lat: p.lat, lng: p.lng, name: "მონიშნული ადგილი" }));
     },
     [navigating, hudMode],
   );
@@ -861,7 +861,7 @@ function Index() {
       durationSeconds: n.durationSeconds,
       encodedPolyline: n.encodedPolyline,
       steps: n.steps,
-      label: "From phone",
+      label: "ტელეფონიდან",
     }]);
     setSelectedRouteIdx(0);
     setNavigating(true);
@@ -885,11 +885,11 @@ function Index() {
         >
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
-              Tesla · Georgia
+              TMap · საქართველო
             </div>
             <div className="flex items-center justify-between gap-2">
               <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
-                Browser navigation
+                ბრაუზერული ნავიგაცია
               </h1>
               <div className="flex items-center gap-1.5">
                 <button
@@ -897,13 +897,13 @@ function Index() {
                   onClick={() => void signOutAndReturn()}
                   className="rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
                 >
-                  Sign out
+                  გამოსვლა
                 </button>
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(false)}
-                  aria-label="Hide panel"
-                  title="Hide panel"
+                  aria-label="პანელის დამალვა"
+                  title="პანელის დამალვა"
                   className="grid h-8 w-8 place-items-center rounded-lg border border-border bg-white text-lg font-bold leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   ✕
@@ -912,7 +912,7 @@ function Index() {
             </div>
             {!online && (
               <div className="mt-2 rounded-lg border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5 px-2 py-1 text-[11px] font-semibold text-[color:var(--bad)]">
-                Offline - using cached route
+                ინტერნეტი არ არის — გამოიყენება შენახული მარშრუტი
               </div>
             )}
           </header>
@@ -959,10 +959,10 @@ function Index() {
           {error && (
             <div className="rounded-2xl border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/5 p-4">
               <div className="text-sm font-semibold text-[color:var(--bad)]">
-                Live location needs attention
+                მდებარეობას შემოწმება სჭირდება
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                {error} Pair your phone above if the Tesla browser stops updating while driving.
+                {error} თუ მოძრაობისას Tesla-ს ბრაუზერი აღარ განახლდება, დააკავშირეთ ტელეფონი ზემოთ.
               </p>
             </div>
           )}
@@ -1028,12 +1028,12 @@ function Index() {
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              aria-label="Show panel"
-              title="Show panel"
+              aria-label="პანელის ჩვენება"
+              title="პანელის ჩვენება"
               className="absolute left-4 top-4 z-40 flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur hover:bg-white"
             >
               <span className="text-lg leading-none">☰</span>
-              Panel
+              პანელი
             </button>
           )}
           {/* Entry point for phone remote mode — always reachable while driving direct. */}
@@ -1041,12 +1041,12 @@ function Index() {
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              aria-label="Connect phone"
-              title="Use your phone as the remote control"
+              aria-label="ტელეფონის დაკავშირება"
+              title="გამოიყენეთ ტელეფონი დისტანციური მართვისთვის"
               className="absolute bottom-20 right-4 z-40 flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur hover:bg-white"
             >
               <span aria-hidden>📱</span>
-              {remoteState === "connected" ? "Phone connected" : "Connect phone"}
+              {remoteState === "connected" ? "ტელეფონი დაკავშირებულია" : "ტელეფონის დაკავშირება"}
             </button>
           )}
           {!navigating && !hudMode && (
@@ -1073,7 +1073,7 @@ function Index() {
                 ))}
                 {poiLoading && (
                   <span className="self-center rounded-full bg-white/90 px-3 py-1 text-xs text-muted-foreground shadow">
-                    Searching…
+                    იძებნება…
                   </span>
                 )}
               </div>
@@ -1091,7 +1091,7 @@ function Index() {
                 )}
                 {fix && (
                   <div className="mt-1 text-sm font-semibold text-primary">
-                    {(distanceMeters(fix, preview) / 1000).toFixed(1)} km away
+                    {(distanceMeters(fix, preview) / 1000).toFixed(1)} კმ დაშორებით
                   </div>
                 )}
                 <div className="mt-4 flex gap-3">
@@ -1100,14 +1100,14 @@ function Index() {
                     onClick={() => startTo(preview)}
                     className="flex-1 rounded-2xl bg-primary px-5 py-3 text-base font-bold text-primary-foreground shadow-lg"
                   >
-                    Directions
+                    მარშრუტი
                   </button>
                   <button
                     type="button"
                     onClick={() => setPreview(null)}
                     className="rounded-2xl border border-border px-5 py-3 text-base font-semibold text-muted-foreground hover:bg-muted"
                   >
-                    Cancel
+                    გაუქმება
                   </button>
                 </div>
               </div>
@@ -1129,14 +1129,14 @@ function Index() {
                     : "border-border bg-white/90 text-foreground hover:bg-white"
               }`}
             >
-              {showTraffic ? "Traffic on" : "Traffic off"}
+              {showTraffic ? "ტრაფიკი ჩართულია" : "ტრაფიკი გამორთულია"}
             </button>
             <button
               type="button"
               disabled={!vector3dAvailable}
               onClick={() => vector3dAvailable && setTilt3d((v) => !v)}
-              aria-label="Toggle 3D or 2D map view"
-              title={vector3dAvailable ? "Switch between 3D and 2D" : "3D view is not supported on this screen"}
+              aria-label="3D ან 2D რუკის არჩევა"
+              title={vector3dAvailable ? "3D და 2D ხედებს შორის გადართვა" : "ამ ეკრანზე 3D ხედი არ არის მხარდაჭერილი"}
               className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
                 !vector3dAvailable
                   ? "cursor-not-allowed border-border bg-white/70 text-muted-foreground"
@@ -1153,15 +1153,15 @@ function Index() {
               type="button"
               onClick={toggleDarkMap}
               aria-pressed={darkMap}
-              aria-label="Toggle dark map"
-              title="Switch between day and night map colours"
+              aria-label="მუქი რუკის გადართვა"
+              title="დღისა და ღამის ფერებს შორის გადართვა"
               className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
                 darkMap
                   ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
                   : "border-border bg-white/90 text-foreground hover:bg-white"
               }`}
             >
-              {darkMap ? "Night" : "Day"}
+              {darkMap ? "ღამე" : "დღე"}
             </button>
 
 
@@ -1198,7 +1198,7 @@ function Index() {
                 onClick={() => pairControlsRef.current?.disconnect()}
                 className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
               >
-                Disconnect
+                გათიშვა
               </button>
             </div>
           )}
@@ -1207,7 +1207,7 @@ function Index() {
             <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
               <div className="flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-1.5 text-sm font-medium text-foreground shadow-lg backdrop-blur">
                 <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden />
-                Rerouting…
+                მარშრუტი ახლდება…
               </div>
             </div>
           )}
@@ -1251,7 +1251,7 @@ function Index() {
               <div className="flex items-center gap-3 rounded-full border border-border bg-white/95 px-4 py-2 text-sm shadow-lg backdrop-blur">
                 <span className="text-lg" aria-hidden>↻</span>
                 <span className="font-medium text-foreground">
-                  Resumed trip to <span className="font-semibold">{resumedName}</span>
+                  გაგრძელდა გზა: <span className="font-semibold">{resumedName}</span>
                 </span>
                 <button
                   type="button"
@@ -1264,7 +1264,7 @@ function Index() {
                   }}
                   className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
                 >
-                  Cancel
+                  გაუქმება
                 </button>
               </div>
             </div>
@@ -1273,14 +1273,14 @@ function Index() {
           <ClientOnly
             fallback={
               <div className="flex h-full items-center justify-center text-muted-foreground">
-                Loading map…
+                რუკა იტვირთება…
               </div>
             }
           >
             <Suspense
               fallback={
                 <div className="flex h-full items-center justify-center text-muted-foreground">
-                  Loading map…
+                  რუკა იტვირთება…
                 </div>
               }
             >

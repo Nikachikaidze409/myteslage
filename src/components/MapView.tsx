@@ -345,7 +345,7 @@ export function MapView({
           }
           setRetrying(false);
           setMapError(
-            "Map is taking longer than usual to load. Check the car's internet connection and try again.",
+            "რუკის ჩატვირთვას ჩვეულებრივზე მეტი დრო სჭირდება. შეამოწმეთ მანქანის ინტერნეტი და ხელახლა სცადეთ.",
           );
         });
     };
@@ -483,7 +483,7 @@ export function MapView({
         new g.maps.Marker({
           map,
           position: { lat: w.lat, lng: w.lng },
-          title: w.name ?? "Stop",
+          title: w.name ?? "გაჩერება",
           label: { text: "⚡", fontSize: "18px" },
           optimized: true,
         }),
@@ -503,12 +503,12 @@ export function MapView({
     }
     if (destMarker.current) {
       destMarker.current.setPosition(destination);
-      destMarker.current.setTitle(destination.name ?? "Destination");
+      destMarker.current.setTitle(destination.name ?? "დანიშნულების ადგილი");
     } else {
       destMarker.current = new g.maps.Marker({
         map,
         position: destination,
-        title: destination.name ?? "Destination",
+        title: destination.name ?? "დანიშნულების ადგილი",
       });
     }
   }, [destination, mapReady]);
@@ -527,12 +527,12 @@ export function MapView({
     const pos = { lat: preview.lat, lng: preview.lng };
     if (previewMarker.current) {
       previewMarker.current.setPosition(pos);
-      previewMarker.current.setTitle(preview.name ?? "Selected place");
+      previewMarker.current.setTitle(preview.name ?? "არჩეული ადგილი");
     } else {
       previewMarker.current = new g.maps.Marker({
         map,
         position: pos,
-        title: preview.name ?? "Selected place",
+        title: preview.name ?? "არჩეული ადგილი",
         zIndex: 900,
         icon: {
           path: g.maps.SymbolPath.CIRCLE,
@@ -607,14 +607,14 @@ export function MapView({
 
       {retrying && !mapError && (
         <div className="pointer-events-none absolute inset-0 z-40 grid place-items-center rounded-2xl bg-background/80">
-          <div className="animate-pulse text-sm font-semibold text-muted-foreground">Loading map…</div>
+          <div className="animate-pulse text-sm font-semibold text-muted-foreground">რუკა იტვირთება…</div>
         </div>
       )}
 
       {mapError && (
         <div className="absolute inset-0 z-40 grid place-items-center rounded-2xl bg-background/95 p-6 text-center">
           <div className="max-w-md">
-            <h2 className="font-display text-lg font-bold text-foreground">Map didn't load</h2>
+            <h2 className="font-display text-lg font-bold text-foreground">რუკა ვერ ჩაიტვირთა</h2>
             <p className="mt-2 text-sm text-muted-foreground">{mapError}</p>
             <button
               type="button"
@@ -627,7 +627,7 @@ export function MapView({
               }}
               className="mt-5 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground"
             >
-              Try again
+              ხელახლა ცდა
             </button>
           </div>
         </div>
@@ -636,15 +636,15 @@ export function MapView({
       {rerouting && (
         <div className="pointer-events-none absolute inset-x-0 top-24 z-30 flex justify-center">
           <div className="animate-pulse rounded-full bg-foreground/85 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-background shadow-lg">
-            Rerouting…
+            მარშრუტი ახლდება…
           </div>
         </div>
       )}
 
       {!rerouting && weakSignal && (
         <span
-          aria-label="Weak GPS signal"
-          title="Weak GPS signal"
+          aria-label="სუსტი GPS სიგნალი"
+          title="სუსტი GPS სიგნალი"
           className="pointer-events-none absolute right-3 top-3 z-30 h-2 w-2 rounded-full bg-amber-400/70 shadow-sm"
         />
       )}
@@ -652,8 +652,8 @@ export function MapView({
       <button
         type="button"
         onClick={recenterOnMe}
-        aria-label="Center on my location"
-        title="My location"
+        aria-label="ჩემს მდებარეობაზე დაბრუნება"
+        title="ჩემი მდებარეობა"
         className={`absolute bottom-8 left-4 z-30 flex items-center gap-2 rounded-full border px-4 py-2.5 shadow-lg backdrop-blur transition ${
           followUi
             ? "border-primary bg-primary text-primary-foreground"
@@ -666,7 +666,7 @@ export function MapView({
           <circle cx="12" cy="12" r="3" />
           <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
         </svg>
-        <span className="text-sm font-semibold">My location</span>
+        <span className="text-sm font-semibold">ჩემი მდებარეობა</span>
       </button>
 
       {/* Large touch-friendly zoom controls */}
@@ -677,7 +677,7 @@ export function MapView({
       >
         <button
           type="button"
-          aria-label="Zoom in"
+          aria-label="რუკის მოახლოება"
           onClick={() => {
             const map = mapRef.current;
             if (!map) return;
@@ -693,7 +693,7 @@ export function MapView({
         <div className={`h-px ${darkMode ? "bg-slate-700" : "bg-border"}`} />
         <button
           type="button"
-          aria-label="Zoom out"
+          aria-label="რუკის დაშორება"
           onClick={() => {
             const map = mapRef.current;
             if (!map) return;

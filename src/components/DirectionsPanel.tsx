@@ -12,10 +12,10 @@ function stripHtml(html: string): string {
 function maneuverIcon(instruction: string): "left" | "right" | "straight" | "uturn" | "merge" | "arrive" {
   const s = instruction.toLowerCase();
   if (s.includes("u-turn") || s.includes("uturn")) return "uturn";
-  if (s.includes("arrive") || s.includes("destination")) return "arrive";
-  if (s.includes("merge")) return "merge";
-  if (s.includes("left")) return "left";
-  if (s.includes("right")) return "right";
+  if (s.includes("arrive") || s.includes("destination") || s.includes("დანიშნულების")) return "arrive";
+  if (s.includes("merge") || s.includes("შეუერთდით")) return "merge";
+  if (s.includes("left") || s.includes("მარცხნივ")) return "left";
+  if (s.includes("right") || s.includes("მარჯვნივ")) return "right";
   return "straight";
 }
 

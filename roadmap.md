@@ -8,3 +8,5 @@
 - [x] Move the hourly BOG renewal schedule to tmap.ge (same time, token, logic)
 - [x] Redirect legacy public pages to tmap.ge while keeping legacy payment endpoints direct
 - [x] Fold www.tmap.ge into tmap.ge
+- [x] Keep the moving vehicle arrow synchronized with the map camera direction
+- [x] Localize the map, navigation controls, search, routes, and Google responses into Georgian

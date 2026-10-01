@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Serve Georgian glyphs from bundled Noto Sans Georgian files and keep them first for `lang="ka"`, so rendering never depends on device fonts.
+- Derive the vehicle arrow's screen rotation from CameraEngine's same-frame applied heading, avoiding asynchronous map-heading reads.

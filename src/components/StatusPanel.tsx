@@ -26,7 +26,7 @@ export const StatusPanel = memo(function StatusPanel({ fix }: { fix: Fix }) {
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-          Location Fix
+          მდებარეობის სიზუსტე
         </h2>
         <span
           className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white"
@@ -37,16 +37,16 @@ export const StatusPanel = memo(function StatusPanel({ fix }: { fix: Fix }) {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-4">
-        <Field label="Latitude" value={formatCoord(fix.lat)} />
-        <Field label="Longitude" value={formatCoord(fix.lng)} />
-        <Field label="Accuracy" value={`± ${Math.round(fix.accuracy)} m`} />
-        <Field label="Age" value={`${Math.max(0, Math.round(age / 1000))} s`} />
+        <Field label="განედი" value={formatCoord(fix.lat)} />
+        <Field label="გრძედი" value={formatCoord(fix.lng)} />
+        <Field label="სიზუსტე" value={`± ${Math.round(fix.accuracy)} მ`} />
+        <Field label="ასაკი" value={`${Math.max(0, Math.round(age / 1000))} წმ`} />
       </div>
 
       <p className="mt-4 text-xs text-muted-foreground">
         {precision.description}
-        {fix.source === "sample" && " · sample data"}
-        {fix.source === "phone" && " · from paired phone GPS"}
+        {fix.source === "sample" && " · საცდელი მონაცემი"}
+        {fix.source === "phone" && " · დაკავშირებული ტელეფონის GPS"}
       </p>
     </div>
   );

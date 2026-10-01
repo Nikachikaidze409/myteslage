@@ -12,10 +12,10 @@ function stripHtml(html: string): string {
 function maneuverIcon(instruction: string): "left" | "right" | "straight" | "uturn" | "merge" | "arrive" {
   const s = instruction.toLowerCase();
   if (s.includes("u-turn") || s.includes("uturn")) return "uturn";
-  if (s.includes("arrive") || s.includes("destination")) return "arrive";
-  if (s.includes("merge")) return "merge";
-  if (s.includes("left")) return "left";
-  if (s.includes("right")) return "right";
+  if (s.includes("arrive") || s.includes("destination") || s.includes("დანიშნულების")) return "arrive";
+  if (s.includes("merge") || s.includes("შეუერთდით")) return "merge";
+  if (s.includes("left") || s.includes("მარცხნივ")) return "left";
+  if (s.includes("right") || s.includes("მარჯვნივ")) return "right";
   return "straight";
 }
 
@@ -60,7 +60,7 @@ export const DirectionsPanel = memo(function DirectionsPanel({
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="font-display mb-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-        Next Steps
+        შემდეგი ნაბიჯები
       </div>
       <ol className="max-h-[42vh] space-y-6 overflow-y-auto pr-1">
         {route.steps.map((s, i) => {

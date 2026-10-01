@@ -250,7 +250,7 @@ export function PairPhonePanel({
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="font-display mb-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-        Phone Remote
+        ტელეფონით მართვა
       </div>
 
       {!code && (
@@ -263,10 +263,10 @@ export function PairPhonePanel({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium text-muted-foreground">
-              {state === "disconnected_by_user" ? "Phone disconnected" : "Use your phone as the remote"}
+              {state === "disconnected_by_user" ? "ტელეფონი გაითიშა" : "მართეთ ეკრანი ტელეფონით"}
             </p>
             <p className="font-display truncate text-base font-bold text-foreground">
-              {state === "pairing" ? "Creating code…" : "Control this screen"}
+              {state === "pairing" ? "კოდი იქმნება…" : "ამ ეკრანის მართვა"}
             </p>
           </div>
           <button
@@ -274,7 +274,7 @@ export function PairPhonePanel({
             disabled={state === "pairing"}
             className="font-display h-10 shrink-0 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition hover:brightness-110 disabled:opacity-60"
           >
-            {state === "pairing" ? "…" : "Connect phone"}
+            {state === "pairing" ? "…" : "ტელეფონის დაკავშირება"}
           </button>
         </div>
       )}
@@ -282,10 +282,10 @@ export function PairPhonePanel({
       {code && (
         <div className="space-y-4">
           <div className="flex items-center gap-4 rounded-2xl bg-muted/60 p-4">
-            <img src={qrUrl} alt="QR code" className="h-[92px] w-[92px] shrink-0 rounded-lg bg-white" />
+            <img src={qrUrl} alt="QR კოდი" className="h-[92px] w-[92px] shrink-0 rounded-lg bg-white" />
             <div className="min-w-0 flex-1 space-y-2">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Pair Device</p>
+                <p className="text-xs font-medium text-muted-foreground">მოწყობილობის დაკავშირება</p>
                 <p className="font-display text-xl font-bold tracking-widest text-foreground">{code}</p>
               </div>
               <div
@@ -324,7 +324,7 @@ export function PairPhonePanel({
               onClick={disconnect}
               className="h-8 shrink-0 rounded-lg border border-border bg-white px-3 text-[11px] font-medium text-muted-foreground transition hover:bg-muted"
             >
-              Disconnect
+              გათიშვა
             </button>
           </div>
         </div>

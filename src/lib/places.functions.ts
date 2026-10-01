@@ -47,6 +47,7 @@ export async function searchNearbyCore(
     const body = useText
       ? {
           textQuery: data.textQuery ?? "Tesla Supercharger",
+          languageCode: "ka",
           locationBias: {
             circle: {
               center: { latitude: data.lat, longitude: data.lng },
@@ -57,6 +58,7 @@ export async function searchNearbyCore(
         }
       : {
           includedTypes: TYPE_MAP[data.category] ?? [data.category],
+          languageCode: "ka",
           maxResultCount: 10,
           locationRestriction: {
             circle: {
@@ -107,7 +109,7 @@ export async function searchNearbyCore(
       const distanceMeters = 2 * 6371000 * Math.asin(Math.sqrt(a));
       places.push({
         id: p.id,
-        name: p.displayName?.text ?? "Place",
+        name: p.displayName?.text ?? "ადგილი",
         lat,
         lng,
         address: p.formattedAddress,

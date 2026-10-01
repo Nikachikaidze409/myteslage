@@ -134,6 +134,8 @@ function loadGoogleMapsWithKey(key: string): Promise<any> {
       v: "weekly",
       loading: "async",
       callback: "__initGmaps",
+      language: "ka",
+      region: "GE",
     });
     s.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
     s.async = true;

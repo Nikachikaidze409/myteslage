@@ -141,13 +141,13 @@ export function PhoneHud({ fix, route, destinationName, onExit }: Props) {
     <div className="fixed inset-0 z-50 flex flex-col justify-between bg-black p-5 text-white">
       <div className="flex items-start justify-between">
         <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/50">
-          Speedometer
+          სპიდომეტრი
         </div>
         <button
           onClick={onExit}
           className="rounded-lg border border-white/25 px-3 py-1 text-xs font-semibold text-white/80"
         >
-          Close
+          დახურვა
         </button>
       </div>
 
@@ -160,7 +160,7 @@ export function PhoneHud({ fix, route, destinationName, onExit }: Props) {
           </>
         ) : (
           <div className="text-xl text-white/60">
-            {destinationName ? "Getting the route…" : "No trip yet"}
+            {destinationName ? "მარშრუტი იტვირთება…" : "მარშრუტი ჯერ არ არის"}
           </div>
         )}
       </div>

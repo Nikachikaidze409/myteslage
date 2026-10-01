@@ -32,7 +32,7 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
     <div className="rounded-2xl border border-border bg-white p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          Places
+          ადგილები
         </div>
         {currentDestination && (
           <button
@@ -40,21 +40,21 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
             onClick={() => setManaging((v) => !v)}
             className="text-[11px] font-semibold text-primary hover:underline"
           >
-            {managing ? "Done" : "Save current"}
+            {managing ? "დასრულება" : "მიმდინარე ადგილის შენახვა"}
           </button>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <FavButton
-          label="Home"
+          label="სახლი"
           emoji="🏠"
           value={home}
           onPick={onPick}
           onSet={managing ? () => setNamed("home") : undefined}
         />
         <FavButton
-          label="Work"
+          label="სამსახური"
           emoji="💼"
           value={work}
           onPick={onPick}
@@ -64,7 +64,7 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
 
       {favs.length > 0 && (
         <div className="mt-3">
-          <div className="mb-1 text-[11px] font-semibold text-muted-foreground">Favorites</div>
+          <div className="mb-1 text-[11px] font-semibold text-muted-foreground">რჩეულები</div>
           <ul className="flex flex-col gap-1">
             {favs.slice(0, 4).map((f) => (
               <li key={f.id} className="flex items-center justify-between">
@@ -77,7 +77,7 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
                 </button>
                 <button
                   type="button"
-                  aria-label="Remove favorite"
+                  aria-label="რჩეულებიდან წაშლა"
                   onClick={() => toggleFavorite({ lat: f.lat, lng: f.lng, name: f.name })}
                   className="ml-1 rounded p-1 text-muted-foreground hover:text-foreground"
                 >
@@ -91,7 +91,7 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
 
       {recents.length > 0 && (
         <div className="mt-3">
-          <div className="mb-1 text-[11px] font-semibold text-muted-foreground">Recent</div>
+          <div className="mb-1 text-[11px] font-semibold text-muted-foreground">ბოლო ადგილები</div>
           <ul className="flex flex-col gap-1">
             {recents.slice(0, 4).map((r) => (
               <li key={r.id} className="flex items-center justify-between">
@@ -104,10 +104,10 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
                 </button>
                 <button
                   type="button"
-                  aria-label="Save as favorite"
+                  aria-label="რჩეულებში შენახვა"
                   onClick={() => toggleFavorite({ lat: r.lat, lng: r.lng, name: r.name })}
                   className="ml-1 rounded p-1 text-muted-foreground hover:text-foreground"
-                  title="Add to favorites"
+                  title="რჩეულებში დამატება"
                 >
                   ☆
                 </button>
@@ -140,14 +140,14 @@ function FavButton({
         onClick={onSet}
         className="rounded-xl border border-dashed border-primary/50 bg-primary/5 p-3 text-left text-sm text-primary hover:bg-primary/10"
       >
-        {emoji} Set {label}
+        {emoji} {label}-ის დაყენება
       </button>
     );
   }
   if (!value) {
     return (
       <div className="rounded-xl border border-dashed border-border bg-muted/30 p-3 text-left text-sm text-muted-foreground">
-        {emoji} {label} not set
+        {emoji} {label} არ არის დაყენებული
       </div>
     );
   }

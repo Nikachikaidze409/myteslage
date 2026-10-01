@@ -113,6 +113,8 @@ export async function computeRouteCore(
               location: { latLng: { latitude: w.lat, longitude: w.lng } },
             })),
             travelMode: "DRIVE",
+            languageCode: "ka",
+            regionCode: "GE",
             // Only the driver's own first/changed route pays for the optimal
             // traffic model; reroutes and background ETA refreshes use the
             // cheaper traffic-aware model and never ask for alternatives.
@@ -182,7 +184,7 @@ export async function computeRouteCore(
       for (const leg of r.legs ?? []) {
         for (const s of leg.steps ?? []) {
           steps.push({
-            instruction: s.navigationInstruction?.instructions ?? "Continue",
+            instruction: s.navigationInstruction?.instructions ?? "გააგრძელეთ გზა",
             distanceMeters: s.distanceMeters ?? 0,
             polyline: s.polyline?.encodedPolyline ?? "",
           });
@@ -190,10 +192,10 @@ export async function computeRouteCore(
       }
       const label =
         r.routeLabels?.includes("DEFAULT_ROUTE")
-          ? "Fastest"
+          ? "უსწრაფესი"
           : r.routeLabels?.includes("FUEL_EFFICIENT")
-          ? "Eco"
-          : r.description ?? "Alternate";
+          ? "ეკო"
+          : r.description ?? "ალტერნატიული";
       routes.push({
         distanceMeters: r.distanceMeters ?? 0,
         durationSeconds,
@@ -207,7 +209,7 @@ export async function computeRouteCore(
     if (!routes.length) throw new Error("No route found");
     // Match the Google Maps app: its recommended (DEFAULT_ROUTE) result comes first and
     // is what the driver gets. Alternatives keep Google's own ordering. No post-filtering.
-    const defaultIdx = routes.findIndex((r) => r.label === "Fastest");
+    const defaultIdx = routes.findIndex((r) => r.label === "უსწრაფესი");
     if (defaultIdx > 0) {
       const [primary] = routes.splice(defaultIdx, 1);
       routes.unshift(primary);

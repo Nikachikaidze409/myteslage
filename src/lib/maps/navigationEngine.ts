@@ -371,15 +371,22 @@ export class NavigationEngine {
     };
     this.renderedHeading = lerpAngle(this.renderedHeading, target.heading, dampFactor(0.35, dt));
 
-    this.vehicle.setPose(this.rendered.lat, this.rendered.lng, this.renderedHeading);
-    this.vehicle.setAccuracy(this.rendered, s.accuracy, s.accuracy > 40);
-
     this.camera.update(
       { center: this.rendered, heading: this.renderedHeading, speed: s.speed },
       dt,
       now,
       this.navigating,
     );
+
+    // Position, road bearing and camera bearing now come from this same frame.
+    // This avoids the arrow being rotated against a stale heading_changed event.
+    this.vehicle.setPose(
+      this.rendered.lat,
+      this.rendered.lng,
+      this.renderedHeading,
+      this.camera.currentHeading(),
+    );
+    this.vehicle.setAccuracy(this.rendered, s.accuracy, s.accuracy > 40);
 
     if (this.navigating) this.route.trim(this.proj, now);
 

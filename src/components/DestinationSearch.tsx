@@ -48,13 +48,13 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
         .then((res) => {
           if (reqRef.current !== id) return;
           setSuggestions(res.suggestions);
-          setError(res.suggestions.length === 0 ? "No matches found" : null);
+          setError(res.suggestions.length === 0 ? "შედეგი ვერ მოიძებნა" : null);
         })
         .catch((e: unknown) => {
           if (reqRef.current !== id) return;
           console.error(e);
           setSuggestions([]);
-          setError("Search unavailable. Tap to retry.");
+          setError("ძიება დროებით მიუწვდომელია. ხელახლა სცადეთ.");
         })
         .finally(() => {
           if (reqRef.current === id) setLoading(false);
@@ -80,7 +80,7 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
       onSelect({ lat: d.lat, lng: d.lng, name: d.name, address: d.address });
     } catch (e) {
       console.error(e);
-      setError("Could not open that place. Try another result.");
+      setError("ადგილი ვერ გაიხსნა. აირჩიეთ სხვა შედეგი.");
     } finally {
       setLoading(false);
     }
@@ -96,14 +96,14 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
           id="tsl-destination-input"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search a street, place or address"
+          placeholder="მოძებნეთ ქუჩა, ადგილი ან მისამართი"
           disabled={disabled}
           className="font-display w-full bg-transparent text-lg text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
         />
         {q && (
           <button
             type="button"
-            aria-label="Clear"
+            aria-label="გასუფთავება"
             onMouseDown={(e) => {
               e.preventDefault();
               setQ("");
@@ -118,8 +118,8 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
         <button
           type="button"
           tabIndex={-1}
-          aria-label="Insert space"
-          title="Insert space"
+          aria-label="გამოტოვების ჩასმა"
+          title="გამოტოვების ჩასმა"
           onMouseDown={(e) => {
             // Prevent the input from losing focus / the on-screen keyboard from hiding.
             e.preventDefault();
@@ -137,14 +137,14 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
           }}
           className="ml-2 h-10 shrink-0 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-foreground shadow-sm hover:bg-muted"
         >
-          Space
+          გამოტოვება
         </button>
       </div>
 
       {(suggestions.length > 0 || error || loading) && q.trim().length >= 2 && (
         <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-slate-300/40">
           {loading && (
-            <div className="px-5 py-3 text-sm text-muted-foreground">Searching…</div>
+            <div className="px-5 py-3 text-sm text-muted-foreground">იძებნება…</div>
           )}
           {!loading && error && (
             <button

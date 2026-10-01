@@ -11,7 +11,9 @@ export const getMapsBrowserKey = createServerFn({ method: "GET" }).handler(
   async () => {
     // TESLANAVI_BROWSER_KEY is the sole browser key source. The SERVER key
     // (Routes, Places, Roads, Geocoding) is never returned to the browser.
-    const browser = process.env["TESLANAVI_BROWSER_KEY"];
-    return { key: browser && browser.trim() ? browser.trim() : null };
+    // New key first; old key stays as fallback.
+    const candidates = [process.env["TMap_Browser_Key_New"], process.env["TESLANAVI_BROWSER_KEY"]];
+    const browser = candidates.find((k) => k && k.trim());
+    return { key: browser ? browser.trim() : null };
   },
 );

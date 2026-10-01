@@ -7,7 +7,10 @@
 
 /** The project-owned Google Maps SERVER key. Read inside handlers only. */
 export function googleKey(): string {
-  const k = process.env["GOOGLE_MAPS_SERVER_KEY"];
+  // New key first; old key stays as fallback.
+  const k = [process.env["TMap_Server_Key_New"], process.env["GOOGLE_MAPS_SERVER_KEY"]].find(
+    (v) => v && v.trim(),
+  );
   if (!k || !k.trim()) throw new Error("Google Maps server API key is not configured");
   return k.trim();
 }

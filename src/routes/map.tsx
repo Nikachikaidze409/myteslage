@@ -563,7 +563,7 @@ function Index() {
         })
         .catch((e: unknown) => {
           if (!routeCtl.current.isCurrent(requestId)) return;
-          const message = e instanceof Error ? e.message : "Route failed";
+          const message = e instanceof Error ? e.message : "მარშრუტი ვერ მოიძებნა";
           const limited = parseRateLimit(message);
           const now = Date.now();
 

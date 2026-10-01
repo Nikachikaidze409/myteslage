@@ -58,20 +58,20 @@ export function shouldReturnToDirectMode(s: RemoteState): boolean {
 export function remoteStateLabel(s: RemoteState): string {
   switch (s) {
     case "disconnected":
-      return "Not paired";
+      return "არ არის დაკავშირებული";
     case "pairing":
-      return "Creating pairing code…";
+      return "დაკავშირების კოდი იქმნება…";
     case "connecting":
-      return "Waiting for phone…";
+      return "ველოდებით ტელეფონს…";
     case "connected":
-      return "Phone connected";
+      return "ტელეფონი დაკავშირებულია";
     case "reconnecting":
-      return "Reconnecting…";
+      return "ხელახლა ვუკავშირდებით…";
     case "disconnected_by_user":
-      return "Disconnected";
+      return "გათიშულია";
     case "session_expired":
-      return "Phone connection lost";
+      return "ტელეფონთან კავშირი გაწყდა";
     case "error":
-      return "Connection error";
+      return "კავშირის შეცდომა";
   }
 }

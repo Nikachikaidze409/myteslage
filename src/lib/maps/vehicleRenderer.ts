@@ -1,8 +1,7 @@
 // Draws the car as a rotated arrow marker.
 //
-// A marker symbol's rotation is expressed in screen space, so the map's own
-// heading has to be subtracted: on a heading-up (rotated) map the arrow must
-// stay pointing up the screen while the basemap turns underneath it.
+// A marker symbol's rotation is expressed in screen space, so the camera
+// heading applied in the same animation frame has to be subtracted.
 
 import type { LatLng } from "./math";
 
@@ -15,7 +14,6 @@ export class VehicleRenderer {
   private iconRotation = -999;
   private pos: LatLng | null = null;
   private circle: { lat: number; lng: number; r: number } | null = null;
-  private headingListener: any = null;
 
   constructor(map: any, google: any, _vector: boolean) {
     this.map = map;
@@ -28,11 +26,9 @@ export class VehicleRenderer {
       clickable: false,
       icon: arrowIcon(google, 0),
     });
-    // The screen-space rotation depends on the camera, so redraw when it turns.
-    this.headingListener = map.addListener?.("heading_changed", () => this.applyRotation());
   }
 
-  setPose(lat: number, lng: number, heading: number): void {
+  setPose(lat: number, lng: number, heading: number, cameraHeading: number): void {
     if (!this.marker) return;
     this.heading = heading;
     // Sub-centimetre moves cost a Maps redraw and change nothing on screen.
@@ -42,13 +38,12 @@ export class VehicleRenderer {
       this.pos = { lat, lng };
       this.marker.setPosition({ lat, lng });
     }
-    this.applyRotation();
+    this.applyRotation(cameraHeading);
   }
 
-  private applyRotation(): void {
+  private applyRotation(cameraHeading: number): void {
     if (!this.marker) return;
-    const mapHeading = this.map.getHeading?.() ?? 0;
-    const screen = ((this.heading - mapHeading) % 360 + 360) % 360;
+    const screen = ((this.heading - cameraHeading) % 360 + 360) % 360;
     if (Math.abs(shortestDelta(screen, this.iconRotation)) < 1.5) return;
     this.iconRotation = screen;
     this.marker.setIcon(arrowIcon(this.google, screen));
@@ -90,8 +85,6 @@ export class VehicleRenderer {
   }
 
   destroy(): void {
-    this.headingListener?.remove?.();
-    this.headingListener = null;
     this.marker?.setMap(null);
     this.marker = null;
     this.accuracyCircle?.setMap(null);

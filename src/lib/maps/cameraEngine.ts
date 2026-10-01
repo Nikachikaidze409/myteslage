@@ -116,6 +116,11 @@ export class CameraEngine {
     return this.map.getTilt?.() ?? 0;
   }
 
+  /** Camera heading authoritative for marker rotation in the current frame. */
+  currentHeading(): number {
+    return this.applied?.heading ?? this.map.getHeading?.() ?? 0;
+  }
+
   /** Called after a programmatic jump so the damping restarts from there. */
   reset(center?: LatLng): void {
     this.applied = null;

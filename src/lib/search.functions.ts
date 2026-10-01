@@ -71,6 +71,7 @@ export async function autocompletePlacesCore(
     body: JSON.stringify({
       input: q,
       includedRegionCodes: region.codes,
+      languageCode: "ka",
 
       ...(bias ? { locationBias: bias } : {}),
     }),
@@ -113,6 +114,7 @@ export async function autocompletePlacesCore(
     body: JSON.stringify({
       textQuery: q,
       regionCode: region.region,
+      languageCode: "ka",
       maxResultCount: 6,
       ...(bias ? { locationBias: bias } : {}),
     }),
@@ -156,7 +158,7 @@ export async function placeDetailsCore(
   data: ReturnType<typeof placeDetailsInput>,
 ): Promise<PlaceDetail> {
   const res = await fetch(
-    `${PLACES_API}/places/${encodeURIComponent(data.placeId)}`,
+    `${PLACES_API}/places/${encodeURIComponent(data.placeId)}?languageCode=ka`,
     {
       headers: {
         "X-Goog-Api-Key": googleKey(),
@@ -176,7 +178,7 @@ export async function placeDetailsCore(
   }
   return {
     placeId: p.id ?? data.placeId,
-    name: p.displayName?.text ?? p.formattedAddress ?? "Destination",
+    name: p.displayName?.text ?? p.formattedAddress ?? "დანიშნულების ადგილი",
     address: p.formattedAddress ?? "",
     lat: p.location.latitude,
     lng: p.location.longitude,
@@ -202,7 +204,7 @@ export async function reverseGeocodeCore(
   data: ReturnType<typeof reverseGeocodeInput>,
 ): Promise<{ name: string; address: string }> {
   const res = await fetch(
-    `${MAPS_API}/maps/api/geocode/json?latlng=${data.lat},${data.lng}&language=en&key=${encodeURIComponent(googleKey())}`,
+    `${MAPS_API}/maps/api/geocode/json?latlng=${data.lat},${data.lng}&language=ka&region=ge&key=${encodeURIComponent(googleKey())}`,
   );
   if (!res.ok) await fail(res, "Reverse geocode");
   const json = (await res.json()) as {
@@ -212,8 +214,8 @@ export async function reverseGeocodeCore(
   const address = first?.formatted_address ?? "";
   const name = first?.address_components?.[1]?.long_name
     ? `${first.address_components[0]?.long_name ?? ""} ${first.address_components[1]?.long_name ?? ""}`.trim()
-    : address || "Dropped pin";
-  return { name: name || "Dropped pin", address };
+    : address || "მონიშნული ადგილი";
+  return { name: name || "მონიშნული ადგილი", address };
 }
 
 /** Address for an arbitrary point tapped on the map. */

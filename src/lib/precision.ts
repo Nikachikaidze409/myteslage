@@ -9,21 +9,21 @@ export interface Precision {
 
 export function scorePrecision(accuracyMeters: number | null | undefined, ageMs: number): Precision {
   if (accuracyMeters == null || !isFinite(accuracyMeters)) {
-    return { tier: "unusable", label: "Unusable", description: "No accuracy reported", color: "var(--bad)" };
+    return { tier: "unusable", label: "გამოუყენებელი", description: "სიზუსტე უცნობია", color: "var(--bad)" };
   }
   if (ageMs > 60_000) {
-    return { tier: "unusable", label: "Stale", description: `Fix is ${Math.round(ageMs / 1000)}s old`, color: "var(--bad)" };
+    return { tier: "unusable", label: "დაგვიანებული", description: `მონაცემი ${Math.round(ageMs / 1000)} წმ-ისაა`, color: "var(--bad)" };
   }
   if (accuracyMeters > 500) {
-    return { tier: "unusable", label: "Unusable", description: "Likely IP-based fallback", color: "var(--bad)" };
+    return { tier: "unusable", label: "გამოუყენებელი", description: "სავარაუდოდ IP-ით განსაზღვრული მდებარეობაა", color: "var(--bad)" };
   }
   if (accuracyMeters > 100) {
-    return { tier: "weak", label: "Weak", description: "Too coarse for turn-by-turn", color: "var(--warn)" };
+    return { tier: "weak", label: "სუსტი", description: "მოხვევების ნავიგაციისთვის არასაკმარისია", color: "var(--warn)" };
   }
   if (accuracyMeters > 30) {
-    return { tier: "usable", label: "Usable", description: "OK for coarse routing", color: "var(--warn)" };
+    return { tier: "usable", label: "მისაღები", description: "ზოგადი მარშრუტისთვის საკმარისია", color: "var(--warn)" };
   }
-  return { tier: "good", label: "Good", description: "Navigation-grade fix", color: "var(--good)" };
+  return { tier: "good", label: "კარგი", description: "ნავიგაციისთვის ზუსტი მდებარეობაა", color: "var(--good)" };
 }
 
 export function formatCoord(n: number): string {

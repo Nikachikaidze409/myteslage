@@ -19,14 +19,14 @@ export interface ResolvedLocation {
 async function nameForPoint(lat: number, lng: number): Promise<{ name: string; address: string }> {
   try {
     const res = await fetch(
-      `${MAPS_API}/maps/api/geocode/json?latlng=${lat},${lng}&language=en&key=${encodeURIComponent(googleKey())}`,
+      `${MAPS_API}/maps/api/geocode/json?latlng=${lat},${lng}&language=ka&region=ge&key=${encodeURIComponent(googleKey())}`,
     );
-    if (!res.ok) return { name: "Shared location", address: "" };
+    if (!res.ok) return { name: "გაზიარებული მდებარეობა", address: "" };
     const json = (await res.json()) as { results?: { formatted_address?: string }[] };
     const address = json.results?.[0]?.formatted_address ?? "";
-    return { name: address || "Shared location", address };
+    return { name: address || "გაზიარებული მდებარეობა", address };
   } catch {
-    return { name: "Shared location", address: "" };
+    return { name: "გაზიარებული მდებარეობა", address: "" };
   }
 }
 
@@ -41,6 +41,7 @@ async function searchText(query: string, bias?: { lat: number; lng: number }) {
     body: JSON.stringify({
       textQuery: query,
       regionCode: "GE",
+      languageCode: "ka",
       maxResultCount: 1,
       ...(bias
         ? { locationBias: { circle: { center: { latitude: bias.lat, longitude: bias.lng }, radius: 50000 } } }

@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Serve Georgian glyphs from bundled Noto Sans Georgian files and keep them first for `lang="ka"`, so rendering never depends on device fonts.

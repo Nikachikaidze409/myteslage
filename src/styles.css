@@ -1,7 +1,10 @@
 @import "tailwindcss" source(none);
-@import "@fontsource/noto-sans-georgian/400.css";
-@import "@fontsource/noto-sans-georgian/600.css";
-@import "@fontsource/noto-sans-georgian/700.css";
+@import "@fontsource/noto-sans-georgian/georgian-400.css";
+@import "@fontsource/noto-sans-georgian/georgian-500.css";
+@import "@fontsource/noto-sans-georgian/georgian-600.css";
+@import "@fontsource/noto-sans-georgian/georgian-700.css";
+@import "@fontsource/noto-sans-georgian/georgian-800.css";
+@import "@fontsource/noto-sans-georgian/georgian-900.css";
 @import "@fontsource/noto-sans-armenian/400.css";
 @import "@fontsource/noto-sans-armenian/600.css";
 @import "@fontsource/noto-sans-armenian/700.css";
@@ -164,6 +167,19 @@
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
     letter-spacing: -0.01em;
+  }
+
+  /* Georgian glyphs are served with the app, never from the visitor's OS. */
+  :lang(ka) {
+    font-family: "Noto Sans Georgian", "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  :lang(ka) h1,
+  :lang(ka) h2,
+  :lang(ka) h3,
+  :lang(ka) h4,
+  :lang(ka) .font-display {
+    font-family: "Noto Sans Georgian", "Noto Sans", ui-sans-serif, system-ui, sans-serif;
   }
 }
 

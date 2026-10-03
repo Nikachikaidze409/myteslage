@@ -1,3 +1,4 @@
+import { tr } from "@/lib/map-lang";
 export function FeasibilityNote() {
   return (
     <details className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
@@ -29,4 +30,3 @@ export function FeasibilityNote() {
     </details>
   );
 import { tr } from "@/lib/map-lang";
-}

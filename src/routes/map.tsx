@@ -70,6 +70,7 @@ import {
 } from "@/lib/remote-state";
 import type { PairedView } from "@/lib/pair-channel";
 import { AM_HOSTS, APP_MAP_URL } from "@/lib/market";
+import { tr, getMapLang, setMapLang } from "@/lib/map-lang";
 
 
 const MapView = lazy(() =>
@@ -102,11 +103,11 @@ export const Route = createFileRoute("/map")({
 });
 
 const MAP_CATEGORIES: { key: string; label: string; emoji: string }[] = [
-  { key: "supercharger", label: "დამუხტვა", emoji: "⚡" },
-  { key: "gas", label: "საწვავი", emoji: "⛽" },
-  { key: "food", label: "საკვები", emoji: "🍽" },
-  { key: "coffee", label: "ყავა", emoji: "☕" },
-  { key: "parking", label: "პარკინგი", emoji: "🅿" },
+  { key: "supercharger", label: tr("დამუხტვა", "Լիցքավորում"), emoji: "⚡" },
+  { key: "gas", label: tr("საწვავი", "Վառելիք"), emoji: "⛽" },
+  { key: "food", label: tr("საკვები", "Սնունդ"), emoji: "🍽" },
+  { key: "coffee", label: tr("ყავა", "Սուրճ"), emoji: "☕" },
+  { key: "parking", label: tr("პარკინგი", "Կայանատեղի"), emoji: "🅿" },
 ];
 
 // Diagnostics formatting only — never renders coordinates.
@@ -311,8 +312,8 @@ function Index() {
     setRerouting(false);
     setPairNote(
       remoteState === "disconnected_by_user"
-        ? "ტელეფონი გაითიშა — ნავიგაცია მანქანის GPS-ით გრძელდება."
-        : "ტელეფონთან კავშირი გაწყდა — ნავიგაცია მანქანის GPS-ით გრძელდება.",
+        ? tr("ტელეფონი გაითიშა — ნავიგაცია მანქანის GPS-ით გრძელდება.", "Հեռախոսն անջատվեց — նավիգացիան շարունակվում է մեքենայի GPS-ով։")
+        : tr("ტელეფონთან კავშირი გაწყდა — ნავიგაცია მანქანის GPS-ით გრძელდება.", "Հեռախոսի հետ կապը կորավ — նավիգացիան շարունակվում է մեքենայի GPS-ով։"),
     );
   }, [remoteState, hudMode]);
 
@@ -496,7 +497,7 @@ function Index() {
       snapPromise
         .then((snappedDest) =>
           computeRoute({
-            data: {
+            data: { lang: getMapLang(),
               origin: { lat: originFix.lat, lng: originFix.lng },
               destination: snappedDest,
               purpose,
@@ -563,7 +564,7 @@ function Index() {
         })
         .catch((e: unknown) => {
           if (!routeCtl.current.isCurrent(requestId)) return;
-          const message = e instanceof Error ? e.message : "მარშრუტი ვერ მოიძებნა";
+          const message = e instanceof Error ? e.message : tr("მარშრუტი ვერ მოიძებნა", "Երթուղի չի գտնվել");
           const limited = parseRateLimit(message);
           const now = Date.now();
 
@@ -596,7 +597,7 @@ function Index() {
             limited
               ? hasLiveRoute
                 ? null
-                : "მარშრუტის სერვისი დატვირთულია — მალე ხელახლა ვცდით."
+                : tr("მარშრუტის სერვისი დატვირთულია — მალე ხელახლა ვცდით.", "Երթուղու ծառայությունը ծանրաբեռնված է — շուտով կրկին կփորձենք։")
               : message,
           );
           if (hasLiveRoute) return;
@@ -613,7 +614,7 @@ function Index() {
                 durationSeconds: cached.durationSeconds,
                 encodedPolyline: cached.encodedPolyline,
                 steps: [],
-                label: "შენახული",
+                label: tr("შენახული", "Պահպանված"),
               },
             ]);
             setSelectedRouteIdx(0);
@@ -654,7 +655,7 @@ function Index() {
     }
     const routeFix = lastRouteUsableFixRef.current;
     if (!routeFix) {
-      setRouteError("ველოდებით მდებარეობას Tesla-ს ბრაუზერიდან ან დაკავშირებული ტელეფონიდან.");
+      setRouteError(tr("ველოდებით მდებარეობას Tesla-ს ბრაუზერიდან ან დაკავშირებული ტელეფონიდან.", "Սպասում ենք դիրքին Tesla-ի բրաուզերից կամ միացված հեռախոսից։"));
       return;
     }
     pushRecent({ lat: destination.lat, lng: destination.lng, name: destination.name });
@@ -794,15 +795,15 @@ function Index() {
   const handleMapClick = useCallback(
     (p: { lat: number; lng: number; placeId?: string }) => {
       if (navigating || hudMode) return;
-      setPreview({ lat: p.lat, lng: p.lng, name: "იტვირთება…" });
+      setPreview({ lat: p.lat, lng: p.lng, name: tr("იტვირთება…", "Բեռնվում է…") });
       const load = p.placeId
-        ? placeDetails({ data: { placeId: p.placeId } }).then((d) => ({
+        ? placeDetails({ data: { lang: getMapLang(), placeId: p.placeId } }).then((d) => ({
             lat: d.lat,
             lng: d.lng,
             name: d.name,
             address: d.address,
           }))
-        : reverseGeocode({ data: { lat: p.lat, lng: p.lng } }).then((r) => ({
+        : reverseGeocode({ data: { lang: getMapLang(), lat: p.lat, lng: p.lng } }).then((r) => ({
             lat: p.lat,
             lng: p.lng,
             name: r.name,
@@ -810,7 +811,7 @@ function Index() {
           }));
       load
         .then(setPreview)
-        .catch(() => setPreview({ lat: p.lat, lng: p.lng, name: "მონიშნული ადგილი" }));
+        .catch(() => setPreview({ lat: p.lat, lng: p.lng, name: tr("მონიშნული ადგილი", "Նշված վայր") }));
     },
     [navigating, hudMode],
   );
@@ -825,7 +826,7 @@ function Index() {
       }
       setPoiCat(cat);
       setPoiLoading(true);
-      searchNearby({ data: { lat: fix.lat, lng: fix.lng, category: cat } })
+      searchNearby({ data: { lang: getMapLang(), lat: fix.lat, lng: fix.lng, category: cat } })
         .then((r) => setPois(r.places.slice(0, 12)))
         .catch(() => setPois([]))
         .finally(() => setPoiLoading(false));
@@ -861,7 +862,7 @@ function Index() {
       durationSeconds: n.durationSeconds,
       encodedPolyline: n.encodedPolyline,
       steps: n.steps,
-      label: "ტელეფონიდან",
+      label: tr("ტელეფონიდან", "Հեռախոսից"),
     }]);
     setSelectedRouteIdx(0);
     setNavigating(true);
@@ -885,11 +886,11 @@ function Index() {
         >
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
-              TMap · საქართველო
+              {tr("TMap · საქართველო", "TMap · Վրաստան")}
             </div>
             <div className="flex items-center justify-between gap-2">
               <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
-                ბრაუზერული ნავიგაცია
+                {tr("ბრაუზერული ნავიგაცია", "Բրաուզերային նավիգացիա")}
               </h1>
               <div className="flex items-center gap-1.5">
                 <button
@@ -897,13 +898,13 @@ function Index() {
                   onClick={() => void signOutAndReturn()}
                   className="rounded-lg border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted"
                 >
-                  გამოსვლა
+                  {tr("გამოსვლა", "Ելք")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(false)}
-                  aria-label="პანელის დამალვა"
-                  title="პანელის დამალვა"
+                  aria-label={tr("პანელის დამალვა", "Թաքցնել վահանակը")}
+                  title={tr("პანელის დამალვა", "Թաքցնել վահանակը")}
                   className="grid h-8 w-8 place-items-center rounded-lg border border-border bg-white text-lg font-bold leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   ✕
@@ -912,7 +913,7 @@ function Index() {
             </div>
             {!online && (
               <div className="mt-2 rounded-lg border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/5 px-2 py-1 text-[11px] font-semibold text-[color:var(--bad)]">
-                ინტერნეტი არ არის — გამოიყენება შენახული მარშრუტი
+                {tr("ინტერნეტი არ არის — გამოიყენება შენახული მარშრუტი", "Ինտերնետ չկա — օգտագործվում է պահպանված երթուղին")}
               </div>
             )}
           </header>
@@ -959,10 +960,10 @@ function Index() {
           {error && (
             <div className="rounded-2xl border border-[color:var(--bad)]/40 bg-[color:var(--bad)]/5 p-4">
               <div className="text-sm font-semibold text-[color:var(--bad)]">
-                მდებარეობას შემოწმება სჭირდება
+                {tr("მდებარეობას შემოწმება სჭირდება", "Դիրքը ստուգման կարիք ունի")}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                {error} თუ მოძრაობისას Tesla-ს ბრაუზერი აღარ განახლდება, დააკავშირეთ ტელეფონი ზემოთ.
+                {error} {tr("თუ მოძრაობისას Tesla-ს ბრაუზერი აღარ განახლდება, დააკავშირეთ ტელეფონი ზემოთ.", "Եթե շարժման ընթացքում Tesla-ի բրաուզերը չի թարմացվում, միացրեք հեռախոսը վերևում։")}
               </p>
             </div>
           )}
@@ -1028,12 +1029,12 @@ function Index() {
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              aria-label="პანელის ჩვენება"
-              title="პანელის ჩვენება"
+              aria-label={tr("პანელის ჩვენება", "Ցույց տալ վահանակը")}
+              title={tr("პანელის ჩვენება", "Ցույց տալ վահանակը")}
               className="absolute left-4 top-4 z-40 flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur hover:bg-white"
             >
               <span className="text-lg leading-none">☰</span>
-              პანელი
+              {tr("პანელი", "Վահանակ")}
             </button>
           )}
           {/* Entry point for phone remote mode — always reachable while driving direct. */}
@@ -1041,12 +1042,12 @@ function Index() {
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              aria-label="ტელეფონის დაკავშირება"
-              title="გამოიყენეთ ტელეფონი დისტანციური მართვისთვის"
+              aria-label={tr("ტელეფონის დაკავშირება", "Միացնել հեռախոսը")}
+              title={tr("გამოიყენეთ ტელეფონი დისტანციური მართვისთვის", "Օգտագործեք հեռախոսը հեռակառավարման համար")}
               className="absolute bottom-20 right-4 z-40 flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur hover:bg-white"
             >
               <span aria-hidden>📱</span>
-              {remoteState === "connected" ? "ტელეფონი დაკავშირებულია" : "ტელეფონის დაკავშირება"}
+              {remoteState === "connected" ? tr("ტელეფონი დაკავშირებულია", "Հեռախոսը միացված է") : tr("ტელეფონის დაკავშირება", "Միացնել հեռախոսը")}
             </button>
           )}
           {!navigating && !hudMode && (
@@ -1073,7 +1074,7 @@ function Index() {
                 ))}
                 {poiLoading && (
                   <span className="self-center rounded-full bg-white/90 px-3 py-1 text-xs text-muted-foreground shadow">
-                    იძებნება…
+                    {tr("იძებნება…", "Որոնվում է…")}
                   </span>
                 )}
               </div>
@@ -1091,7 +1092,7 @@ function Index() {
                 )}
                 {fix && (
                   <div className="mt-1 text-sm font-semibold text-primary">
-                    {(distanceMeters(fix, preview) / 1000).toFixed(1)} კმ დაშორებით
+                    {(distanceMeters(fix, preview) / 1000).toFixed(1)} {tr("კმ დაშორებით", "կմ հեռավորության վրա")}
                   </div>
                 )}
                 <div className="mt-4 flex gap-3">
@@ -1100,14 +1101,14 @@ function Index() {
                     onClick={() => startTo(preview)}
                     className="flex-1 rounded-2xl bg-primary px-5 py-3 text-base font-bold text-primary-foreground shadow-lg"
                   >
-                    მარშრუტი
+                    {tr("მარშრუტი", "Երթուղի")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setPreview(null)}
                     className="rounded-2xl border border-border px-5 py-3 text-base font-semibold text-muted-foreground hover:bg-muted"
                   >
-                    გაუქმება
+                    {tr("გაუქმება", "Չեղարկել")}
                   </button>
                 </div>
               </div>
@@ -1129,14 +1130,14 @@ function Index() {
                     : "border-border bg-white/90 text-foreground hover:bg-white"
               }`}
             >
-              {showTraffic ? "ტრაფიკი ჩართულია" : "ტრაფიკი გამორთულია"}
+              {showTraffic ? tr("ტრაფიკი ჩართულია", "Երթևեկությունը միացված է") : tr("ტრაფიკი გამორთულია", "Երթևեկությունն անջատված է")}
             </button>
             <button
               type="button"
               disabled={!vector3dAvailable}
               onClick={() => vector3dAvailable && setTilt3d((v) => !v)}
-              aria-label="3D ან 2D რუკის არჩევა"
-              title={vector3dAvailable ? "3D და 2D ხედებს შორის გადართვა" : "ამ ეკრანზე 3D ხედი არ არის მხარდაჭერილი"}
+              aria-label={tr("3D ან 2D რუკის არჩევა", "Ընտրել 3D կամ 2D քարտեզ")}
+              title={vector3dAvailable ? tr("3D და 2D ხედებს შორის გადართვა", "Փոխարկել 3D և 2D տեսքերի միջև") : tr("ამ ეკრანზე 3D ხედი არ არის მხარდაჭერილი", "Այս էկրանին 3D տեսքը չի աջակցվում")}
               className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
                 !vector3dAvailable
                   ? "cursor-not-allowed border-border bg-white/70 text-muted-foreground"
@@ -1153,16 +1154,26 @@ function Index() {
               type="button"
               onClick={toggleDarkMap}
               aria-pressed={darkMap}
-              aria-label="მუქი რუკის გადართვა"
-              title="დღისა და ღამის ფერებს შორის გადართვა"
+              aria-label={tr("მუქი რუკის გადართვა", "Մուգ քարտեզի փոխարկում")}
+              title={tr("დღისა და ღამის ფერებს შორის გადართვა", "Փոխարկել ցերեկային և գիշերային գույների միջև")}
               className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
                 darkMap
                   ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
                   : "border-border bg-white/90 text-foreground hover:bg-white"
               }`}
             >
-              {darkMap ? "ღამე" : "დღე"}
+              {darkMap ? tr("ღამე", "Գիշեր") : tr("დღე", "Ցերեկ")}
             </button>
+            <button
+              type="button"
+              onClick={() => setMapLang(getMapLang() === "hy" ? "ka" : "hy")}
+              aria-label={tr("ენის შეცვლა: სომხური", "Փոխել լեզուն՝ վրացերեն")}
+              title={tr("რუკა სომხურად", "Քարտեզը վրացերենով")}
+              className="mt-2 w-full rounded-full border border-border bg-white/90 px-3 py-1.5 text-xs font-semibold text-foreground shadow-md backdrop-blur transition hover:bg-white"
+            >
+              {getMapLang() === "hy" ? "🇬🇪 ქართ" : "🇦🇲 Հայ"}
+            </button>
+
 
 
           </div>
@@ -1198,7 +1209,7 @@ function Index() {
                 onClick={() => pairControlsRef.current?.disconnect()}
                 className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
               >
-                გათიშვა
+                {tr("გათიშვა", "Անջատել")}
               </button>
             </div>
           )}
@@ -1207,7 +1218,7 @@ function Index() {
             <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
               <div className="flex items-center gap-2 rounded-full border border-border bg-white/95 px-4 py-1.5 text-sm font-medium text-foreground shadow-lg backdrop-blur">
                 <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden />
-                მარშრუტი ახლდება…
+                {tr("მარშრუტი ახლდება…", "Երթուղին թարմացվում է…")}
               </div>
             </div>
           )}
@@ -1251,7 +1262,7 @@ function Index() {
               <div className="flex items-center gap-3 rounded-full border border-border bg-white/95 px-4 py-2 text-sm shadow-lg backdrop-blur">
                 <span className="text-lg" aria-hidden>↻</span>
                 <span className="font-medium text-foreground">
-                  გაგრძელდა გზა: <span className="font-semibold">{resumedName}</span>
+                  {tr("გაგრძელდა გზა:", "Երթուղին շարունակվեց՝")} <span className="font-semibold">{resumedName}</span>
                 </span>
                 <button
                   type="button"
@@ -1264,7 +1275,7 @@ function Index() {
                   }}
                   className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
                 >
-                  გაუქმება
+                  {tr("გაუქმება", "Չեղարկել")}
                 </button>
               </div>
             </div>
@@ -1273,14 +1284,14 @@ function Index() {
           <ClientOnly
             fallback={
               <div className="flex h-full items-center justify-center text-muted-foreground">
-                რუკა იტვირთება…
+                {tr("რუკა იტვირთება…", "Քարտեզը բեռնվում է…")}
               </div>
             }
           >
             <Suspense
               fallback={
                 <div className="flex h-full items-center justify-center text-muted-foreground">
-                  რუკა იტვირთება…
+                  {tr("რუკა იტვირთება…", "Քարտեզը բեռնվում է…")}
                 </div>
               }
             >

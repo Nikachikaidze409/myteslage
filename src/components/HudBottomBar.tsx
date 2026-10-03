@@ -1,5 +1,6 @@
 import type { RouteResult } from "@/lib/routes.functions";
 import type { Fix } from "./StatusPanel";
+import { tr } from "@/lib/map-lang";
 
 interface Props {
   route: RouteResult;
@@ -16,10 +17,10 @@ function fmtDist(m: number) {
 }
 function fmtDuration(s: number) {
   const total = Math.max(0, Math.round(s / 60));
-  if (total < 60) return `${total} წთ`;
+  if (total < 60) return `${total} ${tr("წთ", "ր")}`;
   const h = Math.floor(total / 60);
   const m = total % 60;
-  return `${h} სთ ${m} წთ`;
+  return `${h} ${tr("სთ", "ժ")} ${m} ${tr("წთ", "ր")}`;
 }
 function fmtEta(s: number) {
   const d = new Date(Date.now() + s * 1000);
@@ -34,20 +35,20 @@ export function HudBottomBar({ route, fix, onCancel, onRecenter, muted, onToggle
     <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 border-t border-white/10 bg-slate-950/85 px-8 py-5 text-white backdrop-blur-md">
       <div className="mx-auto flex max-w-[1400px] items-center gap-6">
         <div className="flex flex-col">
-          <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">მისვლის დრო</div>
+          <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">{tr("მისვლის დრო", "Ժամանում")}</div>
           <div className="font-display text-3xl font-bold leading-none">{fmtEta(liveDuration)}</div>
         </div>
         <div className="flex flex-col">
-          <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">დარჩენილი</div>
+          <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">{tr("დარჩენილი", "Մնացել է")}</div>
           <div className="font-display text-3xl font-bold leading-none">{fmtDist(remaining)}</div>
         </div>
         <div className="flex flex-col">
-          <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">დრო</div>
+          <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">{tr("დრო", "Ժամանակ")}</div>
           <div className="font-display text-3xl font-bold leading-none">{fmtDuration(route.durationSeconds)}</div>
         </div>
         {speedKmh != null && (
           <div className="flex flex-col">
-            <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">სიჩქარე</div>
+            <div className="text-[11px] font-bold uppercase tracking-widest opacity-70">{tr("სიჩქარე", "Արագություն")}</div>
             <div className="font-display text-3xl font-bold leading-none">{speedKmh} <span className="text-sm opacity-70">km/h</span></div>
           </div>
         )}
@@ -58,21 +59,21 @@ export function HudBottomBar({ route, fix, onCancel, onRecenter, muted, onToggle
             onClick={onRecenter}
             className="h-14 rounded-2xl border border-white/20 bg-white/10 px-5 text-base font-semibold hover:bg-white/20"
           >
-            ცენტრში
+            {tr("ცენტრში", "Կենտրոնացնել")}
           </button>
           <button
             type="button"
             onClick={onToggleMute}
             className="h-14 rounded-2xl border border-white/20 bg-white/10 px-5 text-base font-semibold hover:bg-white/20"
           >
-            {muted ? "ხმის ჩართვა" : "დადუმება"}
+            {muted ? tr("ხმის ჩართვა", "Միացնել ձայնը") : tr("დადუმება", "Անջատել ձայնը")}
           </button>
           <button
             type="button"
             onClick={onCancel}
             className="h-14 rounded-2xl bg-[color:var(--bad)] px-6 text-base font-bold text-white shadow-lg hover:brightness-110"
           >
-            გზის დასრულება
+            {tr("გზის დასრულება", "Ավարտել երթուղին")}
           </button>
         </div>
       </div>

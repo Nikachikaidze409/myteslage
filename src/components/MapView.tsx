@@ -4,6 +4,7 @@ import { createMap } from "@/lib/maps/googleMapsService";
 import { NavigationEngine, type NavDebug, type NavSnapshot } from "@/lib/maps/navigationEngine";
 import type { RouteStep } from "@/lib/routes.functions";
 import type { Fix } from "./StatusPanel";
+import { tr } from "@/lib/map-lang";
 
 export interface LiveProgress {
   /** metres left to the destination along the active route */
@@ -345,7 +346,7 @@ export function MapView({
           }
           setRetrying(false);
           setMapError(
-            "რუკის ჩატვირთვას ჩვეულებრივზე მეტი დრო სჭირდება. შეამოწმეთ მანქანის ინტერნეტი და ხელახლა სცადეთ.",
+            tr("რუკის ჩატვირთვას ჩვეულებრივზე მეტი დრო სჭირდება. შეამოწმეთ მანქანის ინტერნეტი და ხელახლა სცადეთ.", "Քարտեզի բեռնումը սովորականից երկար է տևում։ Ստուգեք մեքենայի ինտերնետը և կրկին փորձեք։"),
           );
         });
     };
@@ -483,7 +484,7 @@ export function MapView({
         new g.maps.Marker({
           map,
           position: { lat: w.lat, lng: w.lng },
-          title: w.name ?? "გაჩერება",
+          title: w.name ?? tr("გაჩერება", "Կանգառ"),
           label: { text: "⚡", fontSize: "18px" },
           optimized: true,
         }),
@@ -503,12 +504,12 @@ export function MapView({
     }
     if (destMarker.current) {
       destMarker.current.setPosition(destination);
-      destMarker.current.setTitle(destination.name ?? "დანიშნულების ადგილი");
+      destMarker.current.setTitle(destination.name ?? tr("დანიშნულების ადგილი", "Նպատակակետ"));
     } else {
       destMarker.current = new g.maps.Marker({
         map,
         position: destination,
-        title: destination.name ?? "დანიშნულების ადგილი",
+        title: destination.name ?? tr("დანიშნულების ადგილი", "Նպատակակետ"),
       });
     }
   }, [destination, mapReady]);
@@ -527,12 +528,12 @@ export function MapView({
     const pos = { lat: preview.lat, lng: preview.lng };
     if (previewMarker.current) {
       previewMarker.current.setPosition(pos);
-      previewMarker.current.setTitle(preview.name ?? "არჩეული ადგილი");
+      previewMarker.current.setTitle(preview.name ?? tr("არჩეული ადგილი", "Ընտրված վայր"));
     } else {
       previewMarker.current = new g.maps.Marker({
         map,
         position: pos,
-        title: preview.name ?? "არჩეული ადგილი",
+        title: preview.name ?? tr("არჩეული ადგილი", "Ընտրված վայր"),
         zIndex: 900,
         icon: {
           path: g.maps.SymbolPath.CIRCLE,
@@ -607,14 +608,14 @@ export function MapView({
 
       {retrying && !mapError && (
         <div className="pointer-events-none absolute inset-0 z-40 grid place-items-center rounded-2xl bg-background/80">
-          <div className="animate-pulse text-sm font-semibold text-muted-foreground">რუკა იტვირთება…</div>
+          <div className="animate-pulse text-sm font-semibold text-muted-foreground">{tr("რუკა იტვირთება…", "Քարտեզը բեռնվում է…")}</div>
         </div>
       )}
 
       {mapError && (
         <div className="absolute inset-0 z-40 grid place-items-center rounded-2xl bg-background/95 p-6 text-center">
           <div className="max-w-md">
-            <h2 className="font-display text-lg font-bold text-foreground">რუკა ვერ ჩაიტვირთა</h2>
+            <h2 className="font-display text-lg font-bold text-foreground">{tr("რუკა ვერ ჩაიტვირთა", "Քարտեզը չհաջողվեց բեռնել")}</h2>
             <p className="mt-2 text-sm text-muted-foreground">{mapError}</p>
             <button
               type="button"
@@ -627,7 +628,7 @@ export function MapView({
               }}
               className="mt-5 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground"
             >
-              ხელახლა ცდა
+              {tr("ხელახლა ცდა", "Կրկին փորձել")}
             </button>
           </div>
         </div>
@@ -636,15 +637,15 @@ export function MapView({
       {rerouting && (
         <div className="pointer-events-none absolute inset-x-0 top-24 z-30 flex justify-center">
           <div className="animate-pulse rounded-full bg-foreground/85 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-background shadow-lg">
-            მარშრუტი ახლდება…
+            {tr("მარშრუტი ახლდება…", "Երթուղին թարմացվում է…")}
           </div>
         </div>
       )}
 
       {!rerouting && weakSignal && (
         <span
-          aria-label="სუსტი GPS სიგნალი"
-          title="სუსტი GPS სიგნალი"
+          aria-label={tr("სუსტი GPS სიგნალი", "Թույլ GPS ազդանշան")}
+          title={tr("სუსტი GPS სიგნალი", "Թույլ GPS ազդանշան")}
           className="pointer-events-none absolute right-3 top-3 z-30 h-2 w-2 rounded-full bg-amber-400/70 shadow-sm"
         />
       )}
@@ -652,8 +653,8 @@ export function MapView({
       <button
         type="button"
         onClick={recenterOnMe}
-        aria-label="ჩემს მდებარეობაზე დაბრუნება"
-        title="ჩემი მდებარეობა"
+        aria-label={tr("ჩემს მდებარეობაზე დაბრუნება", "Վերադառնալ իմ դիրքին")}
+        title={tr("ჩემი მდებარეობა", "Իմ դիրքը")}
         className={`absolute bottom-8 left-4 z-30 flex items-center gap-2 rounded-full border px-4 py-2.5 shadow-lg backdrop-blur transition ${
           followUi
             ? "border-primary bg-primary text-primary-foreground"
@@ -666,7 +667,7 @@ export function MapView({
           <circle cx="12" cy="12" r="3" />
           <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
         </svg>
-        <span className="text-sm font-semibold">ჩემი მდებარეობა</span>
+        <span className="text-sm font-semibold">{tr("ჩემი მდებარეობა", "Իմ դիրքը")}</span>
       </button>
 
       {/* Large touch-friendly zoom controls */}
@@ -677,7 +678,7 @@ export function MapView({
       >
         <button
           type="button"
-          aria-label="რუკის მოახლოება"
+          aria-label={tr("რუკის მოახლოება", "Մոտեցնել քարտեզը")}
           onClick={() => {
             const map = mapRef.current;
             if (!map) return;
@@ -693,7 +694,7 @@ export function MapView({
         <div className={`h-px ${darkMode ? "bg-slate-700" : "bg-border"}`} />
         <button
           type="button"
-          aria-label="რუკის დაშორება"
+          aria-label={tr("რუკის დაშორება", "Հեռացնել քարտեզը")}
           onClick={() => {
             const map = mapRef.current;
             if (!map) return;

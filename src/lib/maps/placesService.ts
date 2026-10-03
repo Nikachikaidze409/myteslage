@@ -1,4 +1,5 @@
 // Debounced, cached, de-duplicated access to Google Places / Geocoding.
+import { getMapLang } from "@/lib/map-lang";
 // Components call this instead of the server functions directly.
 
 import {
@@ -59,7 +60,7 @@ export async function suggestPlaces(
   if (hit) return hit;
   return dedupe(key, async () => {
     const res = await autocompletePlaces({
-      data: { query: q, ...(origin ? { lat: origin.lat, lng: origin.lng } : {}) },
+      data: { lang: getMapLang(), query: q, ...(origin ? { lat: origin.lat, lng: origin.lng } : {}) },
     });
     suggestCache.set(key, res.suggestions);
     return res.suggestions;
@@ -71,7 +72,7 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetail> {
   const hit = detailCache.get(key);
   if (hit) return hit;
   return dedupe(key, async () => {
-    const d = await placeDetails({ data: { placeId } });
+    const d = await placeDetails({ data: { lang: getMapLang(), placeId } });
     detailCache.set(key, d);
     return d;
   });
@@ -82,7 +83,7 @@ export async function addressAt(lat: number, lng: number): Promise<{ name: strin
   const hit = geocodeCache.get(key);
   if (hit) return hit;
   return dedupe(key, async () => {
-    const r = await reverseGeocode({ data: { lat, lng } });
+    const r = await reverseGeocode({ data: { lang: getMapLang(), lat, lng } });
     geocodeCache.set(key, r);
     return r;
   });

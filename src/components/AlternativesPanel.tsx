@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type { RouteResult } from "@/lib/routes.functions";
 import type { RoutePrefs } from "@/lib/favorites";
+import { tr } from "@/lib/map-lang";
 
 interface Props {
   routes: RouteResult[];
@@ -21,14 +22,14 @@ function AlternativesPanelImpl({
 
   const toggle = (k: keyof RoutePrefs) => onPrefsChange({ ...prefs, [k]: !prefs[k] });
   const toggles: { k: keyof RoutePrefs; label: string }[] = [
-    { k: "avoidHighways", label: "მაგისტრალების არიდება" },
-    { k: "avoidUnpaved", label: "გრუნტის გზების არიდება" },
+    { k: "avoidHighways", label: tr("მაგისტრალების არიდება", "Խուսափել մայրուղիներից") },
+    { k: "avoidUnpaved", label: tr("გრუნტის გზების არიდება", "Խուսափել չասֆալտապատ ճանապարհներից") },
   ];
 
   return (
     <div className="rounded-2xl border border-border bg-white p-4">
       <div className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-        მარშრუტის არჩევანი
+        {tr("მარშრუტის არჩევანი", "Երթուղու ընտրություն")}
       </div>
       <ul className="mb-3 flex flex-col gap-2">
         {routes.map((r, i) => {
@@ -47,10 +48,10 @@ function AlternativesPanelImpl({
               >
                 <div>
                   <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                    {r.label ?? (i === 0 ? "უსწრაფესი" : `ალტერნატიული ${i}`)}
+                    {r.label ?? (i === 0 ? tr("უსწრაფესი", "Ամենաարագ") : `${tr("ალტერნატიული", "Այլընտրանքային")} ${i}`)}
                     {hasWarning && (
                       <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-700" title={(r.warnings ?? []).join(" · ")}>
-                        ⚠ რთული გზა
+                        {tr("⚠ რთული გზა", "⚠ Դժվար ճանապարհ")}
                       </span>
                     )}
                   </div>
@@ -63,7 +64,7 @@ function AlternativesPanelImpl({
                     selected ? "text-primary" : "text-foreground"
                   }`}
                 >
-                  {Math.round(r.durationSeconds / 60)} წთ
+                  {Math.round(r.durationSeconds / 60)} {tr("წთ", "ր")}
                 </div>
               </button>
             </li>

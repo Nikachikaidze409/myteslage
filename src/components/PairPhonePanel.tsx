@@ -6,6 +6,7 @@ import {
   remoteStateLabel,
   type RemoteState,
 } from "@/lib/remote-state";
+import { tr } from "@/lib/map-lang";
 
 export interface PairControls {
   /** Terminate the session from the Tesla side (notifies the phone). */
@@ -250,7 +251,7 @@ export function PairPhonePanel({
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="font-display mb-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-        ტელეფონით მართვა
+        {tr("ტელეფონით მართვა", "Կառավարում հեռախոսով")}
       </div>
 
       {!code && (
@@ -263,10 +264,10 @@ export function PairPhonePanel({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium text-muted-foreground">
-              {state === "disconnected_by_user" ? "ტელეფონი გაითიშა" : "მართეთ ეკრანი ტელეფონით"}
+              {state === "disconnected_by_user" ? tr("ტელეფონი გაითიშა", "Հեռախոսն անջատվեց") : tr("მართეთ ეკრანი ტელეფონით", "Կառավարեք էկրանը հեռախոսով")}
             </p>
             <p className="font-display truncate text-base font-bold text-foreground">
-              {state === "pairing" ? "კოდი იქმნება…" : "ამ ეკრანის მართვა"}
+              {state === "pairing" ? tr("კოდი იქმნება…", "Կոդը ստեղծվում է…") : tr("ამ ეკრანის მართვა", "Կառավարել այս էկրանը")}
             </p>
           </div>
           <button
@@ -274,7 +275,7 @@ export function PairPhonePanel({
             disabled={state === "pairing"}
             className="font-display h-10 shrink-0 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition hover:brightness-110 disabled:opacity-60"
           >
-            {state === "pairing" ? "…" : "ტელეფონის დაკავშირება"}
+            {state === "pairing" ? "…" : tr("ტელეფონის დაკავშირება", "Միացնել հեռախոսը")}
           </button>
         </div>
       )}
@@ -282,10 +283,10 @@ export function PairPhonePanel({
       {code && (
         <div className="space-y-4">
           <div className="flex items-center gap-4 rounded-2xl bg-muted/60 p-4">
-            <img src={qrUrl} alt="QR კოდი" className="h-[92px] w-[92px] shrink-0 rounded-lg bg-white" />
+            <img src={qrUrl} alt={tr("QR კოდი", "QR կոդ")} className="h-[92px] w-[92px] shrink-0 rounded-lg bg-white" />
             <div className="min-w-0 flex-1 space-y-2">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">მოწყობილობის დაკავშირება</p>
+                <p className="text-xs font-medium text-muted-foreground">{tr("მოწყობილობის დაკავშირება", "Սարքի միացում")}</p>
                 <p className="font-display text-xl font-bold tracking-widest text-foreground">{code}</p>
               </div>
               <div
@@ -324,7 +325,7 @@ export function PairPhonePanel({
               onClick={disconnect}
               className="h-8 shrink-0 rounded-lg border border-border bg-white px-3 text-[11px] font-medium text-muted-foreground transition hover:bg-muted"
             >
-              გათიშვა
+              {tr("გათიშვა", "Անջատել")}
             </button>
           </div>
         </div>

@@ -43,7 +43,7 @@ function regionFor(lat?: number, lng?: number): { codes: string[]; region: strin
 }
 
 /** Input check for autocompletePlaces (shared with the mobile API). */
-export const autocompletePlacesInput = (data: { query: string; lat?: number; lng?: number }) => {
+export const autocompletePlacesInput = (data: { query: string; lat?: number; lng?: number; lang?: string }) => {
   if (!data || typeof data.query !== "string") throw new Error("Invalid query");
   return data;
 };
@@ -71,7 +71,7 @@ export async function autocompletePlacesCore(
     body: JSON.stringify({
       input: q,
       includedRegionCodes: region.codes,
-      languageCode: "ka",
+      languageCode: (data.lang === "hy" ? "hy" : "ka"),
 
       ...(bias ? { locationBias: bias } : {}),
     }),
@@ -114,7 +114,7 @@ export async function autocompletePlacesCore(
     body: JSON.stringify({
       textQuery: q,
       regionCode: region.region,
-      languageCode: "ka",
+      languageCode: (data.lang === "hy" ? "hy" : "ka"),
       maxResultCount: 6,
       ...(bias ? { locationBias: bias } : {}),
     }),
@@ -148,7 +148,7 @@ export const autocompletePlaces = createServerFn({ method: "POST" })
   .handler(({ data }) => autocompletePlacesCore(data));
 
 /** Input check for placeDetails (shared with the mobile API). */
-export const placeDetailsInput = (data: { placeId: string }) => {
+export const placeDetailsInput = (data: { placeId: string; lang?: string }) => {
   if (!data?.placeId) throw new Error("Invalid place");
   return data;
 };
@@ -158,7 +158,7 @@ export async function placeDetailsCore(
   data: ReturnType<typeof placeDetailsInput>,
 ): Promise<PlaceDetail> {
   const res = await fetch(
-    `${PLACES_API}/places/${encodeURIComponent(data.placeId)}?languageCode=ka`,
+    `${PLACES_API}/places/${encodeURIComponent(data.placeId)}?languageCode=${(data.lang === "hy" ? "hy" : "ka")}`,
     {
       headers: {
         "X-Goog-Api-Key": googleKey(),
@@ -192,7 +192,7 @@ export const placeDetails = createServerFn({ method: "POST" })
   .handler(({ data }) => placeDetailsCore(data));
 
 /** Input check for reverseGeocode (shared with the mobile API). */
-export const reverseGeocodeInput = (data: { lat: number; lng: number }) => {
+export const reverseGeocodeInput = (data: { lat: number; lng: number; lang?: string }) => {
   if (typeof data?.lat !== "number" || typeof data?.lng !== "number") {
     throw new Error("Invalid coordinates");
   }
@@ -204,7 +204,7 @@ export async function reverseGeocodeCore(
   data: ReturnType<typeof reverseGeocodeInput>,
 ): Promise<{ name: string; address: string }> {
   const res = await fetch(
-    `${MAPS_API}/maps/api/geocode/json?latlng=${data.lat},${data.lng}&language=ka&region=ge&key=${encodeURIComponent(googleKey())}`,
+    `${MAPS_API}/maps/api/geocode/json?latlng=${data.lat},${data.lng}&language=${(data.lang === "hy" ? "hy" : "ka")}&region=ge&key=${encodeURIComponent(googleKey())}`,
   );
   if (!res.ok) await fail(res, "Reverse geocode");
   const json = (await res.json()) as {

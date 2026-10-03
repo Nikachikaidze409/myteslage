@@ -1,4 +1,5 @@
 import type { LocationStatus } from "@/hooks/useLiveLocation";
+import { tr } from "@/lib/map-lang";
 
 interface Props {
   status: LocationStatus;
@@ -14,14 +15,14 @@ interface Props {
 export function LocationButton({ status, onStart, onStop }: Props) {
   const label =
     status === "live"
-      ? "მდებარეობა ჩართულია"
+      ? tr("მდებარეობა ჩართულია", "Դիրքը միացված է")
       : status === "starting"
-        ? "GPS სიგნალი იძებნება…"
+        ? tr("GPS სიგნალი იძებნება…", "GPS ազդանշանը որոնվում է…")
         : status === "denied"
-          ? "მდებარეობა დაბლოკილია — ჩართეთ ბრაუზერის პარამეტრებში"
+          ? tr("მდებარეობა დაბლოკილია — ჩართეთ ბრაუზერის პარამეტრებში", "Դիրքը արգելափակված է — միացրեք բրաուզերի կարգավորումներում")
           : status === "unavailable"
-            ? "მდებარეობა მიუწვდომელია — ხელახლა სცადეთ"
-            : "მდებარეობის ჩართვა";
+            ? tr("მდებარეობა მიუწვდომელია — ხელახლა სცადეთ", "Դիրքն անհասանելի է — կրկին փորձեք")
+            : tr("მდებარეობის ჩართვა", "Միացնել դիրքը");
 
   const live = status === "live" || status === "starting";
 

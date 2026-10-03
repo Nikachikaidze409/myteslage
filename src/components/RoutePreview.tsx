@@ -1,4 +1,5 @@
 import type { RouteResult } from "@/lib/routes.functions";
+import { tr } from "@/lib/map-lang";
 
 export function RoutePreview({
   route,
@@ -23,7 +24,7 @@ export function RoutePreview({
     <div className="rounded-2xl border border-border bg-white p-5">
       {loading && (
         <div className="text-sm text-muted-foreground">
-          {offRoute ? "მარშრუტს აცდით — ახლდება…" : "მარშრუტი ითვლება…"}
+          {offRoute ? tr("მარშრუტს აცდით — ახლდება…", "Դուք շեղվեցիք երթուղուց — թարմացվում է…") : tr("მარშრუტი ითვლება…", "Երթուղին հաշվարկվում է…")}
         </div>
       )}
       {error && <div className="text-sm text-[color:var(--bad)]">{error}</div>}
@@ -33,7 +34,7 @@ export function RoutePreview({
           onClick={onRetry}
           className="mt-3 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         >
-          ხელახლა ცდა
+          {tr("ხელახლა ცდა", "Կրկին փորձել")}
         </button>
       )}
 
@@ -41,15 +42,15 @@ export function RoutePreview({
         <>
           <div className="flex items-end justify-between">
             <span className="font-display text-3xl font-bold text-foreground">
-              {Math.round(route.durationSeconds / 60)} წთ
+              {Math.round(route.durationSeconds / 60)} {tr("წთ", "ր")}
             </span>
             <span className="font-display text-sm font-bold text-primary">
               {formatEta(route.durationSeconds)}
             </span>
           </div>
           <p className="mt-1 truncate text-sm text-muted-foreground">
-            {(route.distanceMeters / 1000).toFixed(1)} კმ · {destinationName}-მდე
-            {offline && " · შენახული მარშრუტი"}
+            {(route.distanceMeters / 1000).toFixed(1)} {tr("კმ ·", "կմ ·")} {destinationName}{tr("-მდე", "")}
+            {offline && tr(" · შენახული მარშრუტი", " · Պահպանված երթուղի")}
           </p>
         </>
       )}

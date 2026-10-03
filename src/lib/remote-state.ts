@@ -15,6 +15,7 @@ export type RemoteState =
   | "disconnected_by_user"
   | "session_expired"
   | "error";
+import { tr } from "@/lib/map-lang";
 
 /** No heartbeat for this long → the phone may be asleep; show "reconnecting". */
 export const HEARTBEAT_STALE_MS = 6_000;
@@ -58,20 +59,20 @@ export function shouldReturnToDirectMode(s: RemoteState): boolean {
 export function remoteStateLabel(s: RemoteState): string {
   switch (s) {
     case "disconnected":
-      return "არ არის დაკავშირებული";
+      return tr("არ არის დაკავშირებული", "Միացված չէ");
     case "pairing":
-      return "დაკავშირების კოდი იქმნება…";
+      return tr("დაკავშირების კოდი იქმნება…", "Միացման կոդը ստեղծվում է…");
     case "connecting":
-      return "ველოდებით ტელეფონს…";
+      return tr("ველოდებით ტელეფონს…", "Սպասում ենք հեռախոսին…");
     case "connected":
-      return "ტელეფონი დაკავშირებულია";
+      return tr("ტელეფონი დაკავშირებულია", "Հեռախոսը միացված է");
     case "reconnecting":
-      return "ხელახლა ვუკავშირდებით…";
+      return tr("ხელახლა ვუკავშირდებით…", "Կրկին միանում ենք…");
     case "disconnected_by_user":
-      return "გათიშულია";
+      return tr("გათიშულია", "Անջատված է");
     case "session_expired":
-      return "ტელეფონთან კავშირი გაწყდა";
+      return tr("ტელეფონთან კავშირი გაწყდა", "Հեռախոսի հետ կապը կորավ");
     case "error":
-      return "კავშირის შეცდომა";
+      return tr("კავშირის შეცდომა", "Կապի սխալ");
   }
 }

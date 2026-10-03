@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { decodePolyline, distanceMeters } from "@/lib/geo";
 import type { RouteResult } from "@/lib/routes.functions";
 import type { PairedFix } from "@/lib/pair-channel";
+import { tr } from "@/lib/map-lang";
 
 interface Props {
   fix: PairedFix | null;
@@ -141,13 +142,13 @@ export function PhoneHud({ fix, route, destinationName, onExit }: Props) {
     <div className="fixed inset-0 z-50 flex flex-col justify-between bg-black p-5 text-white">
       <div className="flex items-start justify-between">
         <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/50">
-          სპიდომეტრი
+          {tr("სპიდომეტრი", "Արագաչափ")}
         </div>
         <button
           onClick={onExit}
           className="rounded-lg border border-white/25 px-3 py-1 text-xs font-semibold text-white/80"
         >
-          დახურვა
+          {tr("დახურვა", "Փակել")}
         </button>
       </div>
 
@@ -160,7 +161,7 @@ export function PhoneHud({ fix, route, destinationName, onExit }: Props) {
           </>
         ) : (
           <div className="text-xl text-white/60">
-            {destinationName ? "მარშრუტი იტვირთება…" : "მარშრუტი ჯერ არ არის"}
+            {destinationName ? tr("მარშრუტი იტვირთება…", "Երթուղին բեռնվում է…") : tr("მარშრუტი ჯერ არ არის", "Երթուղի դեռ չկա")}
           </div>
         )}
       </div>

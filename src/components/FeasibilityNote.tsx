@@ -29,4 +29,4 @@ export function FeasibilityNote() {
       </div>
     </details>
   );
-import { tr } from "@/lib/map-lang";
+}

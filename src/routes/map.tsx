@@ -70,7 +70,7 @@ import {
 } from "@/lib/remote-state";
 import type { PairedView } from "@/lib/pair-channel";
 import { AM_HOSTS, APP_MAP_URL } from "@/lib/market";
-import { tr, getMapLang } from "@/lib/map-lang";
+import { tr, getMapLang, setMapLang } from "@/lib/map-lang";
 
 
 const MapView = lazy(() =>

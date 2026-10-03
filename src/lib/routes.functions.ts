@@ -43,6 +43,7 @@ export const computeRouteInput = (data: {
   destination: LatLng;
   waypoints?: LatLng[];
   avoid?: AvoidOption[];
+  lang?: string;
   alternatives?: boolean;
   avoidUnpaved?: boolean;
   purpose?: RoutePurposeInput;

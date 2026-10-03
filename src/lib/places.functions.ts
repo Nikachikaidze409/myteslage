@@ -23,6 +23,7 @@ const TYPE_MAP: Record<string, string[]> = {
 
 /** Input check for searchNearby (shared with the mobile API). */
 export const searchNearbyInput = (data: {
+  lang?: string;
   lat: number;
   lng: number;
   category: string;
@@ -47,7 +48,7 @@ export async function searchNearbyCore(
     const body = useText
       ? {
           textQuery: data.textQuery ?? "Tesla Supercharger",
-          languageCode: "ka",
+          languageCode: (data.lang === "hy" ? "hy" : "ka"),
           locationBias: {
             circle: {
               center: { latitude: data.lat, longitude: data.lng },
@@ -58,7 +59,7 @@ export async function searchNearbyCore(
         }
       : {
           includedTypes: TYPE_MAP[data.category] ?? [data.category],
-          languageCode: "ka",
+          languageCode: (data.lang === "hy" ? "hy" : "ka"),
           maxResultCount: 10,
           locationRestriction: {
             circle: {

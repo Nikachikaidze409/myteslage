@@ -1,4 +1,5 @@
 import { getMapsBrowserKey } from "@/lib/maps.functions";
+import { getMapLang } from "@/lib/map-lang";
 
 let loaderPromise: Promise<any> | null = null;
 
@@ -134,7 +135,7 @@ function loadGoogleMapsWithKey(key: string): Promise<any> {
       v: "weekly",
       loading: "async",
       callback: "__initGmaps",
-      language: "ka",
+      language: getMapLang(),
       region: "GE",
     });
     s.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;

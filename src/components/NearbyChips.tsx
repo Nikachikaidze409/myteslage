@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { searchNearby, type NearbyPlace } from "@/lib/places.functions";
 import type { Destination } from "@/components/DestinationSearch";
-import { tr } from "@/lib/map-lang";
+import { tr, getMapLang } from "@/lib/map-lang";
 
 const CATEGORIES: { key: string; label: string; emoji: string }[] = [
   { key: "gas", label: tr("საწვავი", "Վառելիք"), emoji: "⛽" },
@@ -32,7 +32,7 @@ export function NearbyChips({ origin, onPick }: Props) {
     setError(null);
     try {
       const { places } = await searchNearby({
-        data: { lat: origin.lat, lng: origin.lng, category: cat },
+        data: { lang: getMapLang(), lat: origin.lat, lng: origin.lng, category: cat },
       });
       setResults(places.slice(0, 5));
     } catch (e) {

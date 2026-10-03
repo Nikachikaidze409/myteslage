@@ -4,7 +4,7 @@ import {
   placeDetails,
   type PlaceSuggestion,
 } from "@/lib/search.functions";
-import { tr } from "@/lib/map-lang";
+import { tr, getMapLang } from "@/lib/map-lang";
 
 export interface Destination {
   lat: number;
@@ -44,7 +44,7 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
       const id = ++reqRef.current;
       const o = originRef.current;
       autocompletePlaces({
-        data: { query, ...(o ? { lat: o.lat, lng: o.lng } : {}) },
+        data: { lang: getMapLang(), query, ...(o ? { lat: o.lat, lng: o.lng } : {}) },
       })
         .then((res) => {
           if (reqRef.current !== id) return;
@@ -76,7 +76,7 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
     }
     setLoading(true);
     try {
-      const d = await placeDetails({ data: { placeId: s.placeId } });
+      const d = await placeDetails({ data: { lang: getMapLang(), placeId: s.placeId } });
       setQ(d.name);
       onSelect({ lat: d.lat, lng: d.lng, name: d.name, address: d.address });
     } catch (e) {

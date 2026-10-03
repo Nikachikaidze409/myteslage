@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import { searchNearby } from "@/lib/places.functions";
 import { decodePolyline } from "@/lib/geo";
-import { tr } from "@/lib/map-lang";
+import { tr, getMapLang } from "@/lib/map-lang";
 
 // Simple Model 3 Long Range assumption for planning UI
 const FULL_RANGE_KM = 500;
@@ -50,7 +50,7 @@ function BatteryPanelImpl({ routeKm, encodedPolyline, onAddStop }: Props) {
     setMsg(null);
     try {
       const { places } = await searchNearby({
-        data: {
+        data: { lang: getMapLang(),
           lat: target.lat,
           lng: target.lng,
           category: "supercharger",

@@ -70,7 +70,7 @@ import {
 } from "@/lib/remote-state";
 import type { PairedView } from "@/lib/pair-channel";
 import { AM_HOSTS, APP_MAP_URL } from "@/lib/market";
-import { tr } from "@/lib/map-lang";
+import { tr, getMapLang } from "@/lib/map-lang";
 
 
 const MapView = lazy(() =>
@@ -497,7 +497,7 @@ function Index() {
       snapPromise
         .then((snappedDest) =>
           computeRoute({
-            data: {
+            data: { lang: getMapLang(),
               origin: { lat: originFix.lat, lng: originFix.lng },
               destination: snappedDest,
               purpose,
@@ -797,13 +797,13 @@ function Index() {
       if (navigating || hudMode) return;
       setPreview({ lat: p.lat, lng: p.lng, name: tr("იტვირთება…", "Բեռնվում է…") });
       const load = p.placeId
-        ? placeDetails({ data: { placeId: p.placeId } }).then((d) => ({
+        ? placeDetails({ data: { lang: getMapLang(), placeId: p.placeId } }).then((d) => ({
             lat: d.lat,
             lng: d.lng,
             name: d.name,
             address: d.address,
           }))
-        : reverseGeocode({ data: { lat: p.lat, lng: p.lng } }).then((r) => ({
+        : reverseGeocode({ data: { lang: getMapLang(), lat: p.lat, lng: p.lng } }).then((r) => ({
             lat: p.lat,
             lng: p.lng,
             name: r.name,
@@ -826,7 +826,7 @@ function Index() {
       }
       setPoiCat(cat);
       setPoiLoading(true);
-      searchNearby({ data: { lat: fix.lat, lng: fix.lng, category: cat } })
+      searchNearby({ data: { lang: getMapLang(), lat: fix.lat, lng: fix.lng, category: cat } })
         .then((r) => setPois(r.places.slice(0, 12)))
         .catch(() => setPois([]))
         .finally(() => setPoiLoading(false));

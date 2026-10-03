@@ -11,3 +11,4 @@
 
 - Serve Georgian glyphs from bundled Noto Sans Georgian files and keep them first for `lang="ka"`, so rendering never depends on device fonts.
 - Derive the vehicle arrow's screen rotation from CameraEngine's same-frame applied heading, avoiding asynchronous map-heading reads.
+- Map UI language (ka/hy) comes from `src/lib/map-lang.ts` `tr(ka, hy)`, read once per load; switching reloads so Google Maps and server calls (`lang` param) load natively in that language without translation.

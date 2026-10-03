@@ -64,7 +64,7 @@ function BatteryPanelImpl({ routeKm, encodedPolyline, onAddStop }: Props) {
         return;
       }
       onAddStop({ lat: stop.lat, lng: stop.lng, name: stop.name });
-      setMsg(`დამატებულია: ${stop.name}`);
+      setMsg(`${tr("დამატებულია", "Ավելացված է")}: ${stop.name}`);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : tr("დამტენი ვერ მოიძებნა", "Լիցքավորման կայան չի գտնվել"));
     } finally {

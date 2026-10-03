@@ -13,7 +13,7 @@ export function scorePrecision(accuracyMeters: number | null | undefined, ageMs:
     return { tier: "unusable", label: tr("გამოუყენებელი", "Անօգտագործելի"), description: tr("სიზუსტე უცნობია", "Ճշգրտությունն անհայտ է"), color: "var(--bad)" };
   }
   if (ageMs > 60_000) {
-    return { tier: "unusable", label: "დაგვიანებული", description: `მონაცემი ${Math.round(ageMs / 1000)} წმ-ისაა`, color: "var(--bad)" };
+    return { tier: "unusable", label: tr("დაგვიანებული", "Ուշացած"), description: tr(`მონაცემი ${Math.round(ageMs / 1000)} წმ-ისაა`, `Տվյալը ${Math.round(ageMs / 1000)} վ առաջվա է`), color: "var(--bad)" };
   }
   if (accuracyMeters > 500) {
     return { tier: "unusable", label: tr("გამოუყენებელი", "Անօգտագործելի"), description: tr("სავარაუდოდ IP-ით განსაზღვრული მდებარეობაა", "Հավանաբար IP-ով որոշված դիրք է"), color: "var(--bad)" };

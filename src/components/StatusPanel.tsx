@@ -40,8 +40,8 @@ export const StatusPanel = memo(function StatusPanel({ fix }: { fix: Fix }) {
       <div className="mt-4 grid grid-cols-2 gap-4">
         <Field label={tr("განედი", "Լայնություն")} value={formatCoord(fix.lat)} />
         <Field label={tr("გრძედი", "Երկայնություն")} value={formatCoord(fix.lng)} />
-        <Field label="სიზუსტე" value={`± ${Math.round(fix.accuracy)} მ`} />
-        <Field label="ასაკი" value={`${Math.max(0, Math.round(age / 1000))} წმ`} />
+        <Field label={tr("სიზუსტე", "Ճշգրտություն")} value={`± ${Math.round(fix.accuracy)} ${tr("მ", "մ")}`} />
+        <Field label={tr("ასაკი", "Տարիք")} value={`${Math.max(0, Math.round(age / 1000))} ${tr("წმ", "վ")}`} />
       </div>
 
       <p className="mt-4 text-xs text-muted-foreground">

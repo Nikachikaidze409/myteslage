@@ -48,7 +48,7 @@ function AlternativesPanelImpl({
               >
                 <div>
                   <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                    {r.label ?? (i === 0 ? "უსწრაფესი" : `ალტერნატიული ${i}`)}
+                    {r.label ?? (i === 0 ? tr("უსწრაფესი", "Ամենաարագ") : `${tr("ალტერნატიული", "Այլընտրանքային")} ${i}`)}
                     {hasWarning && (
                       <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-700" title={(r.warnings ?? []).join(" · ")}>
                         {tr("⚠ რთული გზა", "⚠ Դժվար ճանապարհ")}

@@ -17,10 +17,10 @@ function fmtDist(m: number) {
 }
 function fmtDuration(s: number) {
   const total = Math.max(0, Math.round(s / 60));
-  if (total < 60) return `${total} წთ`;
+  if (total < 60) return `${total} ${tr("წთ", "ր")}`;
   const h = Math.floor(total / 60);
   const m = total % 60;
-  return `${h} სთ ${m} წთ`;
+  return `${h} ${tr("სთ", "ժ")} ${m} ${tr("წთ", "ր")}`;
 }
 function fmtEta(s: number) {
   const d = new Date(Date.now() + s * 1000);

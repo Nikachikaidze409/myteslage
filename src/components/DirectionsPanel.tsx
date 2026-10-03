@@ -2,6 +2,7 @@ import { memo, useMemo } from "react";
 import type { RouteResult } from "@/lib/routes.functions";
 import type { Fix } from "./StatusPanel";
 import { decodePolyline, distanceMeters } from "@/lib/geo";
+import { tr } from "@/lib/map-lang";
 
 
 
@@ -60,7 +61,7 @@ export const DirectionsPanel = memo(function DirectionsPanel({
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="font-display mb-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-        შემდეგი ნაბიჯები
+        {tr("შემდეგი ნაბიჯები", "Հաջորդ քայլերը")}
       </div>
       <ol className="max-h-[42vh] space-y-6 overflow-y-auto pr-1">
         {route.steps.map((s, i) => {

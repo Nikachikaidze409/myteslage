@@ -4,6 +4,7 @@ import {
   placeDetails,
   type PlaceSuggestion,
 } from "@/lib/search.functions";
+import { tr } from "@/lib/map-lang";
 
 export interface Destination {
   lat: number;
@@ -48,13 +49,13 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
         .then((res) => {
           if (reqRef.current !== id) return;
           setSuggestions(res.suggestions);
-          setError(res.suggestions.length === 0 ? "შედეგი ვერ მოიძებნა" : null);
+          setError(res.suggestions.length === 0 ? tr("შედეგი ვერ მოიძებნა", "Արդյունք չի գտնվել") : null);
         })
         .catch((e: unknown) => {
           if (reqRef.current !== id) return;
           console.error(e);
           setSuggestions([]);
-          setError("ძიება დროებით მიუწვდომელია. ხელახლა სცადეთ.");
+          setError(tr("ძიება დროებით მიუწვდომელია. ხელახლა სცადეთ.", "Որոնումը ժամանակավորապես անհասանելի է։ Կրկին փորձեք։"));
         })
         .finally(() => {
           if (reqRef.current === id) setLoading(false);
@@ -80,7 +81,7 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
       onSelect({ lat: d.lat, lng: d.lng, name: d.name, address: d.address });
     } catch (e) {
       console.error(e);
-      setError("ადგილი ვერ გაიხსნა. აირჩიეთ სხვა შედეგი.");
+      setError(tr("ადგილი ვერ გაიხსნა. აირჩიეთ სხვა შედეგი.", "Վայրը չհաջողվեց բացել։ Ընտրեք այլ արդյունք։"));
     } finally {
       setLoading(false);
     }
@@ -96,14 +97,14 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
           id="tsl-destination-input"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="მოძებნეთ ქუჩა, ადგილი ან მისამართი"
+          placeholder={tr("მოძებნეთ ქუჩა, ადგილი ან მისამართი", "Որոնեք փողոց, վայր կամ հասցե")}
           disabled={disabled}
           className="font-display w-full bg-transparent text-lg text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
         />
         {q && (
           <button
             type="button"
-            aria-label="გასუფთავება"
+            aria-label={tr("გასუფთავება", "Մաքրել")}
             onMouseDown={(e) => {
               e.preventDefault();
               setQ("");
@@ -118,8 +119,8 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
         <button
           type="button"
           tabIndex={-1}
-          aria-label="გამოტოვების ჩასმა"
-          title="გამოტოვების ჩასმა"
+          aria-label={tr("გამოტოვების ჩასმა", "Տեղադրել բացատ")}
+          title={tr("გამოტოვების ჩასმა", "Տեղադրել բացատ")}
           onMouseDown={(e) => {
             // Prevent the input from losing focus / the on-screen keyboard from hiding.
             e.preventDefault();
@@ -137,14 +138,14 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
           }}
           className="ml-2 h-10 shrink-0 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-foreground shadow-sm hover:bg-muted"
         >
-          გამოტოვება
+          {tr("გამოტოვება", "Բացատ")}
         </button>
       </div>
 
       {(suggestions.length > 0 || error || loading) && q.trim().length >= 2 && (
         <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl shadow-slate-300/40">
           {loading && (
-            <div className="px-5 py-3 text-sm text-muted-foreground">იძებნება…</div>
+            <div className="px-5 py-3 text-sm text-muted-foreground">{tr("იძებნება…", "Որոնվում է…")}</div>
           )}
           {!loading && error && (
             <button

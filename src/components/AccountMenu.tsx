@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getBogSubscriptionSummary } from "@/lib/bog.functions";
+import { tr } from "@/lib/map-lang";
 
 interface SubscriptionSummary {
   active: boolean;
@@ -153,44 +154,44 @@ export function AccountMenu({ signOutLabel = "Sign out" }: { signOutLabel?: stri
           {membership?.active && (
             <div className="mt-3 space-y-1 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-xs text-white/70">
               <div>
-                <span className="text-white/50">გეგმა: </span>
+                <span className="text-white/50">{tr("გეგმა:", "Փաթեթ՝")} </span>
                 <span className="font-semibold text-white">
                   {membership.plan === "annual"
-                    ? "1 წელი"
+                    ? tr("1 წელი", "1 տարի")
                     : membership.plan === "quarterly"
-                      ? "3 თვე"
-                      : "1 თვე"}
+                      ? tr("3 თვე", "3 ամիս")
+                      : tr("1 თვე", "1 ամիս")}
                 </span>
               </div>
               <div>
-                <span className="text-white/50">სტატუსი: </span>
-                <span className="font-semibold text-white">აქტიური</span>
+                <span className="text-white/50">{tr("სტატუსი:", "Կարգավիճակ՝")} </span>
+                <span className="font-semibold text-white">{tr("აქტიური", "Ակտիվ")}</span>
               </div>
               <div>
-                <span className="text-white/50">ძალაშია: </span>
+                <span className="text-white/50">{tr("ძალაშია:", "Վավեր է՝")} </span>
                 <span className="font-semibold text-white">{geoDate(membership.validUntil)}</span>
               </div>
 
               {membership.autoRenew ? (
                 <>
-                  <div>ავტომატური განახლება: ჩართულია</div>
-                  <div>შემდეგი გადახდა: {geoDate(membership.nextBillingAt)}</div>
+                  <div>{tr("ავტომატური განახლება: ჩართულია", "Ավտոմատ երկարաձգում՝ միացված")}</div>
+                  <div>{tr("შემდეგი გადახდა:", "Հաջորդ վճարում՝")} {geoDate(membership.nextBillingAt)}</div>
                 </>
               ) : membership.canceled ? (
                 <>
-                  <div>ავტომატური განახლება გაუქმებულია.</div>
-                  <div>თქვენი გამოწერა აქტიური დარჩება {geoDate(membership.validUntil)}-მდე.</div>
+                  <div>{tr("ავტომატური განახლება გაუქმებულია.", "Ավտոմատ երկարաձգումը չեղարկված է։")}</div>
+                  <div>{tr("თქვენი გამოწერა აქტიური დარჩება", "Ձեր բաժանորդագրությունը ակտիվ կմնա մինչև")} {geoDate(membership.validUntil)}{tr("-მდე.", "։")}</div>
                 </>
               ) : membership.proratedUpgrade ? (
                 <>
-                  <div>ავტომატური განახლება ამ განახლებაზე არ არის ჩართული.</div>
+                  <div>{tr("ავტომატური განახლება ამ განახლებაზე არ არის ჩართული.", "Ավտոմատ երկարաձգումն այս վճարման համար միացված չէ։")}</div>
                   <div>
-                    3-თვიანი პერიოდის დასრულების შემდეგ შეგიძლიათ გამოწერა განაახლოთ სრული 3-თვიანი
-                    ფასით.
+                    {tr("3-თვიანი პერიოდის დასრულების შემდეგ შეგიძლიათ გამოწერა განაახლოთ სრული 3-თვიანი", "3-ամսյա ժամկետի ավարտից հետո կարող եք երկարաձգել բաժանորդագրությունը լրիվ 3-ամսյա")}
+                    {tr("ფასით.", "գնով։")}
                   </div>
                 </>
               ) : (
-                <div>ავტომატური განახლება: გამორთულია</div>
+                <div>{tr("ავტომატური განახლება: გამორთულია", "Ավտոմատ երկարաձգում՝ անջատված")}</div>
               )}
             </div>
           )}

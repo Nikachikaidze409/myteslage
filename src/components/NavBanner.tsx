@@ -2,6 +2,7 @@ import type { RouteResult } from "@/lib/routes.functions";
 import type { Fix } from "./StatusPanel";
 import { decodePolyline, distanceMeters } from "@/lib/geo";
 import { useMemo } from "react";
+import { tr } from "@/lib/map-lang";
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, "");
@@ -65,10 +66,10 @@ export function NavBanner({ route, fix, onStop, liveRemainingMeters, alongMeters
           <span className="mt-1 text-[10px] font-bold uppercase tracking-wider opacity-90">{dText}</span>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold uppercase tracking-wider opacity-80">შემდეგი</p>
+          <p className="text-xs font-bold uppercase tracking-wider opacity-80">{tr("შემდეგი", "Հաջորդը")}</p>
           <p className="font-display truncate text-2xl font-bold leading-tight">{stripHtml(step.instruction)}</p>
           <p className="mt-1 text-[11px] opacity-80">
-            {Math.max(0, Math.round(liveDuration / 60))} წთ · {(liveDistance / 1000).toFixed(1)} კმ დარჩა · მიხვალთ{" "}
+            {Math.max(0, Math.round(liveDuration / 60))} {tr("წთ ·", "ր ·")} {(liveDistance / 1000).toFixed(1)} {tr("კმ დარჩა · მიხვალთ", "կմ մնաց · ժամանում")}{" "}
             {eta.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
 
           </p>
@@ -77,7 +78,7 @@ export function NavBanner({ route, fix, onStop, liveRemainingMeters, alongMeters
           onClick={onStop}
           className="shrink-0 self-start rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white transition hover:bg-white/25"
         >
-          დასრულება
+          {tr("დასრულება", "Ավարտել")}
         </button>
       </div>
     </div>

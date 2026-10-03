@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { searchNearby, type NearbyPlace } from "@/lib/places.functions";
 import type { Destination } from "@/components/DestinationSearch";
+import { tr } from "@/lib/map-lang";
 
 const CATEGORIES: { key: string; label: string; emoji: string }[] = [
-  { key: "gas", label: "საწვავი", emoji: "⛽" },
-  { key: "supercharger", label: "დამუხტვა", emoji: "⚡" },
-  { key: "food", label: "საკვები", emoji: "🍽" },
-  { key: "coffee", label: "ყავა", emoji: "☕" },
-  { key: "parking", label: "პარკინგი", emoji: "🅿" },
+  { key: "gas", label: tr("საწვავი", "Վառելիք"), emoji: "⛽" },
+  { key: "supercharger", label: tr("დამუხტვა", "Լիցքավորում"), emoji: "⚡" },
+  { key: "food", label: tr("საკვები", "Սնունդ"), emoji: "🍽" },
+  { key: "coffee", label: tr("ყავა", "Սուրճ"), emoji: "☕" },
+  { key: "parking", label: tr("პარკინგი", "Կայանատեղի"), emoji: "🅿" },
 ];
 
 interface Props {
@@ -23,7 +24,7 @@ export function NearbyChips({ origin, onPick }: Props) {
 
   const run = async (cat: string) => {
     if (!origin) {
-      setError("ველოდებით მდებარეობას");
+      setError(tr("ველოდებით მდებარეობას", "Սպասում ենք դիրքին"));
       return;
     }
     setActive(cat);
@@ -35,7 +36,7 @@ export function NearbyChips({ origin, onPick }: Props) {
       });
       setResults(places.slice(0, 5));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "ძიება ვერ შესრულდა");
+      setError(e instanceof Error ? e.message : tr("ძიება ვერ შესრულდა", "Որոնումը չհաջողվեց"));
       setResults([]);
     } finally {
       setLoading(false);
@@ -61,7 +62,7 @@ export function NearbyChips({ origin, onPick }: Props) {
           </button>
         ))}
       </div>
-      {loading && <div className="text-xs text-muted-foreground">ახლომახლო იძებნება…</div>}
+      {loading && <div className="text-xs text-muted-foreground">{tr("ახლომახლო იძებნება…", "Որոնվում է մոտակայքում…")}</div>}
       {error && <div className="text-xs text-[color:var(--bad)]">{error}</div>}
       {!loading && results.length > 0 && (
         <ul className="flex flex-col gap-1">

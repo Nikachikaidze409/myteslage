@@ -1,6 +1,7 @@
 import { memo, useState } from "react";
 import { searchNearby } from "@/lib/places.functions";
 import { decodePolyline } from "@/lib/geo";
+import { tr } from "@/lib/map-lang";
 
 // Simple Model 3 Long Range assumption for planning UI
 const FULL_RANGE_KM = 500;
@@ -59,13 +60,13 @@ function BatteryPanelImpl({ routeKm, encodedPolyline, onAddStop }: Props) {
       });
       const stop = places[0];
       if (!stop) {
-        setMsg("ახლომახლო დამტენი ვერ მოიძებნა. სცადეთ უფრო მოკლე მონაკვეთი.");
+        setMsg(tr("ახლომახლო დამტენი ვერ მოიძებნა. სცადეთ უფრო მოკლე მონაკვეთი.", "Մոտակայքում լիցքավորման կայան չի գտնվել։ Փորձեք ավելի կարճ հատված։"));
         return;
       }
       onAddStop({ lat: stop.lat, lng: stop.lng, name: stop.name });
       setMsg(`დამატებულია: ${stop.name}`);
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "დამტენი ვერ მოიძებნა");
+      setMsg(e instanceof Error ? e.message : tr("დამტენი ვერ მოიძებნა", "Լիցքավորման կայան չի գտնվել"));
     } finally {
       setLoading(false);
     }
@@ -75,7 +76,7 @@ function BatteryPanelImpl({ routeKm, encodedPolyline, onAddStop }: Props) {
     <div className="rounded-2xl border border-border bg-white p-4">
       <div className="mb-2 flex items-center justify-between">
         <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          ბატარეა · სავალი მანძილი
+          {tr("ბატარეა · სავალი მანძილი", "Մարտկոց · Վազքի պաշար")}
         </div>
         <div className="font-display text-sm font-bold text-primary">
           {Math.round(rangeKm)} km
@@ -101,11 +102,11 @@ function BatteryPanelImpl({ routeKm, encodedPolyline, onAddStop }: Props) {
         <div className="mt-3 text-xs">
           {needsCharge ? (
             <div className="text-[color:var(--bad)]">
-              მარშრუტი {routeKm.toFixed(0)} კმ-ია — საჭიროა დამუხტვის გაჩერება.
+              {tr("მარშრუტი", "Երթուղի")} {routeKm.toFixed(0)} {tr("კმ-ია — საჭიროა დამუხტვის გაჩერება.", "կմ է — անհրաժեշտ է լիցքավորման կանգառ։")}
             </div>
           ) : (
             <div className="text-[color:var(--good,#16a34a)]">
-              მარშრუტი {routeKm.toFixed(0)} კმ-ია — არსებული მუხტი საკმარისია.
+              {tr("მარშრუტი", "Երթուղի")} {routeKm.toFixed(0)} {tr("კმ-ია — არსებული მუხტი საკმარისია.", "կմ է — առկա լիցքը բավարար է։")}
             </div>
           )}
         </div>
@@ -118,7 +119,7 @@ function BatteryPanelImpl({ routeKm, encodedPolyline, onAddStop }: Props) {
           disabled={loading}
           className="mt-3 w-full rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
-          {loading ? "დამტენი იძებნება…" : "დამუხტვის გაჩერების დამატება"}
+          {loading ? tr("დამტენი იძებნება…", "Լիցքավորման կայան է որոնվում…") : tr("დამუხტვის გაჩერების დამატება", "Ավելացնել լիցքավորման կանգառ")}
         </button>
       )}
       {msg && <div className="mt-2 text-[11px] text-muted-foreground">{msg}</div>}

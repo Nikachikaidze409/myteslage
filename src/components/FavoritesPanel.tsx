@@ -7,6 +7,7 @@ import {
   toggleFavorite,
 } from "@/lib/favorites";
 import type { Destination } from "@/components/DestinationSearch";
+import { tr } from "@/lib/map-lang";
 
 interface Props {
   currentDestination: Destination | null;
@@ -32,7 +33,7 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
     <div className="rounded-2xl border border-border bg-white p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          ადგილები
+          {tr("ადგილები", "Վայրեր")}
         </div>
         {currentDestination && (
           <button
@@ -40,21 +41,21 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
             onClick={() => setManaging((v) => !v)}
             className="text-[11px] font-semibold text-primary hover:underline"
           >
-            {managing ? "დასრულება" : "მიმდინარე ადგილის შენახვა"}
+            {managing ? tr("დასრულება", "Ավարտել") : tr("მიმდინარე ადგილის შენახვა", "Պահպանել ընթացիկ վայրը")}
           </button>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <FavButton
-          label="სახლი"
+          label={tr("სახლი", "Տուն")}
           emoji="🏠"
           value={home}
           onPick={onPick}
           onSet={managing ? () => setNamed("home") : undefined}
         />
         <FavButton
-          label="სამსახური"
+          label={tr("სამსახური", "Աշխատանք")}
           emoji="💼"
           value={work}
           onPick={onPick}
@@ -64,7 +65,7 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
 
       {favs.length > 0 && (
         <div className="mt-3">
-          <div className="mb-1 text-[11px] font-semibold text-muted-foreground">რჩეულები</div>
+          <div className="mb-1 text-[11px] font-semibold text-muted-foreground">{tr("რჩეულები", "Ընտրյալներ")}</div>
           <ul className="flex flex-col gap-1">
             {favs.slice(0, 4).map((f) => (
               <li key={f.id} className="flex items-center justify-between">
@@ -77,7 +78,7 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
                 </button>
                 <button
                   type="button"
-                  aria-label="რჩეულებიდან წაშლა"
+                  aria-label={tr("რჩეულებიდან წაშლა", "Հեռացնել ընտրյալներից")}
                   onClick={() => toggleFavorite({ lat: f.lat, lng: f.lng, name: f.name })}
                   className="ml-1 rounded p-1 text-muted-foreground hover:text-foreground"
                 >
@@ -91,7 +92,7 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
 
       {recents.length > 0 && (
         <div className="mt-3">
-          <div className="mb-1 text-[11px] font-semibold text-muted-foreground">ბოლო ადგილები</div>
+          <div className="mb-1 text-[11px] font-semibold text-muted-foreground">{tr("ბოლო ადგილები", "Վերջին վայրեր")}</div>
           <ul className="flex flex-col gap-1">
             {recents.slice(0, 4).map((r) => (
               <li key={r.id} className="flex items-center justify-between">
@@ -104,10 +105,10 @@ function FavoritesPanelImpl({ currentDestination, onPick }: Props) {
                 </button>
                 <button
                   type="button"
-                  aria-label="რჩეულებში შენახვა"
+                  aria-label={tr("რჩეულებში შენახვა", "Պահպանել ընտրյալներում")}
                   onClick={() => toggleFavorite({ lat: r.lat, lng: r.lng, name: r.name })}
                   className="ml-1 rounded p-1 text-muted-foreground hover:text-foreground"
-                  title="რჩეულებში დამატება"
+                  title={tr("რჩეულებში დამატება", "Ավելացնել ընտրյալներին")}
                 >
                   ☆
                 </button>
@@ -140,14 +141,14 @@ function FavButton({
         onClick={onSet}
         className="rounded-xl border border-dashed border-primary/50 bg-primary/5 p-3 text-left text-sm text-primary hover:bg-primary/10"
       >
-        {emoji} {label}-ის დაყენება
+        {emoji} {label}{tr("-ის დაყენება", " — սահմանել")}
       </button>
     );
   }
   if (!value) {
     return (
       <div className="rounded-xl border border-dashed border-border bg-muted/30 p-3 text-left text-sm text-muted-foreground">
-        {emoji} {label} არ არის დაყენებული
+        {emoji} {label} {tr("არ არის დაყენებული", "նշված չէ")}
       </div>
     );
   }

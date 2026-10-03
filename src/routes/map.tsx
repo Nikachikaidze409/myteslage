@@ -1164,6 +1164,16 @@ function Index() {
             >
               {darkMap ? tr("ღამე", "Գիշեր") : tr("დღე", "Ցերեկ")}
             </button>
+            <button
+              type="button"
+              onClick={() => setMapLang(getMapLang() === "hy" ? "ka" : "hy")}
+              aria-label={tr("ენის შეცვლა: სომხური", "Փոխել լեզուն՝ վրացերեն")}
+              title={tr("რუკა სომხურად", "Քարտեզը վրացերենով")}
+              className="mt-2 w-full rounded-full border border-border bg-white/90 px-3 py-1.5 text-xs font-semibold text-foreground shadow-md backdrop-blur transition hover:bg-white"
+            >
+              {getMapLang() === "hy" ? "🇬🇪 ქართ" : "🇦🇲 Հայ"}
+            </button>
+
 
 
           </div>

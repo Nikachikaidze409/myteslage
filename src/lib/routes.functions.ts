@@ -113,7 +113,7 @@ export async function computeRouteCore(
               location: { latLng: { latitude: w.lat, longitude: w.lng } },
             })),
             travelMode: "DRIVE",
-            languageCode: "ka",
+            languageCode: (data.lang === "hy" ? "hy" : "ka"),
             regionCode: "GE",
             // Only the driver's own first/changed route pays for the optimal
             // traffic model; reroutes and background ETA refreshes use the

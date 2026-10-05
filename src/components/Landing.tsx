@@ -24,7 +24,8 @@ import {
  * last manual choice. On tmap.am the page is Armenian only, with AMD prices.
  */
 export function Landing({ forcedLang }: { forcedLang?: Lang }) {
-  const market = useMarket();
+  const detected = useMarket();
+  const market = forcedLang === "az" ? "az" : detected;
   const armenia = market === "am";
   const [signedIn, setSignedIn] = useState(false);
   const [lang, setLang] = useState<Lang>(armenia ? "hy" : (forcedLang ?? "ka"));
@@ -32,6 +33,9 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
   useEffect(() => {
     if (armenia) return;
     if (forcedLang) {
+      if (forcedLang === "az") {
+        document.cookie = "tmap_market=az; path=/; max-age=31536000; samesite=lax";
+      }
       try {
         window.localStorage.setItem(LANG_KEY, forcedLang);
       } catch {
@@ -49,6 +53,11 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
 
   const setLangPersist = (l: Lang) => {
     setLang(l);
+    // Azerbaijani = AZN prices; any other language returns to the GEL market.
+    document.cookie =
+      l === "az"
+        ? "tmap_market=az; path=/; max-age=31536000; samesite=lax"
+        : "tmap_market=; path=/; max-age=0; samesite=lax";
     try {
       window.localStorage.setItem(LANG_KEY, l);
     } catch {

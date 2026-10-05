@@ -13,7 +13,7 @@ export function MarketProvider({ market, children }: { market: Market; children:
  */
 export function useMarket(): Market {
   const fromContext = useContext(MarketContext);
-  if (fromContext === "am") return "am";
+  if (fromContext === "am" || fromContext === "az") return fromContext;
   if (typeof window !== "undefined") return marketFromHost(window.location.hostname);
   return fromContext;
 }

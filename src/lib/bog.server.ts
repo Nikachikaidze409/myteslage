@@ -27,7 +27,7 @@ export const BOG_SUCCESS_BASE_URL = "https://tmap.ge/checkout/success";
  */
 export type CheckoutOrigin = "https://tmap.ge" | "https://tmap.am";
 
-export function checkoutOriginFor(market: "ge" | "am"): CheckoutOrigin {
+export function checkoutOriginFor(market: "ge" | "am" | "az"): CheckoutOrigin {
   return market === "am" ? "https://tmap.am" : "https://tmap.ge";
 }
 

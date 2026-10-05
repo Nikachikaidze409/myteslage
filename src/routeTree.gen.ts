@@ -21,6 +21,7 @@ import { Route as HyRouteImport } from './routes/hy'
 import { Route as EnRouteImport } from './routes/en'
 import { Route as DriveRouteImport } from './routes/drive'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as AzRouteImport } from './routes/az'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AmRouteImport } from './routes/am'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -93,6 +94,11 @@ const CheckoutRoute = CheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AzRoute = AzRouteImport.update({
+  id: '/az',
+  path: '/az',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/am': typeof AmRoute
   '/auth': typeof AuthRoute
+  '/az': typeof AzRoute
   '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/en': typeof EnRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/am': typeof AmRoute
   '/auth': typeof AuthRoute
+  '/az': typeof AzRoute
   '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/en': typeof EnRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/am': typeof AmRoute
   '/auth': typeof AuthRoute
+  '/az': typeof AzRoute
   '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/en': typeof EnRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/am'
     | '/auth'
+    | '/az'
     | '/checkout'
     | '/drive'
     | '/en'
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/am'
     | '/auth'
+    | '/az'
     | '/checkout'
     | '/drive'
     | '/en'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/am'
     | '/auth'
+    | '/az'
     | '/checkout'
     | '/drive'
     | '/en'
@@ -311,6 +323,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AmRoute: typeof AmRoute
   AuthRoute: typeof AuthRoute
+  AzRoute: typeof AzRoute
   CheckoutRoute: typeof CheckoutRoute
   DriveRoute: typeof DriveRoute
   EnRoute: typeof EnRoute
@@ -418,6 +431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/az': {
+      id: '/az'
+      path: '/az'
+      fullPath: '/az'
+      preLoaderRoute: typeof AzRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -503,6 +523,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AmRoute: AmRoute,
   AuthRoute: AuthRoute,
+  AzRoute: AzRoute,
   CheckoutRoute: CheckoutRoute,
   DriveRoute: DriveRoute,
   EnRoute: EnRoute,

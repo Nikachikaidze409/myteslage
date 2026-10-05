@@ -12,13 +12,24 @@
  * amounts the checkout may ever charge.
  */
 
-export type Market = "ge" | "am";
+export type Market = "ge" | "am" | "az";
 export type MarketPlan = "monthly" | "quarterly" | "annual";
 
 export const AM_HOSTS = new Set(["tmap.am", "www.tmap.am"]);
 
 /** The map, the Tesla browser session and QR pairing live on one host only. */
 export const APP_MAP_URL = "https://tmap.ge/map";
+
+/** Cookie remembered after a visit to tmap.ge/az (Azerbaijani market). */
+export const MARKET_COOKIE = "tmap_market";
+
+/** tmap.am always wins; otherwise the /az cookie selects the AZN market. */
+export function marketFromRequest(host: string | null | undefined, cookieHeader: string | null | undefined): Market {
+  const byHost = marketFromHost(host);
+  if (byHost === "am") return "am";
+  const m = (cookieHeader ?? "").match(/(?:^|;\s*)tmap_market=([a-z]+)/);
+  return m?.[1] === "az" ? "az" : "ge";
+}
 
 export function marketFromHost(host: string | null | undefined): Market {
   if (!host) return "ge";
@@ -27,24 +38,27 @@ export function marketFromHost(host: string | null | undefined): Market {
 }
 
 export function isMarket(value: unknown): value is Market {
-  return value === "ge" || value === "am";
+  return value === "ge" || value === "am" || value === "az";
 }
 
 /** Trusted Bank of Georgia amounts (always charged in GEL). */
 export const MARKET_BOG_AMOUNTS: Record<Market, Record<MarketPlan, number>> = {
   ge: { monthly: 8.0, quarterly: 21.6, annual: 85.0 },
   am: { monthly: 11.5, quarterly: 31.0, annual: 116.0 },
+  az: { monthly: 12.8, quarterly: 30.5, annual: 104.0 },
 };
 
 /** Prices shown to the shopper (display only). */
 export const MARKET_BOG_LABELS: Record<Market, Record<MarketPlan, string>> = {
   ge: { monthly: "8 ₾", quarterly: "21.60 ₾", annual: "85 ₾" },
   am: { monthly: "1,674 AMD", quarterly: "4,464 AMD", annual: "16,741 AMD" },
+  az: { monthly: "8 ₼", quarterly: "19 ₼", annual: "65 ₼" },
 };
 
 export const MARKET_PADDLE_LABELS: Record<Market, Record<MarketPlan, string>> = {
   ge: { monthly: "$2.99", quarterly: "$7.99", annual: "$31.99" },
   am: { monthly: "$5.40", quarterly: "$14.40", annual: "$53.50" },
+  az: { monthly: "$2.99", quarterly: "$7.99", annual: "$31.99" },
 };
 
 /**
@@ -63,7 +77,16 @@ export const MARKET_PADDLE_PRICE_IDS: Record<Market, Record<MarketPlan, string>>
     quarterly: "pri_01m3c5azav7e57qemfc9w8jxa0",
     annual: "pri_01m3c5azh9mpexb8nzdrm9bvkd",
   },
+  az: {
+    monthly: "tesla_map_georgia_monthly",
+    quarterly: "tesla_map_georgia_quarterly",
+    annual: "tesla_map_georgia_annual",
+  },
 };
+
+/** Azerbaijani shoppers are told, in Azerbaijani, how the money moves. */
+export const AZ_CONVERSION_NOTE =
+  "Ödəniş Bank of Georgia vasitəsilə ekvivalent məbləğdə — 12.80 ₾ / 30.50 ₾ / 104 ₾ — həyata keçirilir. Bankınız məbləği cari məzənnə ilə manatla çıxacaq.";
 
 /** Armenian shoppers are told, in Armenian, exactly how the money moves. */
 export const AM_CONVERSION_NOTE =
@@ -85,5 +108,5 @@ export const LEGACY_AM_BOG_AMOUNTS: Record<MarketPlan, number> = {
 
 /** Every amount a given plan may legitimately be charged, in any market. */
 export function allowedBogAmounts(plan: MarketPlan): number[] {
-  return [MARKET_BOG_AMOUNTS.ge[plan], MARKET_BOG_AMOUNTS.am[plan], LEGACY_AM_BOG_AMOUNTS[plan]];
+  return [MARKET_BOG_AMOUNTS.ge[plan], MARKET_BOG_AMOUNTS.am[plan], MARKET_BOG_AMOUNTS.az[plan], LEGACY_AM_BOG_AMOUNTS[plan]];
 }

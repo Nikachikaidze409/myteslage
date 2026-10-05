@@ -54,7 +54,7 @@ describe("market pricing", () => {
 
 describe("recurring safety", () => {
   it("accepts both markets' full prices as renewal parents", () => {
-    expect(allowedBogAmounts("annual")).toEqual([85, 116, 145]);
+    expect(allowedBogAmounts("annual")).toEqual([85, 116, 104, 145]);
     expect(canBeAutoRenewParent("standard", 116, "annual")).toBe(true);
     expect(canBeAutoRenewParent("standard", 145, "annual")).toBe(true);
     expect(canBeAutoRenewParent("standard", 85, "annual")).toBe(true);

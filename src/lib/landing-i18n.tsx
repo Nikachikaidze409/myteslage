@@ -1,16 +1,17 @@
-export type Lang = "ka" | "en" | "hy" | "ru";
+export type Lang = "ka" | "en" | "hy" | "ru" | "az";
 export const LANG_KEY = "mytesla.lang";
-export const LANGS: readonly Lang[] = ["ka", "en", "hy", "ru"];
+export const LANGS: readonly Lang[] = ["ka", "en", "hy", "ru", "az"];
 
 export const LANG_LABEL: Record<Lang, string> = {
   ka: "ქარ",
   en: "EN",
   hy: "ՀԱՅ",
   ru: "РУС",
+  az: "AZ",
 };
 
 export function isLang(value: unknown): value is Lang {
-  return value === "ka" || value === "en" || value === "hy" || value === "ru";
+  return value === "ka" || value === "en" || value === "hy" || value === "ru" || value === "az";
 }
 
 export const SIGN_OUT_LABEL: Record<Lang, string> = {
@@ -18,6 +19,7 @@ export const SIGN_OUT_LABEL: Record<Lang, string> = {
   en: "Sign out",
   hy: "Դուրս գալ",
   ru: "Выйти",
+  az: "Çıxış",
 };
 
 export const T = {
@@ -398,6 +400,102 @@ export const T = {
       "По любым вопросам или за помощью напишите нам на странице Facebook. Поможем с навигацией, оплатой или аккаунтом.",
     contactCta: "Написать в Facebook",
     footer: "Сделано для владельцев Tesla в Грузии",
+  },
+  az: {
+    navPricing: "Qiymətlər",
+    navSignIn: "Daxil ol",
+    navGetStarted: "Başla",
+    navOpenApp: "Tətbiqi aç →",
+    heroBadge: "İdxal olunmuş Tesla-lar üçün · Gürcüstan",
+    heroTitle1: "Tesla-nızda",
+    heroTitle2: "olmalı olan",
+    heroTitle3: "naviqasiya.",
+    heroBody: (
+      <>
+        Tesla-nın daxili xəritələri Gürcüstanda idxal olunmuş avtomobillərdə düzgün
+        işləmir. Premium Connectivity ildə{" "}
+        <span className="text-white">$99</span> dəyərindədir və yenə də problemi həll etmir.
+        Biz alternativ yaratdıq — birbaşa Tesla-nızın ekranında canlı xəritə.
+      </>
+    ),
+    heroCta: "Ayda 8 ₼-dan başlayın",
+    stat1: "±1 m",
+    stat1l: "Telefonla canlı GPS",
+    stat2: "17″",
+    stat2l: "Tesla üçün optimallaşdırılıb",
+    stat3: "0",
+    stat3l: "Əlavə avadanlıq",
+    heroImgAlt: "Tbilisidə canlı naviqasiya ilə Tesla Model 3 ekranı",
+    badEyebrow: "Problem",
+    badTitle: "Tesla Premium Connectivity - $99/il",
+    badBullets: [
+      "Gürcüstanda idxal olunmuş avtomobillərdə yenə də marşrutu düzgün qurmur",
+      "Artıq ödədiyiniz funksiyalar üçün aylıq ödəniş",
+      "Dəstəklənməyən ölkələrdə Tesla-nın köhnə xəritə məlumatlarına bağlıdır",
+    ],
+    goodEyebrow: "Həll",
+    goodTitle: "TMap Georgia - ayda 8 ₼",
+    goodBullets: [
+      "Gürcüstan küçələrini həqiqətən tanıyan Google keyfiyyətli xəritələr",
+      "Telefonunuzdan real vaxtda GPS → avtomobilin 17″ ekranına",
+      "Canlı tıxac məlumatı, alternativ marşrutlar, avtomatik yenidən marşrutlama, HUD rejimi",
+    ],
+    featuresTitle: "Avtomobil üçün yaradılıb, telefonunuzla işləyir.",
+    featuresBody:
+      "Bir dəfə QR kodla qoşun. Telefonunuz yüksək dəqiqlikli GPS-i Tesla-nın brauzerinə ötürür, Tesla isə canlı xəritəni göstərir. Nə tətbiq, nə kabel, nə də CarPlay hiylələri lazımdır.",
+    features: [
+      { i: "📍", t: "Real GPS, canlı", b: "Telefonunuzun çipi brauzerdən qat-qat dəqiqdir. Onu real vaxtda avtomobilə ötürürük." },
+      { i: "🧭", t: "Addım-addım HUD", b: "Böyük ETA, məsafə və sürətlə tam ekran naviqasiya — bir baxışda oxunur." },
+      { i: "⚡", t: "Tıxac və yenidən marşrutlama", b: "Canlı tıxac qatı, alternativ marşrutlar və yoldan çıxdıqda avtomatik yeni marşrut." },
+      { i: "🔋", t: "Supercharger planlaması", b: "Batareyanın faizini daxil edin, yol boyu doldurma dayanacaqlarını planlaşdıraq." },
+      { i: "🇬🇪", t: "Yerli küçələr", b: "Gürcü ünvanları, Tbilisinin dalanları, torpaq yol xəbərdarlıqları — ölkəyə uyğunlaşdırılıb." },
+      { i: "🔒", t: "Yalnız üzvlər üçün", b: "Bir hesab, bir cihaz. Abunəliyinizi başqa avtomobillə paylaşmaq mümkün deyil." },
+    ],
+    pairingAlt: "Telefonun QR kodla Tesla ekranına qoşulması",
+    pricingEyebrow: "Qiymətlər",
+    pricingTitle: "Bir qiymət. Tesla-nın istədiyinin kiçik bir hissəsi.",
+    monthlyTitle: "Aylıq",
+    monthlyPeriod: "/ay",
+    monthlyTag: "İstənilən vaxt ləğv edin",
+    monthlyFeatures: [
+      "Avtomobildə canlı xəritə",
+      "Telefon GPS qoşulması",
+      "Addım-addım HUD",
+      "Tıxac və yenidən marşrutlama",
+    ],
+    monthlyCta: "Aylıq plana başla",
+    quarterlyTitle: "3 ay öncədən",
+    quarterlyTotal: " cəmi",
+    quarterlySub: "ayda 6.33 ₼ · 21% qənaət",
+    quarterlyTag: "Ən yaxşı dəyər",
+    quarterlyFeatures: [
+      "Aylıq plandakı hər şey",
+      "Aylıq ödənişlə müqayisədə 21% endirim",
+      "Bir ödəniş, üç ay",
+      "Prioritet dəstək",
+    ],
+    quarterlyCta: "21% qənaət edin →",
+    annualTitle: "1 il öncədən",
+    annualTotal: " cəmi",
+    annualSub: "ayda 5.42 ₼ · 32% qənaət",
+    annualTag: "Ən sərfəli seçim",
+    annualFeatures: [
+      "Aylıq plandakı hər şey",
+      "Aylıq ödənişlə müqayisədə 32% endirim",
+      "Bir ödəniş, bütöv il",
+      "Prioritet dəstək",
+    ],
+    annualCta: "32% qənaət edin →",
+    annualBadge: "32% qənaət",
+    saveBadge: "21% qənaət",
+    pricingFoot:
+      "Ödəniş Bank of Georgia vasitəsilə ekvivalent məbləğdə — 12.80 ₾ / 30.50 ₾ / 104 ₾ — həyata keçirilir. Bankınız məbləği cari məzənnə ilə manatla çıxacaq.",
+    contactEyebrow: "Sualınız var?",
+    contactTitle: "Bizimlə əlaqə saxlayın",
+    contactBody:
+      "İstənilən sual və ya kömək üçün Facebook səhifəmizdə bizə yazın. Naviqasiya, ödəniş və ya hesabla bağlı məsələlərdə kömək edəcəyik.",
+    contactCta: "Facebook-da bizə yazın",
+    footer: "Tesla sahibləri üçün yaradılıb",
   },
 } as const;
 

@@ -13,7 +13,12 @@ export function MarketProvider({ market, children }: { market: Market; children:
  */
 export function useMarket(): Market {
   const fromContext = useContext(MarketContext);
-  if (fromContext === "am") return "am";
-  if (typeof window !== "undefined") return marketFromHost(window.location.hostname);
+  if (fromContext === "am" || fromContext === "az") return fromContext;
+  if (typeof window !== "undefined") {
+    const byHost = marketFromHost(window.location.hostname);
+    if (byHost === "am") return "am";
+    if (/(?:^|;\s*)tmap_market=az/.test(document.cookie)) return "az";
+    return byHost;
+  }
   return fromContext;
 }

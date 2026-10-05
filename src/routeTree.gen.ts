@@ -9,98 +9,34 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as RuRouteImport } from './routes/ru'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as RefundRouteImport } from './routes/refund'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as MirrorTestRouteImport } from './routes/mirror-test'
-import { Route as MapRouteImport } from './routes/map'
-import { Route as HyRouteImport } from './routes/hy'
-import { Route as EnRouteImport } from './routes/en'
-import { Route as DriveRouteImport } from './routes/drive'
-import { Route as CheckoutRouteImport } from './routes/checkout'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AmRouteImport } from './routes/am'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as PhoneCodeRouteImport } from './routes/phone.$code'
-import { Route as MirrorTestSendRouteImport } from './routes/mirror-test_.send'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AmRouteImport } from './routes/am'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AzRouteImport } from './routes/az'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as DriveRouteImport } from './routes/drive'
+import { Route as EnRouteImport } from './routes/en'
+import { Route as HyRouteImport } from './routes/hy'
+import { Route as MapRouteImport } from './routes/map'
+import { Route as MirrorTestRouteImport } from './routes/mirror-test'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RefundRouteImport } from './routes/refund'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RuRouteImport } from './routes/ru'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout_.success'
+import { Route as MirrorTestSendRouteImport } from './routes/mirror-test_.send'
+import { Route as PhoneCodeRouteImport } from './routes/phone.$code'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
-import { Route as ApiPublicPaymentsBogProcessRenewalsRouteImport } from './routes/api/public/payments/bog/process-renewals'
-import { Route as ApiPublicPaymentsBogCallbackRouteImport } from './routes/api/public/payments/bog/callback'
 import { Route as ApiPublicMobileV1ActionRouteImport } from './routes/api/public/mobile/v1/$action'
+import { Route as ApiPublicPaymentsBogCallbackRouteImport } from './routes/api/public/payments/bog/callback'
+import { Route as ApiPublicPaymentsBogProcessRenewalsRouteImport } from './routes/api/public/payments/bog/process-renewals'
 
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RuRoute = RuRouteImport.update({
-  id: '/ru',
-  path: '/ru',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RefundRoute = RefundRouteImport.update({
-  id: '/refund',
-  path: '/refund',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MirrorTestRoute = MirrorTestRouteImport.update({
-  id: '/mirror-test',
-  path: '/mirror-test',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MapRoute = MapRouteImport.update({
-  id: '/map',
-  path: '/map',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HyRoute = HyRouteImport.update({
-  id: '/hy',
-  path: '/hy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EnRoute = EnRouteImport.update({
-  id: '/en',
-  path: '/en',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DriveRoute = DriveRouteImport.update({
-  id: '/drive',
-  path: '/drive',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CheckoutRoute = CheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AmRoute = AmRouteImport.update({
-  id: '/am',
-  path: '/am',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -108,14 +44,84 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AmRoute = AmRouteImport.update({
+  id: '/am',
+  path: '/am',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PhoneCodeRoute = PhoneCodeRouteImport.update({
-  id: '/phone/$code',
-  path: '/phone/$code',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AzRoute = AzRouteImport.update({
+  id: '/az',
+  path: '/az',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DriveRoute = DriveRouteImport.update({
+  id: '/drive',
+  path: '/drive',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnRoute = EnRouteImport.update({
+  id: '/en',
+  path: '/en',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HyRoute = HyRouteImport.update({
+  id: '/hy',
+  path: '/hy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MirrorTestRoute = MirrorTestRouteImport.update({
+  id: '/mirror-test',
+  path: '/mirror-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundRoute = RefundRouteImport.update({
+  id: '/refund',
+  path: '/refund',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuRoute = RuRouteImport.update({
+  id: '/ru',
+  path: '/ru',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
+  id: '/checkout_/success',
+  path: '/checkout/success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MirrorTestSendRoute = MirrorTestSendRouteImport.update({
@@ -123,9 +129,9 @@ const MirrorTestSendRoute = MirrorTestSendRouteImport.update({
   path: '/mirror-test/send',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
-  id: '/checkout_/success',
-  path: '/checkout/success',
+const PhoneCodeRoute = PhoneCodeRouteImport.update({
+  id: '/phone/$code',
+  path: '/phone/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPaymentsWebhookRoute =
@@ -134,29 +140,30 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicPaymentsBogProcessRenewalsRoute =
-  ApiPublicPaymentsBogProcessRenewalsRouteImport.update({
-    id: '/api/public/payments/bog/process-renewals',
-    path: '/api/public/payments/bog/process-renewals',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const ApiPublicMobileV1ActionRoute = ApiPublicMobileV1ActionRouteImport.update({
+  id: '/api/public/mobile/v1/$action',
+  path: '/api/public/mobile/v1/$action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsBogCallbackRoute =
   ApiPublicPaymentsBogCallbackRouteImport.update({
     id: '/api/public/payments/bog/callback',
     path: '/api/public/payments/bog/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicMobileV1ActionRoute = ApiPublicMobileV1ActionRouteImport.update({
-  id: '/api/public/mobile/v1/$action',
-  path: '/api/public/mobile/v1/$action',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const ApiPublicPaymentsBogProcessRenewalsRoute =
+  ApiPublicPaymentsBogProcessRenewalsRouteImport.update({
+    id: '/api/public/payments/bog/process-renewals',
+    path: '/api/public/payments/bog/process-renewals',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/am': typeof AmRoute
   '/auth': typeof AuthRoute
+  '/az': typeof AzRoute
   '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/en': typeof EnRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/am': typeof AmRoute
   '/auth': typeof AuthRoute
+  '/az': typeof AzRoute
   '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/en': typeof EnRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/am': typeof AmRoute
   '/auth': typeof AuthRoute
+  '/az': typeof AzRoute
   '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/en': typeof EnRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/am'
     | '/auth'
+    | '/az'
     | '/checkout'
     | '/drive'
     | '/en'
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/am'
     | '/auth'
+    | '/az'
     | '/checkout'
     | '/drive'
     | '/en'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/am'
     | '/auth'
+    | '/az'
     | '/checkout'
     | '/drive'
     | '/en'
@@ -311,6 +323,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AmRoute: typeof AmRoute
   AuthRoute: typeof AuthRoute
+  AzRoute: typeof AzRoute
   CheckoutRoute: typeof CheckoutRoute
   DriveRoute: typeof DriveRoute
   EnRoute: typeof EnRoute
@@ -334,102 +347,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ru': {
-      id: '/ru'
-      path: '/ru'
-      fullPath: '/ru'
-      preLoaderRoute: typeof RuRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/refund': {
-      id: '/refund'
-      path: '/refund'
-      fullPath: '/refund'
-      preLoaderRoute: typeof RefundRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mirror-test': {
-      id: '/mirror-test'
-      path: '/mirror-test'
-      fullPath: '/mirror-test'
-      preLoaderRoute: typeof MirrorTestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/map': {
-      id: '/map'
-      path: '/map'
-      fullPath: '/map'
-      preLoaderRoute: typeof MapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hy': {
-      id: '/hy'
-      path: '/hy'
-      fullPath: '/hy'
-      preLoaderRoute: typeof HyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/en': {
-      id: '/en'
-      path: '/en'
-      fullPath: '/en'
-      preLoaderRoute: typeof EnRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/drive': {
-      id: '/drive'
-      path: '/drive'
-      fullPath: '/drive'
-      preLoaderRoute: typeof DriveRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checkout': {
-      id: '/checkout'
-      path: '/checkout'
-      fullPath: '/checkout'
-      preLoaderRoute: typeof CheckoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/am': {
-      id: '/am'
-      path: '/am'
-      fullPath: '/am'
-      preLoaderRoute: typeof AmRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -439,25 +361,109 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/am': {
+      id: '/am'
+      path: '/am'
+      fullPath: '/am'
+      preLoaderRoute: typeof AmRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/phone/$code': {
-      id: '/phone/$code'
-      path: '/phone/$code'
-      fullPath: '/phone/$code'
-      preLoaderRoute: typeof PhoneCodeRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/mirror-test_/send': {
-      id: '/mirror-test_/send'
-      path: '/mirror-test/send'
-      fullPath: '/mirror-test/send'
-      preLoaderRoute: typeof MirrorTestSendRouteImport
+    '/az': {
+      id: '/az'
+      path: '/az'
+      fullPath: '/az'
+      preLoaderRoute: typeof AzRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/drive': {
+      id: '/drive'
+      path: '/drive'
+      fullPath: '/drive'
+      preLoaderRoute: typeof DriveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/en': {
+      id: '/en'
+      path: '/en'
+      fullPath: '/en'
+      preLoaderRoute: typeof EnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hy': {
+      id: '/hy'
+      path: '/hy'
+      fullPath: '/hy'
+      preLoaderRoute: typeof HyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mirror-test': {
+      id: '/mirror-test'
+      path: '/mirror-test'
+      fullPath: '/mirror-test'
+      preLoaderRoute: typeof MirrorTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund': {
+      id: '/refund'
+      path: '/refund'
+      fullPath: '/refund'
+      preLoaderRoute: typeof RefundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ru': {
+      id: '/ru'
+      path: '/ru'
+      fullPath: '/ru'
+      preLoaderRoute: typeof RuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout_/success': {
@@ -467,6 +473,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mirror-test_/send': {
+      id: '/mirror-test_/send'
+      path: '/mirror-test/send'
+      fullPath: '/mirror-test/send'
+      preLoaderRoute: typeof MirrorTestSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/phone/$code': {
+      id: '/phone/$code'
+      path: '/phone/$code'
+      fullPath: '/phone/$code'
+      preLoaderRoute: typeof PhoneCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -474,11 +494,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/payments/bog/process-renewals': {
-      id: '/api/public/payments/bog/process-renewals'
-      path: '/api/public/payments/bog/process-renewals'
-      fullPath: '/api/public/payments/bog/process-renewals'
-      preLoaderRoute: typeof ApiPublicPaymentsBogProcessRenewalsRouteImport
+    '/api/public/mobile/v1/$action': {
+      id: '/api/public/mobile/v1/$action'
+      path: '/api/public/mobile/v1/$action'
+      fullPath: '/api/public/mobile/v1/$action'
+      preLoaderRoute: typeof ApiPublicMobileV1ActionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/payments/bog/callback': {
@@ -488,11 +508,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsBogCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/mobile/v1/$action': {
-      id: '/api/public/mobile/v1/$action'
-      path: '/api/public/mobile/v1/$action'
-      fullPath: '/api/public/mobile/v1/$action'
-      preLoaderRoute: typeof ApiPublicMobileV1ActionRouteImport
+    '/api/public/payments/bog/process-renewals': {
+      id: '/api/public/payments/bog/process-renewals'
+      path: '/api/public/payments/bog/process-renewals'
+      fullPath: '/api/public/payments/bog/process-renewals'
+      preLoaderRoute: typeof ApiPublicPaymentsBogProcessRenewalsRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -503,6 +523,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AmRoute: AmRoute,
   AuthRoute: AuthRoute,
+  AzRoute: AzRoute,
   CheckoutRoute: CheckoutRoute,
   DriveRoute: DriveRoute,
   EnRoute: EnRoute,

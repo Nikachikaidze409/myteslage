@@ -242,6 +242,7 @@ function Checkout() {
               <div className="font-display mt-1 text-3xl font-black">{price}</div>
             </div>
           </div>
+          {market === "az" && <p className="mt-4 text-xs text-white/60">{AZ_CONVERSION_NOTE}</p>}
         </div>
 
         {error && <div className="mt-5 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200">{error}</div>}

@@ -16,7 +16,7 @@ import {
 } from "@/lib/checkout-provider";
 import { AccountBar } from "@/components/AccountBar";
 import { useMarket } from "@/lib/market-context";
-import { APP_MAP_URL } from "@/lib/market";
+import { APP_MAP_URL, AZ_CONVERSION_NOTE } from "@/lib/market";
 import { LegalFooter } from "@/components/LegalFooter";
 
 const PLAN_KEY = "tsl.pending-plan";

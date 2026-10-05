@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AccountBar } from "@/components/AccountBar";
 import { LegalFooter } from "@/components/LegalFooter";
 import { useMarket } from "@/lib/market-context";
-import { AM_CONVERSION_NOTE, MARKET_BOG_LABELS } from "@/lib/market";
+import { AM_CONVERSION_NOTE, AZ_CONVERSION_NOTE, MARKET_BOG_LABELS } from "@/lib/market";
 
 type Plan = "monthly" | "quarterly" | "annual";
 const PLAN_KEY = "tsl.pending-plan";
@@ -72,6 +72,37 @@ const COPY = {
     ctaCheckout: "Անցնել վճարման →",
     note: AM_CONVERSION_NOTE,
     back: "← Հետ",
+  },
+  az: {
+    eyebrow: "Abunəlik",
+    title: "Planınızı seçin",
+    subtitle: "Bir hesab = bir cihaz. İstənilən vaxt ləğv edin.",
+    monthlyTitle: "Aylıq",
+    monthlyPeriod: "ayda",
+    monthlySub: "Hər ay ödənilir",
+    monthlyPerMonth: "8 ₼/ay",
+    quarterlyTitle: "3 ay",
+    quarterlyPeriod: "hər 3 aydan bir",
+    quarterlySub: "21% endirim",
+    quarterlyPerMonth: "6.33 ₼/ay",
+    annualTitle: "1 il",
+    annualPeriod: "ildə",
+    annualSub: "Ən sərfəli — ildə bir ödəniş",
+    annualPerMonth: "5.42 ₼/ay",
+    annualBadge: "32% qənaət",
+    included: "Nə əldə edirsiniz",
+    features: [
+      "Tesla üçün optimallaşdırılmış canlı naviqasiya",
+      "Telefon GPS qoşulması (real 1 m dəqiqlik)",
+      "Addım-addım HUD və səsli istiqamət",
+      "Canlı tıxac + avtomatik yenidən marşrutlama",
+      "Gürcüstan küçələri, ünvanları və məkanları",
+      "Supercharger dayanacaqlarının planlaşdırılması",
+    ],
+    ctaSignup: "Hesab yarat və davam et →",
+    ctaCheckout: "Ödənişə keç →",
+    note: AZ_CONVERSION_NOTE,
+    back: "← Geri",
   },
 } as const;
 

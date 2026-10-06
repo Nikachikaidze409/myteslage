@@ -450,3 +450,18 @@ describe("reroute event consumption", () => {
     expect(after).toBe(0);
   });
 });
+
+describe("reroute lock timeout", () => {
+  it("re-arms and reroutes again when the car never rejoins the new route", () => {
+    const e = new RouteProgressEngine();
+    e.setRoute(densify([pt(0, 0), pt(1000, 0)]), [], 0);
+    e.markRerouted(0);
+    let fired = false;
+    // Car keeps driving 40 m north of the new line with 15 m accuracy.
+    for (let t = 500, x = 0; t <= 8000; t += 500, x += 7) {
+      const r = e.update({ ...pt(x, 40), heading: 90, speed: 14, accuracy: 15 }, t);
+      if (r?.verdict.offRoute) fired = true;
+    }
+    expect(fired).toBe(true);
+  });
+});

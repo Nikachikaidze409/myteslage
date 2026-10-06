@@ -151,6 +151,8 @@ export class RouteProgressEngine {
   private recovering = false;
   private lastSpecial: { point: LatLng; at: number; kind: string } | null = null;
   private uTurnFired = false;
+  /** When new geometry was installed by a reroute; 0 while not waiting on one. */
+  private reroutedAt = 0;
 
   get pathIndex(): PathIndex | null {
     return this.index;
@@ -308,6 +310,7 @@ export class RouteProgressEngine {
     this.firstStrongAt = 0;
     this.genericArmed = false;
     this.reacquireHits = 0;
+    this.reroutedAt = now;
   }
 
   /**
@@ -591,6 +594,7 @@ export class RouteProgressEngine {
         this.reacquireHits++;
         if (this.reacquireHits >= REACQUIRE_HITS) {
           this.genericArmed = true;
+          this.reroutedAt = 0;
           this.reacquireHits = 0;
           this.strikes = 0;
           this.firstStrikeAt = 0;
@@ -602,10 +606,11 @@ export class RouteProgressEngine {
       this.reacquireHits = 0;
       // Never stay locked forever: if the car still has not joined the line
       // a few seconds after it was installed, the driver left it again.
-      if (now - this.routeSetAt < REARM_TIMEOUT_MS) {
+      if (!this.reroutedAt || now - this.reroutedAt < REARM_TIMEOUT_MS) {
         return { ...base, strikes: 0, reason: "awaiting-route-reacquire" };
       }
       this.genericArmed = true;
+      this.reroutedAt = 0;
       this.note("Route not reacquired — generic off-route re-armed by timeout");
     }
 

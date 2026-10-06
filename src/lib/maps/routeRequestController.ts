@@ -19,7 +19,7 @@ const TRAFFIC_DEDUPE_MS = 60_000;
  * The finer origin fingerprint makes detection sharper without letting the
  * number of billed Google calls grow.
  */
-export const REROUTE_MIN_INTERVAL_MS = 5_000;
+export const REROUTE_MIN_INTERVAL_MS = 2_500;
 
 
 export interface RouteTicket {

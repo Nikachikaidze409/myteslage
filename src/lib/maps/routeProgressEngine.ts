@@ -83,7 +83,11 @@ interface ArmedManeuver {
 const MIN_HEADING_SPEED = 1.5;
 /** Never let the threshold drop below this or GPS noise reroutes constantly. */
 const MIN_OFF_ROUTE_M = 10;
-const MAX_OFF_ROUTE_M = 35;
+const MAX_OFF_ROUTE_M = 28;
+/** Deviation beyond this always counts as credible, whatever accuracy says. */
+const MAX_CREDIBLE_M = 20;
+/** A disarmed detector re-arms after this long without reacquiring the line. */
+const REARM_TIMEOUT_MS = 4000;
 /** Consecutive credible readings needed to confirm a generic deviation. */
 const STRIKES_TO_CONFIRM = 2;
 /** …and the evidence must span at least this long. */
@@ -147,6 +151,8 @@ export class RouteProgressEngine {
   private recovering = false;
   private lastSpecial: { point: LatLng; at: number; kind: string } | null = null;
   private uTurnFired = false;
+  /** When new geometry was installed by a reroute; 0 while not waiting on one. */
+  private reroutedAt = 0;
 
   get pathIndex(): PathIndex | null {
     return this.index;
@@ -304,6 +310,7 @@ export class RouteProgressEngine {
     this.firstStrongAt = 0;
     this.genericArmed = false;
     this.reacquireHits = 0;
+    this.reroutedAt = now;
   }
 
   /**
@@ -486,7 +493,7 @@ export class RouteProgressEngine {
     // the car is moving (a metre of lateral error means less at 100 km/h).
     const threshold = Math.min(
       MAX_OFF_ROUTE_M,
-      Math.max(MIN_OFF_ROUTE_M, fix.accuracy * 1.2, fix.speed * 0.6),
+      Math.max(MIN_OFF_ROUTE_M, fix.accuracy * 0.9, fix.speed * 0.6),
     );
 
     const base = {
@@ -569,8 +576,9 @@ export class RouteProgressEngine {
 
     // ---- B) generic off-route ------------------------------------------
     // An error ellipse that already covers the route line cannot prove a
-    // deviation: a 50 m accuracy fix 25 m off the line is just drift.
-    const credible = match.offset > fix.accuracy * ACCURACY_MARGIN;
+    // deviation, but car GPS often reports 15–30 m: cap the requirement so a
+    // real side-street departure is still seen.
+    const credible = match.offset > Math.min(fix.accuracy * ACCURACY_MARGIN, MAX_CREDIBLE_M);
     // The deviation must persist or grow; a random sideways jump that snaps
     // back on the next reading is noise, not a departure.
     const sustained = match.offset >= this.lastOffset - 2;
@@ -586,16 +594,24 @@ export class RouteProgressEngine {
         this.reacquireHits++;
         if (this.reacquireHits >= REACQUIRE_HITS) {
           this.genericArmed = true;
+          this.reroutedAt = 0;
           this.reacquireHits = 0;
           this.strikes = 0;
           this.firstStrikeAt = 0;
           this.note("Route reacquired — generic off-route re-armed");
           return { ...base, strikes: 0, reason: "on-route" };
         }
-      } else {
-        this.reacquireHits = 0;
+        return { ...base, strikes: 0, reason: "awaiting-route-reacquire" };
       }
-      return { ...base, strikes: 0, reason: "awaiting-route-reacquire" };
+      this.reacquireHits = 0;
+      // Never stay locked forever: if the car still has not joined the line
+      // a few seconds after it was installed, the driver left it again.
+      if (!this.reroutedAt || now - this.reroutedAt < REARM_TIMEOUT_MS) {
+        return { ...base, strikes: 0, reason: "awaiting-route-reacquire" };
+      }
+      this.genericArmed = true;
+      this.reroutedAt = 0;
+      this.note("Route not reacquired — generic off-route re-armed by timeout");
     }
 
     const deviating = match.offset > threshold && credible && sustained && !stabilising;

@@ -48,7 +48,7 @@ export async function searchNearbyCore(
     const body = useText
       ? {
           textQuery: data.textQuery ?? "Tesla Supercharger",
-          languageCode: (data.lang === "hy" ? "hy" : "ka"),
+          languageCode: (data.lang === "hy" || data.lang === "az" ? data.lang : "ka"),
           locationBias: {
             circle: {
               center: { latitude: data.lat, longitude: data.lng },
@@ -59,7 +59,7 @@ export async function searchNearbyCore(
         }
       : {
           includedTypes: TYPE_MAP[data.category] ?? [data.category],
-          languageCode: (data.lang === "hy" ? "hy" : "ka"),
+          languageCode: (data.lang === "hy" || data.lang === "az" ? data.lang : "ka"),
           maxResultCount: 10,
           locationRestriction: {
             circle: {

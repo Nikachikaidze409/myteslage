@@ -70,7 +70,8 @@ import {
 } from "@/lib/remote-state";
 import type { PairedView } from "@/lib/pair-channel";
 import { AM_HOSTS, APP_MAP_URL } from "@/lib/market";
-import { tr, getMapLang, setMapLang } from "@/lib/map-lang";
+import { tr, getMapLang, setMapLang, nextMapLang, MAP_LANG_FLAG } from "@/lib/map-lang";
+import { X } from "lucide-react";
 
 
 const MapView = lazy(() =>
@@ -886,13 +887,22 @@ function Index() {
         >
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
-              {tr("TMap · საქართველო", "TMap · Վրաստան")}
+              {tr("TMap · საქართველო", "TMap · Հայաստան")}
             </div>
             <div className="flex items-center justify-between gap-2">
               <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
                 {tr("ბრაუზერული ნავიგაცია", "Բրաուզերային նավիգացիա")}
               </h1>
               <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setMapLang(nextMapLang(getMapLang()))}
+                  aria-label={tr("ენის შეცვლა", "Փոխել լեզուն")}
+                  title={tr("ენის შეცვლა", "Փոխել լեզուն")}
+                  className="grid h-8 w-10 place-items-center rounded-lg border border-border bg-white text-xl leading-none hover:bg-muted"
+                >
+                  {MAP_LANG_FLAG[nextMapLang(getMapLang())]}
+                </button>
                 <button
                   type="button"
                   onClick={() => void signOutAndReturn()}
@@ -907,7 +917,7 @@ function Index() {
                   title={tr("პანელის დამალვა", "Թաքցնել վահանակը")}
                   className="grid h-8 w-8 place-items-center rounded-lg border border-border bg-white text-lg font-bold leading-none text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
-                  ✕
+                  <X className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -1164,15 +1174,7 @@ function Index() {
             >
               {darkMap ? tr("ღამე", "Գիշեր") : tr("დღე", "Ցերեկ")}
             </button>
-            <button
-              type="button"
-              onClick={() => setMapLang(getMapLang() === "hy" ? "ka" : "hy")}
-              aria-label={tr("ენის შეცვლა: სომხური", "Փոխել լեզուն՝ վրացերեն")}
-              title={tr("რუკა სომხურად", "Քարտեզը վրացերենով")}
-              className="mt-2 w-full rounded-full border border-border bg-white/90 px-3 py-1.5 text-xs font-semibold text-foreground shadow-md backdrop-blur transition hover:bg-white"
-            >
-              {getMapLang() === "hy" ? "🇬🇪 ქართ" : "🇦🇲 Հայ"}
-            </button>
+
 
 
 

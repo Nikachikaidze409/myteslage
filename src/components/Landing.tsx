@@ -250,7 +250,7 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
         </div>
       </section>
 
-      <Footer text={t.footer} />
+      <Footer text={t.footer} brand={market === "am" || lang === "hy" ? "TMap Armenia" : market === "az" ? "TMap Azerbaijan" : "TMap Georgia"} />
     </div>
   );
 }
@@ -304,7 +304,7 @@ function Nav({
             <>
               {armenia ? (
                 <a
-                  href={APP_MAP_URL}
+                  href={`${APP_MAP_URL}?from=am`}
                   className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
                 >
                   {t.navOpenApp}
@@ -484,7 +484,7 @@ function PricingCard({
   );
 }
 
-function Footer({ text }: { text: string }) {
+function Footer({ text, brand }: { text: string; brand: string }) {
   return (
     <footer className="border-t border-white/5 py-10 text-center text-xs text-white/40">
       <div className="mb-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
@@ -498,9 +498,9 @@ function Footer({ text }: { text: string }) {
           Privacy Notice
         </Link>
       </div>
-      <p>© {new Date().getFullYear()} TMap Georgia · {text}</p>
+      <p>© {new Date().getFullYear()} {brand} · {text}</p>
       <p className="mx-auto mt-3 max-w-2xl px-6 text-white/50">
-        TMap Georgia is an independent product and is not affiliated with or endorsed by Tesla, Inc.
+        {brand} is an independent product and is not affiliated with or endorsed by Tesla, Inc.
       </p>
     </footer>
   );

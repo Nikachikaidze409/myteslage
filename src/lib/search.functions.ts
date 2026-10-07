@@ -71,7 +71,7 @@ export async function autocompletePlacesCore(
     body: JSON.stringify({
       input: q,
       includedRegionCodes: region.codes,
-      languageCode: (data.lang === "hy" ? "hy" : "ka"),
+      languageCode: (data.lang === "hy" || data.lang === "az" ? data.lang : "ka"),
 
       ...(bias ? { locationBias: bias } : {}),
     }),
@@ -114,7 +114,7 @@ export async function autocompletePlacesCore(
     body: JSON.stringify({
       textQuery: q,
       regionCode: region.region,
-      languageCode: (data.lang === "hy" ? "hy" : "ka"),
+      languageCode: (data.lang === "hy" || data.lang === "az" ? data.lang : "ka"),
       maxResultCount: 6,
       ...(bias ? { locationBias: bias } : {}),
     }),
@@ -158,7 +158,7 @@ export async function placeDetailsCore(
   data: ReturnType<typeof placeDetailsInput>,
 ): Promise<PlaceDetail> {
   const res = await fetch(
-    `${PLACES_API}/places/${encodeURIComponent(data.placeId)}?languageCode=${(data.lang === "hy" ? "hy" : "ka")}`,
+    `${PLACES_API}/places/${encodeURIComponent(data.placeId)}?languageCode=${(data.lang === "hy" || data.lang === "az" ? data.lang : "ka")}`,
     {
       headers: {
         "X-Goog-Api-Key": googleKey(),
@@ -204,7 +204,7 @@ export async function reverseGeocodeCore(
   data: ReturnType<typeof reverseGeocodeInput>,
 ): Promise<{ name: string; address: string }> {
   const res = await fetch(
-    `${MAPS_API}/maps/api/geocode/json?latlng=${data.lat},${data.lng}&language=${(data.lang === "hy" ? "hy" : "ka")}&region=ge&key=${encodeURIComponent(googleKey())}`,
+    `${MAPS_API}/maps/api/geocode/json?latlng=${data.lat},${data.lng}&language=${(data.lang === "hy" || data.lang === "az" ? data.lang : "ka")}&region=ge&key=${encodeURIComponent(googleKey())}`,
   );
   if (!res.ok) await fail(res, "Reverse geocode");
   const json = (await res.json()) as {

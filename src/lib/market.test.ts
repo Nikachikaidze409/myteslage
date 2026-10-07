@@ -72,8 +72,8 @@ describe("host routing", () => {
   });
 
   it("sends the map and pairing to the canonical host", () => {
-    expect(legacyRedirectTarget("https://tmap.am/map")).toBe("https://tmap.ge/map");
-    expect(legacyRedirectTarget("https://tmap.am/phone?code=1")).toBe("https://tmap.ge/phone?code=1");
+    expect(legacyRedirectTarget("https://tmap.am/map")).toBe("https://tmap.ge/map?from=am");
+    expect(legacyRedirectTarget("https://tmap.am/phone?code=1")).toBe("https://tmap.ge/phone?code=1&from=am");
   });
 
   it("leaves the Armenian landing and checkout in place", () => {

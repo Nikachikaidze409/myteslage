@@ -130,7 +130,7 @@ function CheckoutSuccess() {
             <div className="mt-8 flex flex-col gap-3">
               {am ? (
                 <a
-                  href={APP_MAP_URL}
+                  href={`${APP_MAP_URL}?from=am`}
                   className="font-display inline-flex h-14 w-full items-center justify-center rounded-2xl bg-[#3b82f6] px-6 text-lg font-bold text-white hover:brightness-110"
                 >
                   Բացել քարտեզը →

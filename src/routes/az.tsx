@@ -5,13 +5,13 @@ export const Route = createFileRoute("/az")({
   component: () => <Landing forcedLang="az" />,
   head: () => ({
     meta: [
-      { title: "TMap Georgia - Tesla brauzeri üçün naviqasiya" },
+      { title: "TMap Azerbaijan - Tesla brauzeri üçün naviqasiya" },
       {
         name: "description",
         content:
           "Tesla ekranınızda canlı naviqasiya. Telefon GPS qoşulması, addım-addım HUD, tıxac məlumatı və avtomatik marşrut — ayda 8 ₼-dan.",
       },
-      { property: "og:title", content: "TMap Georgia - Tesla brauzeri üçün naviqasiya" },
+      { property: "og:title", content: "TMap Azerbaijan - Tesla brauzeri üçün naviqasiya" },
       {
         property: "og:description",
         content: "Real GPS. Real marşrutlar. Tesla-nızın ekranında canlı xəritə — ayda 8 ₼-dan.",

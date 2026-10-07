@@ -214,13 +214,13 @@ export const T = {
     navSignIn: "Մուտք",
     navGetStarted: "Սկսել",
     navOpenApp: "Բացել հավելվածը →",
-    heroBadge: "Ներկրված Tesla-ների համար · Վրաստան",
+    heroBadge: "Ներկրված Tesla-ների համար · Հայաստան",
     heroTitle1: "Նավիգացիան,",
     heroTitle2: "որը ձեր Tesla-ն",
     heroTitle3: "պետք է ունենա.",
     heroBody: (
       <>
-        Tesla-ի ներկառուցված քարտեզները ճիշտ չեն աշխատում Վրաստանում ներկրված
+        Tesla-ի ներկառուցված քարտեզները ճիշտ չեն աշխատում Հայաստանում ներկրված
         մեքենաների վրա։ Premium Connectivity-ն արժե{" "}
         <span className="text-white">$99 տարեկան</span> և դա այնուամենայնիվ չի լուծում
         խնդիրը։ Մենք ստեղծել ենք այլընտրանքը՝ իրական, կենդանի քարտեզ ուղիղ ձեր Tesla-ի էկրանին։
@@ -233,18 +233,18 @@ export const T = {
     stat2l: "Օպտիմալացված Tesla-ի համար",
     stat3: "0",
     stat3l: "Լրացուցիչ սարքավորում",
-    heroImgAlt: "Tesla Model 3-ի էկրանը՝ կենդանի նավիգացիայով Թբիլիսիում",
+    heroImgAlt: "Tesla Model 3-ի էկրանը՝ կենդանի նավիգացիայով Երևանում",
     badEyebrow: "Խնդիրը",
     badTitle: "Tesla Premium Connectivity - 300 ₾/տարի",
     badBullets: [
-      "Վրաստանում ներկրված մեքենաների վրա դեռ ճիշտ երթուղի չի կառուցում",
+      "Հայաստանում ներկրված մեքենաների վրա դեռ ճիշտ երթուղի չի կառուցում",
       "Ամսական վճար այն գործառույթների համար, որոնց համար արդեն վճարել եք",
       "Կապված է Tesla-ի հնացած քարտեզային տվյալներին՝ չաջակցվող երկրներում",
     ],
     goodEyebrow: "Լուծումը",
-    goodTitle: "TMap Georgia - 8 ₾/ամիս",
+    goodTitle: "TMap - 8 ₾/ամիս",
     goodBullets: [
-      "Google-ի որակի քարտեզներ, որոնք իսկապես գիտեն վրացական փողոցները",
+      "Google-ի որակի քարտեզներ, որոնք իսկապես գիտեն հայկական փողոցները",
       "Իրական ժամանակի GPS ձեր հեռախոսից → մեքենայի 17″ էկրանին",
       "Կենդանի երթևեկություն, այլընտրանքային երթուղիներ, ավտո-վերաերթուղում, HUD ռեժիմ",
     ],
@@ -256,7 +256,7 @@ export const T = {
       { i: "🧭", t: "Քայլ առ քայլ HUD", b: "Լիաէկրան նավիգացիա՝ մեծ ETA-ով, հեռավորությամբ և արագությամբ՝ մեկ հայացքով կարդալու համար։" },
       { i: "⚡", t: "Երթևեկություն և վերաերթուղում", b: "Կենդանի երթևեկության շերտ, այլընտրանքային երթուղիներ և ավտոմատ վերաերթուղում, երբ շեղվում եք ուղուց։" },
       { i: "🔋", t: "Supercharger-ի պլանավորում", b: "Մուտքագրեք մարտկոցի %-ը, և մենք կպլանավորենք լիցքավորման կանգառները ճանապարհին։" },
-      { i: "🇬🇪", t: "Տեղական փողոցներ", b: "Վրացական հասցեներ, Թբիլիսիի ներքին ճանապարհներ, չասֆալտապատ ճանապարհների զգուշացումներ՝ հարմարեցված երկրին։" },
+      { i: "🇦🇲", t: "Տեղական փողոցներ", b: "Հայկական հասցեներ, Երևանի ներքին ճանապարհներ, չասֆալտապատ ճանապարհների զգուշացումներ՝ հարմարեցված երկրին։" },
       { i: "🔒", t: "Միայն անդամների համար", b: "Մեկ հաշիվ, մեկ սարք։ Ձեր բաժանորդագրությունը հնարավոր չէ կիսել այլ մեքենայի հետ։" },
     ],
     pairingAlt: "Հեռախոսի զուգակցում Tesla-ի էկրանի հետ QR կոդով",
@@ -297,13 +297,13 @@ export const T = {
     annualBadge: "Խնայեք 11%",
     saveBadge: "Խնայեք 10%",
     pricingFoot:
-      "Համեմատեք՝ Tesla Premium Connectivity ≈ 300 ₾/տարի և դեռևս երթուղի չի կառուցում Վրաստանում։",
+      "Համեմատեք՝ Tesla Premium Connectivity ≈ 300 ₾/տարի և դեռևս երթուղի չի կառուցում Հայաստանում։",
     contactEyebrow: "Հարց ունե՞ք",
     contactTitle: "Կապվեք մեզ հետ",
     contactBody:
       "Հարցերի կամ օգնության համար գրեք մեզ Facebook-յան էջում։ Մենք կօգնենք նավիգացիայի, վճարման կամ հաշվի հարցերում։",
     contactCta: "Գրեք մեզ Facebook-ում",
-    footer: "Ստեղծված Վրաստանում Tesla-ի սեփականատերերի համար",
+    footer: "Ստեղծված Հայաստանում Tesla-ի սեփականատերերի համար",
   },
   ru: {
     navPricing: "Цены",
@@ -406,13 +406,13 @@ export const T = {
     navSignIn: "Daxil ol",
     navGetStarted: "Başla",
     navOpenApp: "Tətbiqi aç →",
-    heroBadge: "İdxal olunmuş Tesla-lar üçün · Gürcüstan",
+    heroBadge: "İdxal olunmuş Tesla-lar üçün · Azərbaycan",
     heroTitle1: "Tesla-nızda",
     heroTitle2: "olmalı olan",
     heroTitle3: "naviqasiya.",
     heroBody: (
       <>
-        Tesla-nın daxili xəritələri Gürcüstanda idxal olunmuş avtomobillərdə düzgün
+        Tesla-nın daxili xəritələri Azərbaycanda idxal olunmuş avtomobillərdə düzgün
         işləmir. Premium Connectivity ildə{" "}
         <span className="text-white">$99</span> dəyərindədir və yenə də problemi həll etmir.
         Biz alternativ yaratdıq — birbaşa Tesla-nızın ekranında canlı xəritə.
@@ -425,18 +425,18 @@ export const T = {
     stat2l: "Tesla üçün optimallaşdırılıb",
     stat3: "0",
     stat3l: "Əlavə avadanlıq",
-    heroImgAlt: "Tbilisidə canlı naviqasiya ilə Tesla Model 3 ekranı",
+    heroImgAlt: "Bakıda canlı naviqasiya ilə Tesla Model 3 ekranı",
     badEyebrow: "Problem",
     badTitle: "Tesla Premium Connectivity - $99/il",
     badBullets: [
-      "Gürcüstanda idxal olunmuş avtomobillərdə yenə də marşrutu düzgün qurmur",
+      "Azərbaycanda idxal olunmuş avtomobillərdə yenə də marşrutu düzgün qurmur",
       "Artıq ödədiyiniz funksiyalar üçün aylıq ödəniş",
       "Dəstəklənməyən ölkələrdə Tesla-nın köhnə xəritə məlumatlarına bağlıdır",
     ],
     goodEyebrow: "Həll",
-    goodTitle: "TMap Georgia - ayda 8 ₼",
+    goodTitle: "TMap Azerbaijan - ayda 8 ₼",
     goodBullets: [
-      "Gürcüstan küçələrini həqiqətən tanıyan Google keyfiyyətli xəritələr",
+      "Azərbaycan küçələrini həqiqətən tanıyan Google keyfiyyətli xəritələr",
       "Telefonunuzdan real vaxtda GPS → avtomobilin 17″ ekranına",
       "Canlı tıxac məlumatı, alternativ marşrutlar, avtomatik yenidən marşrutlama, HUD rejimi",
     ],
@@ -448,7 +448,7 @@ export const T = {
       { i: "🧭", t: "Addım-addım HUD", b: "Böyük ETA, məsafə və sürətlə tam ekran naviqasiya — bir baxışda oxunur." },
       { i: "⚡", t: "Tıxac və yenidən marşrutlama", b: "Canlı tıxac qatı, alternativ marşrutlar və yoldan çıxdıqda avtomatik yeni marşrut." },
       { i: "🔋", t: "Supercharger planlaması", b: "Batareyanın faizini daxil edin, yol boyu doldurma dayanacaqlarını planlaşdıraq." },
-      { i: "🇬🇪", t: "Yerli küçələr", b: "Gürcü ünvanları, Tbilisinin dalanları, torpaq yol xəbərdarlıqları — ölkəyə uyğunlaşdırılıb." },
+      { i: "🇦🇿", t: "Yerli küçələr", b: "Azərbaycan ünvanları, Bakının dalanları, torpaq yol xəbərdarlıqları — ölkəyə uyğunlaşdırılıb." },
       { i: "🔒", t: "Yalnız üzvlər üçün", b: "Bir hesab, bir cihaz. Abunəliyinizi başqa avtomobillə paylaşmaq mümkün deyil." },
     ],
     pairingAlt: "Telefonun QR kodla Tesla ekranına qoşulması",
@@ -495,7 +495,7 @@ export const T = {
     contactBody:
       "İstənilən sual və ya kömək üçün Facebook səhifəmizdə bizə yazın. Naviqasiya, ödəniş və ya hesabla bağlı məsələlərdə kömək edəcəyik.",
     contactCta: "Facebook-da bizə yazın",
-    footer: "Tesla sahibləri üçün yaradılıb",
+    footer: "Azərbaycanda Tesla sahibləri üçün yaradılıb",
   },
 } as const;
 

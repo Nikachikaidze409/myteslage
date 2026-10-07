@@ -265,7 +265,7 @@ function Checkout() {
             <p className="mt-2 text-sm text-white/60">{blockedNote}</p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-center">
               {market === "am" ? (
-                <a href={APP_MAP_URL} className="font-display flex h-12 items-center justify-center rounded-2xl bg-[#3b82f6] px-6 text-sm font-bold text-white hover:brightness-110">
+                <a href={`${APP_MAP_URL}?from=am`} className="font-display flex h-12 items-center justify-center rounded-2xl bg-[#3b82f6] px-6 text-sm font-bold text-white hover:brightness-110">
                   Բացել քարտեզը
                 </a>
               ) : (

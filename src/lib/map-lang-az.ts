@@ -1,5 +1,6 @@
 // Azerbaijani map UI strings, keyed by the Georgian source text passed to tr().
 export const AZ_MAP_STRINGS: Record<string, string> = {
+  "ენის შეცვლა": "Dili dəyiş",
   "გეგმა:": "Plan:",
   "1 წელი": "1 il",
   "3 თვე": "3 ay",

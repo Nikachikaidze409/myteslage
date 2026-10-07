@@ -75,3 +75,22 @@ describe("legacy domain redirect", () => {
     }
   });
 });
+
+import { armenianRedirectTarget } from "./server";
+describe("armenian visitors on tmap.ge", () => {
+  it("sends Armenian IPs on shop pages to tmap.am", () => {
+    expect(armenianRedirectTarget("https://tmap.ge/pricing", "GET", "AM", null)).toBe("https://tmap.am/pricing");
+    expect(armenianRedirectTarget("https://tmap.ge/hy", "GET", "AM", null)).toBe("https://tmap.am/");
+  });
+  it("remembers browsers that came from tmap.am", () => {
+    expect(armenianRedirectTarget("https://tmap.ge/", "GET", "GE", "tmap_am=1")).toBe("https://tmap.am/");
+  });
+  it("keeps the map, sign-in and payment returns reachable", () => {
+    for (const p of ["/map", "/auth", "/checkout/success", "/phone/x"]) {
+      expect(armenianRedirectTarget(`https://tmap.ge${p}`, "GET", "AM", "tmap_am=1")).toBeNull();
+    }
+  });
+  it("leaves Georgian visitors alone", () => {
+    expect(armenianRedirectTarget("https://tmap.ge/pricing", "GET", "GE", null)).toBeNull();
+  });
+});

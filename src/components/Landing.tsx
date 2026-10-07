@@ -304,7 +304,7 @@ function Nav({
             <>
               {armenia ? (
                 <a
-                  href={APP_MAP_URL}
+                  href={`${APP_MAP_URL}?from=am`}
                   className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
                 >
                   {t.navOpenApp}

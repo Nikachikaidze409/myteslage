@@ -83,6 +83,7 @@ export function legacyRedirectTarget(rawUrl: string): string | null {
     url.protocol = "https:";
     url.hostname = CANONICAL_HOST;
     url.port = "";
+    url.searchParams.set("from", "am");
     return url.toString();
   }
 
@@ -91,6 +92,36 @@ export function legacyRedirectTarget(rawUrl: string): string | null {
   url.hostname = CANONICAL_HOST;
   url.port = "";
   return url.toString();
+}
+
+/** Shop pages an Armenian visitor on tmap.ge is sent back to tmap.am for. */
+const AM_SHOP_PATHS = new Set(["/", "/pricing", "/checkout", "/hy", "/en", "/ru", "/az"]);
+export const AM_VISITOR_COOKIE = "tmap_am";
+
+/**
+ * Armenian visitors (Armenian IP, or a browser that came over from tmap.am)
+ * see only tmap.am prices: tmap.ge shop pages redirect to tmap.am. The map,
+ * sign-in and payment returns on tmap.ge stay reachable.
+ */
+export function armenianRedirectTarget(
+  rawUrl: string,
+  method: string,
+  country: string | null,
+  cookieHeader: string | null,
+): string | null {
+  if (method.toUpperCase() !== "GET") return null;
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  if (url.hostname.toLowerCase() !== CANONICAL_HOST) return null;
+  const path = url.pathname.replace(/\/+$/, "") || "/";
+  if (!AM_SHOP_PATHS.has(path)) return null;
+  const remembered = new RegExp(`(?:^|;\\s*)${AM_VISITOR_COOKIE}=1`).test(cookieHeader ?? "");
+  if (!remembered && (country ?? "").toUpperCase() !== "AM") return null;
+  return `https://${AM_HOST}${path === "/hy" || path === "/en" || path === "/ru" || path === "/az" ? "/" : path}`;
 }
 
 /** 301 for browser reads, 308 for everything else so POST bodies survive. */
@@ -110,10 +141,29 @@ export default {
         });
       }
 
+      const amTarget = armenianRedirectTarget(
+        request.url,
+        request.method,
+        request.headers.get("cf-ipcountry"),
+        request.headers.get("cookie"),
+      );
+      if (amTarget) {
+        return new Response(null, { status: 302, headers: { location: amTarget, "cache-control": "no-store" } });
+      }
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalized = await normalizeCatastrophicSsrResponse(response);
+      // A browser sent over from tmap.am is remembered on tmap.ge for a year.
+      if (new URL(request.url).searchParams.get("from") === "am") {
+        const withCookie = new Response(normalized.body, normalized);
+        withCookie.headers.append(
+          "set-cookie",
+          `${AM_VISITOR_COOKIE}=1; Path=/; Max-Age=31536000; Secure; SameSite=Lax`,
+        );
+        return withCookie;
+      }
+      return normalized;
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

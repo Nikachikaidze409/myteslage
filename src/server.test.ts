@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { legacyRedirectStatus, legacyRedirectTarget } from "./server";
+import { armenianRedirectTarget, legacyRedirectStatus, legacyRedirectTarget } from "./server";
 
 const LEGACY_API_PATHS = [
   "/api/public/payments/bog/callback",
@@ -76,7 +76,6 @@ describe("legacy domain redirect", () => {
   });
 });
 
-import { armenianRedirectTarget } from "./server";
 describe("armenian visitors on tmap.ge", () => {
   it("sends Armenian IPs on shop pages to tmap.am", () => {
     expect(armenianRedirectTarget("https://tmap.ge/pricing", "GET", "AM", null)).toBe("https://tmap.am/pricing");

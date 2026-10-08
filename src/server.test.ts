@@ -93,3 +93,25 @@ describe("armenian visitors on tmap.ge", () => {
     expect(armenianRedirectTarget("https://tmap.ge/pricing", "GET", "GE", null)).toBeNull();
   });
 });
+
+import { amSyncTarget, amSyncBack } from "./server";
+describe("tmap.am -> tmap.ge cookie handshake", () => {
+  it("first tmap.am visit bounces through tmap.ge", () => {
+    expect(amSyncTarget("https://tmap.am/pricing", "GET", null, "Mozilla")).toBe(
+      "https://tmap.ge/__am-sync?back=" + encodeURIComponent("https://tmap.am/pricing"),
+    );
+  });
+  it("no bounce once synced, for bots, or on tmap.ge", () => {
+    expect(amSyncTarget("https://tmap.am/", "GET", "tmap_am_synced=1", "Mozilla")).toBeNull();
+    expect(amSyncTarget("https://tmap.am/", "GET", null, "Googlebot")).toBeNull();
+    expect(amSyncTarget("https://tmap.am/?am_synced=1", "GET", null, "Mozilla")).toBeNull();
+    expect(amSyncTarget("https://tmap.ge/", "GET", null, "Mozilla")).toBeNull();
+  });
+  it("only bounces back to tmap.am", () => {
+    expect(amSyncBack("https://tmap.ge/__am-sync?back=https%3A%2F%2Fevil.com%2F")).toBe("https://tmap.am/?am_synced=1");
+    expect(amSyncBack("https://tmap.ge/__am-sync?back=https%3A%2F%2Ftmap.am%2Fpricing")).toBe("https://tmap.am/pricing?am_synced=1");
+  });
+  it("map stays open for remembered Armenians", () => {
+    expect(armenianRedirectTarget("https://tmap.ge/map", "GET", "AM", "tmap_am=1")).toBeNull();
+  });
+});

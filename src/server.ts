@@ -124,6 +124,57 @@ export function armenianRedirectTarget(
   return `https://${AM_HOST}${path === "/hy" || path === "/en" || path === "/ru" || path === "/az" ? "/" : path}`;
 }
 
+/** Path on tmap.ge that stores the tmap_am cookie and bounces back to tmap.am. */
+export const AM_SYNC_PATH = "/__am-sync";
+const AM_SYNCED_COOKIE = "tmap_am_synced";
+const BOT_UA = /bot|crawl|spider|slurp|facebookexternalhit|preview|lighthouse/i;
+
+/**
+ * First visit on tmap.am: bounce once through tmap.ge so tmap.ge can remember
+ * this browser as Armenian (cookies cannot be shared across .am and .ge).
+ */
+export function amSyncTarget(
+  rawUrl: string,
+  method: string,
+  cookieHeader: string | null,
+  userAgent: string | null,
+): string | null {
+  if (method.toUpperCase() !== "GET") return null;
+  if (BOT_UA.test(userAgent ?? "")) return null;
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  if (url.hostname.toLowerCase() !== AM_HOST) return null;
+  if (url.pathname.startsWith("/api/") || url.searchParams.has("am_synced")) return null;
+  const path = url.pathname.replace(/\/+$/, "") || "/";
+  if (!AM_SHOP_PATHS.has(path)) return null;
+  if (new RegExp(`(?:^|;\\s*)${AM_SYNCED_COOKIE}=1`).test(cookieHeader ?? "")) return null;
+  url.protocol = "https:";
+  url.port = "";
+  return `https://${CANONICAL_HOST}${AM_SYNC_PATH}?back=${encodeURIComponent(url.toString())}`;
+}
+
+/** Only ever bounce back to tmap.am. */
+export function amSyncBack(rawUrl: string): string {
+  try {
+    const back = new URL(new URL(rawUrl).searchParams.get("back") ?? "");
+    if (back.hostname.toLowerCase() !== AM_HOST) throw new Error("bad host");
+    back.protocol = "https:";
+    back.searchParams.set("am_synced", "1");
+    return back.toString();
+  } catch {
+    return `https://${AM_HOST}/?am_synced=1`;
+  }
+}
+
+function countryOf(request: Request): string | null {
+  const cf = (request as unknown as { cf?: { country?: string } }).cf;
+  return request.headers.get("cf-ipcountry") || cf?.country || null;
+}
+
 /** 301 for browser reads, 308 for everything else so POST bodies survive. */
 export function legacyRedirectStatus(method: string): 301 | 308 {
   const verb = method.toUpperCase();
@@ -141,14 +192,43 @@ export default {
         });
       }
 
+      const reqUrl = new URL(request.url);
+      // tmap.ge side of the handshake: remember the browser, bounce back.
+      if (reqUrl.hostname.toLowerCase() === CANONICAL_HOST && reqUrl.pathname === AM_SYNC_PATH) {
+        const headers = new Headers({ location: amSyncBack(request.url), "cache-control": "no-store" });
+        headers.append("set-cookie", `${AM_VISITOR_COOKIE}=1; Path=/; Max-Age=31536000; Secure; SameSite=Lax`);
+        return new Response(null, { status: 302, headers });
+      }
+
+      const syncTo = amSyncTarget(
+        request.url,
+        request.method,
+        request.headers.get("cookie"),
+        request.headers.get("user-agent"),
+      );
+      if (syncTo) {
+        return new Response(null, { status: 302, headers: { location: syncTo, "cache-control": "no-store" } });
+      }
+
       const amTarget = armenianRedirectTarget(
         request.url,
         request.method,
-        request.headers.get("cf-ipcountry"),
+        countryOf(request),
         request.headers.get("cookie"),
       );
       if (amTarget) {
         return new Response(null, { status: 302, headers: { location: amTarget, "cache-control": "no-store" } });
+      }
+
+      if (reqUrl.hostname.toLowerCase() === AM_HOST && reqUrl.searchParams.get("am_synced") === "1") {
+        const handler = await getServerEntry();
+        const res = await normalizeCatastrophicSsrResponse(await handler.fetch(request, env, ctx));
+        const withCookie = new Response(res.body, res);
+        withCookie.headers.append(
+          "set-cookie",
+          `${AM_SYNCED_COOKIE}=1; Path=/; Max-Age=31536000; Secure; SameSite=Lax`,
+        );
+        return withCookie;
       }
 
       const handler = await getServerEntry();

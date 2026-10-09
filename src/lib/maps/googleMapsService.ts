@@ -56,17 +56,19 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
     scrollwheel: false,
     // Double-tap / double-click zoom is a gesture too: only +/- may zoom.
     disableDoubleClickZoom: true,
-    clickableIcons: true,
+    // Lightweight mode: no clickable Google POIs (less hit-testing work).
+    clickableIcons: false,
     keyboardShortcuts: false,
     maxZoom: 20,
     minZoom: 4,
     isFractionalZoomEnabled: true,
     backgroundColor: "#f1f5f9",
-    mapId: MAP_ID,
+    // No Cloud Map ID: plain raster tiles with our minimal style below, so
+    // Google skips shops, restaurants, transit stops and other clutter.
+    styles: MINIMAL_STYLE,
   };
-  // Lightweight mode: always flat 2D raster tiles. No WebGL, no 3D, so the
-  // weak in-car browser never renders vectors. Navigation logic is unaffected.
   void shouldUseRaster;
+  void MAP_ID;
   if (google.maps.RenderingType?.RASTER) {
     options.renderingType = google.maps.RenderingType.RASTER;
   }
@@ -75,15 +77,31 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
   try {
     map = new google.maps.Map(container, options);
   } catch {
-    // A bad / raster-only Map ID must never leave the driver without a map.
-    delete options.mapId;
     delete options.renderingType;
-    map = new google.maps.Map(container, { ...options, styles: LIGHT_STYLE });
+    map = new google.maps.Map(container, options);
   }
 
-  const vector = detectVector(google, map);
-  return { google, map, vector };
+  return { google, map, vector: false };
 }
+
+/** Driver-only map: roads, street names, water, borders. Everything else off. */
+const MINIMAL_STYLE = [
+  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  { featureType: "administrative.neighborhood", stylers: [{ visibility: "off" }] },
+  { featureType: "administrative.land_parcel", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { featureType: "landscape.man_made", stylers: [{ visibility: "simplified" }] },
+  { elementType: "geometry", stylers: [{ color: "#f1f5f9" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#475569" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#e2e8f0" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#334155" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#fef3c7" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#fcd34d" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#bfdbfe" }] },
+];
 
 /** Rough Georgia bounding box. */
 function inGeorgia(p: { lat: number; lng: number }): boolean {

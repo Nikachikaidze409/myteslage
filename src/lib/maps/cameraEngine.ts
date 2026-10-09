@@ -149,11 +149,12 @@ export class CameraEngine {
     const wantHeading = this.opts.vector && this.opts.headingUp && navigating ? t.heading : 0;
     const tilt3d = this.opts.tilt3d !== false;
     // Display mode owns pitch: navigation only nudges it with speed.
-    const wantTilt = tilt3d && this.opts.vector ? (navigating && t.speed > 2 ? NAV_TILT + 5 : NAV_TILT) : 0;
-    const wantZoom = navigating ? zoomForSpeed(t.speed) : Math.max(this.map.getZoom?.() ?? 16, 16);
+    // Fixed tilt/zoom/look-ahead: no speed-based breathing at lights or braking.
+    const wantTilt = tilt3d && this.opts.vector ? NAV_TILT : 0;
+    const wantZoom = navigating ? NAV_ZOOM : Math.max(this.map.getZoom?.() ?? 16, 16);
 
-    // Look ahead so the car sits in the lower third of the screen.
-    const ahead = navigating ? Math.min(220, 40 + t.speed * 6) : 0;
+    // Constant look-ahead so the car sits in the lower part of the screen.
+    const ahead = navigating ? NAV_AHEAD_M : 0;
     const wantCenter = ahead > 0 ? offsetLatLng(t.center, t.heading, ahead) : t.center;
 
     if (!this.cur) {
@@ -214,11 +215,7 @@ export class CameraEngine {
   }
 }
 
-function zoomForSpeed(speedMps: number): number {
-  const kmh = speedMps * 3.6;
-  if (kmh > 100) return 15.5;
-  if (kmh > 70) return 16.2;
-  if (kmh > 40) return 16.8;
-  if (kmh > 15) return 17.4;
-  return 17.8;
-}
+/** Single stable navigation zoom — avoids tile reloads from zoom changes. */
+export const NAV_ZOOM = 17;
+/** Constant camera look-ahead in metres. */
+const NAV_AHEAD_M = 90;

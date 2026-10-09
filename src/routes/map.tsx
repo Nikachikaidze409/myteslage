@@ -234,7 +234,8 @@ function Index() {
   const [routeError, setRouteError] = useState<string | null>(null);
   const [navigating, setNavigating] = useState(false);
   const [offRoute, setOffRoute] = useState(false);
-  const [showTraffic, setShowTraffic] = useState(true);
+  // Off by default: the traffic overlay is heavy for in-car browsers.
+  const [showTraffic, setShowTraffic] = useState(false);
   const [tilt3d, setTilt3d] = useState(false);
   useEffect(() => {
     try { if (localStorage.getItem("tmg:tilt3d") === "1") setTilt3d(true); } catch {}

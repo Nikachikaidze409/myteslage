@@ -31,9 +31,9 @@ export class VehicleRenderer {
   setPose(lat: number, lng: number, heading: number, cameraHeading: number): void {
     if (!this.marker) return;
     this.heading = heading;
-    // Sub-centimetre moves cost a Maps redraw and change nothing on screen.
+    // Sub-half-metre moves cost a Maps redraw and are invisible at nav zoom.
     const moved =
-      !this.pos || Math.abs(this.pos.lat - lat) > 2e-6 || Math.abs(this.pos.lng - lng) > 2e-6;
+      !this.pos || Math.abs(this.pos.lat - lat) > 5e-6 || Math.abs(this.pos.lng - lng) > 5e-6;
     if (moved) {
       this.pos = { lat, lng };
       this.marker.setPosition({ lat, lng });

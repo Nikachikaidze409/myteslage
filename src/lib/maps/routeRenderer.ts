@@ -74,7 +74,8 @@ export class RouteRenderer {
   trim(proj: Projection | null, now: number): void {
     const idx = this.index;
     if (!idx || !proj || !this.ahead || !this.behind) return;
-    if (now - this.lastTrimAt < 500) return;
+    // Rebuilding two polylines is costly on in-car GPUs: trim every 2.5 s.
+    if (now - this.lastTrimAt < 2500) return;
     // Standing still (traffic light, parked) must not redraw two polylines.
     const prev = this.lastTrim;
     if (

@@ -44,7 +44,7 @@ export class VehicleRenderer {
   private applyRotation(cameraHeading: number): void {
     if (!this.marker) return;
     const screen = ((this.heading - cameraHeading) % 360 + 360) % 360;
-    if (Math.abs(shortestDelta(screen, this.iconRotation)) < 1.5) return;
+    if (Math.abs(shortestDelta(screen, this.iconRotation)) < 3) return;
     this.iconRotation = screen;
     this.marker.setIcon(arrowIcon(this.google, screen));
   }

@@ -235,7 +235,13 @@ function Index() {
   const [navigating, setNavigating] = useState(false);
   const [offRoute, setOffRoute] = useState(false);
   const [showTraffic, setShowTraffic] = useState(true);
-  const [tilt3d, setTilt3d] = useState(true);
+  const [tilt3d, setTilt3d] = useState(false);
+  useEffect(() => {
+    try { if (localStorage.getItem("tmg:tilt3d") === "1") setTilt3d(true); } catch {}
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem("tmg:tilt3d", tilt3d ? "1" : "0"); } catch {}
+  }, [tilt3d]);
   // Night palette. Read after mount so the server render and hydration match.
   const [darkMap, setDarkMap] = useState(false);
   useEffect(() => {

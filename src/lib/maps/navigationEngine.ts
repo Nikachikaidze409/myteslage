@@ -336,6 +336,8 @@ export class NavigationEngine {
 
   private step = (now: number) => {
     this.raf = requestAnimationFrame(this.step);
+    // Tesla MCU browsers choke at 60 FPS: cap the whole loop at ~30 FPS.
+    if (this.lastFrame && now - this.lastFrame < 31) return;
     const dt = this.lastFrame ? Math.min(0.1, (now - this.lastFrame) / 1000) : 0.016;
 
     const s = this.gps.state(now);

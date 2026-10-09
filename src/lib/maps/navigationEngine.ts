@@ -75,6 +75,8 @@ type Listener = (s: NavSnapshot) => void;
 
 /** Dead reckoning never runs longer than this without a real fix. */
 const MAX_PREDICT_S = 5;
+/** Typical GPS fix latency compensated while moving. */
+const GPS_LEAD_S = 0.45;
 /** A maneuver closer than this puts the UI in approach mode. */
 const APPROACH_M = 150;
 
@@ -366,7 +368,8 @@ export class NavigationEngine {
     const target = this.predict(s, now, dt);
 
     // Glide toward the predicted position instead of teleporting to it.
-    const k = dampFactor(0.28, dt);
+    // Softer when slow (no jitter at lights), snappier when moving (no lag).
+    const k = dampFactor(s.speed > 3 ? 0.12 : 0.28, dt);
     this.rendered = {
       lat: lerp(this.rendered.lat, target.point.lat, k),
       lng: lerp(this.rendered.lng, target.point.lng, k),
@@ -405,6 +408,9 @@ export class NavigationEngine {
     const match = this.progress.match;
     const since = Math.min(MAX_PREDICT_S, (now - s.at) / 1000);
 
+    // GPS fixes arrive ~0.5 s old; lead by that much while really moving.
+    const lead = s.speed > 3 && !s.stale ? GPS_LEAD_S : 0;
+
     if (this.navigating && !this.rerouting && idx && this.proj && match && match.confidence > 0.4) {
       // Advance along the route geometry at the measured speed.
       this.predictedAlong = Math.min(
@@ -412,7 +418,7 @@ export class NavigationEngine {
         Math.max(this.proj.along, this.predictedAlong + s.speed * dt),
       );
       const capped = Math.min(idx.total, this.proj.along + s.speed * since);
-      const along = Math.min(this.predictedAlong, capped);
+      const along = Math.min(idx.total, Math.min(this.predictedAlong, capped) + s.speed * lead);
       const point = pointAtAlong(idx, along);
       const nextPoint = pointAtAlong(idx, Math.min(idx.total, along + 12));
       const heading = haversine(point, nextPoint) > 1 ? bearingBetween(point, nextPoint) : this.renderedHeading;
@@ -421,7 +427,7 @@ export class NavigationEngine {
 
     const heading = s.heading ?? this.renderedHeading;
     if (s.speed < 0.8 || s.stale) return { point: { lat: s.lat, lng: s.lng }, heading };
-    const metres = s.speed * since;
+    const metres = s.speed * Math.min(MAX_PREDICT_S, since + lead);
     const rad = (heading * Math.PI) / 180;
     const dLat = (metres * Math.cos(rad)) / 6371000;
     const dLng = (metres * Math.sin(rad)) / (6371000 * Math.cos((s.lat * Math.PI) / 180));

@@ -63,25 +63,33 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
     minZoom: 4,
     isFractionalZoomEnabled: true,
     backgroundColor: "#f1f5f9",
-    // No Cloud Map ID: plain raster tiles with our minimal style below, so
-    // Google skips shops, restaurants, transit stops and other clutter.
-    styles: MINIMAL_STYLE,
+    mapId: MAP_ID,
   };
-  void shouldUseRaster;
-  void MAP_ID;
-  if (google.maps.RenderingType?.RASTER) {
+  // Vector (WebGL) is required for the GPU navigation camera (moveCamera,
+  // heading-up). Raster is used only where the in-car vector renderer fails.
+  const useRaster = shouldUseRaster(start);
+  if (useRaster && google.maps.RenderingType?.RASTER) {
     options.renderingType = google.maps.RenderingType.RASTER;
+    delete options.mapId;
+    options.styles = MINIMAL_STYLE;
+  } else if (google.maps.RenderingType?.VECTOR) {
+    options.renderingType = google.maps.RenderingType.VECTOR;
+    options.tiltInteractionEnabled = false;
+    options.headingInteractionEnabled = false;
   }
 
   let map: any;
   try {
     map = new google.maps.Map(container, options);
   } catch {
+    // A bad / raster-only Map ID must never leave the driver without a map.
+    delete options.mapId;
     delete options.renderingType;
-    map = new google.maps.Map(container, options);
+    map = new google.maps.Map(container, { ...options, styles: MINIMAL_STYLE });
   }
 
-  return { google, map, vector: false };
+  const vector = detectVector(google, map);
+  return { google, map, vector };
 }
 
 /** Driver-only map: roads, street names, water, borders. Everything else off. */

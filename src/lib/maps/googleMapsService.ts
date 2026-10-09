@@ -64,18 +64,11 @@ export async function createMap(container: HTMLElement): Promise<CreatedMap> {
     backgroundColor: "#f1f5f9",
     mapId: MAP_ID,
   };
-  // Outside Georgia (e.g. Armenia) the in-car browser's vector renderer draws
-  // only grey tiles / bare lines: it needs local fonts it doesn't have.
-  // Server-rendered raster tiles always work, so use them there.
-  const useRaster = shouldUseRaster(start);
-  if (useRaster && google.maps.RenderingType?.RASTER) {
+  // Lightweight mode: always flat 2D raster tiles. No WebGL, no 3D, so the
+  // weak in-car browser never renders vectors. Navigation logic is unaffected.
+  void shouldUseRaster;
+  if (google.maps.RenderingType?.RASTER) {
     options.renderingType = google.maps.RenderingType.RASTER;
-  } else if (google.maps.RenderingType?.VECTOR) {
-    options.renderingType = google.maps.RenderingType.VECTOR;
-    // Gesture-driven tilt / rotate are off: display mode owns pitch and the
-    // navigation camera owns heading.
-    options.tiltInteractionEnabled = false;
-    options.headingInteractionEnabled = false;
   }
 
   let map: any;

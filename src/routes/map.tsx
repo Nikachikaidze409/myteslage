@@ -1135,7 +1135,7 @@ function Index() {
 
 
           {!hudMode && (
-          <div className="absolute right-4 top-4 z-30">
+          <div className="absolute right-4 top-36 z-30">
             <button
               type="button"
               onClick={() => setShowTraffic((v) => !v)}

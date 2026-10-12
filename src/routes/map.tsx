@@ -236,6 +236,27 @@ function Index() {
   const [offRoute, setOffRoute] = useState(false);
   // Off by default: the traffic overlay is heavy for in-car browsers.
   const [showTraffic, setShowTraffic] = useState(false);
+  // Engine sound: off by default, module loaded only when enabled.
+  const [engineSoundOn, setEngineSoundOn] = useState(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const engineSoundRef = useRef<import("@/lib/engine-sound").EngineSound | null>(null);
+  useEffect(() => {
+    if (!engineSoundOn) return;
+    let cancelled = false;
+    import("@/lib/engine-sound").then((m) => {
+      if (!cancelled) engineSoundRef.current = m.createEngineSound(audioCtxRef.current!);
+      else audioCtxRef.current?.close();
+    });
+    return () => {
+      cancelled = true;
+      engineSoundRef.current?.stop();
+      engineSoundRef.current = null;
+      audioCtxRef.current = null;
+    };
+  }, [engineSoundOn]);
+  useEffect(() => {
+    if (engineSoundOn && fix) engineSoundRef.current?.update(fix.speed ?? null, fix.timestamp ?? Date.now());
+  }, [engineSoundOn, fix]);
   const [tilt3d, setTilt3d] = useState(false);
   useEffect(() => {
     try { if (localStorage.getItem("tmg:tilt3d") === "1") setTilt3d(true); } catch {}
@@ -1136,6 +1157,27 @@ function Index() {
 
           {!hudMode && (
           <div className="absolute right-4 top-36 z-30">
+            <button
+              type="button"
+              onClick={() => {
+                if (!engineSoundOn) {
+                  // Create audio inside the tap so the browser allows sound.
+                  const C = window.AudioContext || (window as any).webkitAudioContext;
+                  audioCtxRef.current = new C();
+                  void audioCtxRef.current.resume();
+                }
+                setEngineSoundOn((v) => !v);
+              }}
+              className={`mb-2 block rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
+                engineSoundOn
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : darkMap
+                    ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
+                    : "border-border bg-white/90 text-foreground hover:bg-white"
+              }`}
+            >
+              {engineSoundOn ? tr("ძრავის ხმა ჩართულია", "Շարժիչի ձայնը միացված է") : tr("ძრავის ხმა გამორთულია", "Շարժիչի ձայնն անջատված է")}
+            </button>
             <button
               type="button"
               onClick={() => setShowTraffic((v) => !v)}

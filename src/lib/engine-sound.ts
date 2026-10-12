@@ -2,9 +2,7 @@
 // user enables it, so it never affects map load time.
 export type EngineSound = { update: (speedMps: number | null, t: number) => void; stop: () => void };
 
-export function createEngineSound(): EngineSound {
-  const Ctx = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
-  const ctx = new Ctx();
+export function createEngineSound(ctx: AudioContext): EngineSound {
   const master = ctx.createGain();
   master.gain.value = 0;
   const filter = ctx.createBiquadFilter();

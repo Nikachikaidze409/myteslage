@@ -255,7 +255,7 @@ function Index() {
     };
   }, [engineSoundOn]);
   useEffect(() => {
-    if (engineSoundOn && fix) engineSoundRef.current?.update(fix.speed ?? null, fix.timestamp ?? Date.now());
+    if (engineSoundOn && fix) engineSoundRef.current?.update(fix);
   }, [engineSoundOn, fix]);
   const [tilt3d, setTilt3d] = useState(false);
   useEffect(() => {

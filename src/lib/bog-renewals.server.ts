@@ -7,6 +7,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   BOG_RECURRING_AMOUNTS,
+  billingTimeFor,
   computeRenewalPeriod,
   createBogRenewalCharge,
   fetchBogPaymentDetails,
@@ -99,7 +100,7 @@ export async function settleRenewalOrder(
         status: "active",
         current_period_start: period.start.toISOString(),
         current_period_end: period.end.toISOString(),
-        next_billing_at: period.end.toISOString(),
+        next_billing_at: billingTimeFor(period.end).toISOString(),
         last_payment_order_id: order.provider_order_id,
         renewal_status: "idle",
         renewal_attempts: 0,

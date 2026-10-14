@@ -99,6 +99,19 @@ export function computePeriodEnd(plan: PlanKey, start: Date): Date {
   return end;
 }
 
+/**
+ * Automatic charge time: 10:00 Tbilisi (06:00 UTC) on the day the period ends,
+ * or the previous day when the period ends before 10:00 — never after expiry.
+ */
+export function billingTimeFor(periodEnd: Date): Date {
+  const local = new Date(periodEnd.getTime() + 4 * 3600_000);
+  const at = new Date(
+    Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), 6, 0, 0),
+  );
+  if (at.getTime() > periodEnd.getTime()) at.setUTCDate(at.getUTCDate() - 1);
+  return at;
+}
+
 /* ------------------------------------------------------------------ *
  * OAuth — client credentials, cached in server memory.
  * ------------------------------------------------------------------ */

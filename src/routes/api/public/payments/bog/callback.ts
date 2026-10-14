@@ -52,6 +52,7 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
           canBeAutoRenewParent,
           BOG_PLANS,
           isPlanKey,
+          billingTimeFor,
         } = await import("@/lib/bog.server");
 
         // An unknown plan value must never be silently treated as quarterly.
@@ -147,7 +148,7 @@ export const Route = createFileRoute("/api/public/payments/bog/callback")({
             current_period_start: start.toISOString(),
             current_period_end: periodEnd.toISOString(),
             auto_renew: autoRenew,
-            next_billing_at: autoRenew ? periodEnd.toISOString() : null,
+            next_billing_at: autoRenew ? billingTimeFor(periodEnd).toISOString() : null,
             renewal_status: "idle",
             renewal_attempts: 0,
             environment: "live",

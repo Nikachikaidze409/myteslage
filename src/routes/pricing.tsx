@@ -106,6 +106,40 @@ const COPY = {
   },
 } as const;
 
+/** Russian visitors (tmap_lang=ru cookie, set by /ru): rubles + tenge, display only. */
+const RU_COPY = {
+  eyebrow: "Подписка",
+  title: "Выберите план",
+  subtitle: "Один аккаунт = одно устройство. Отмена в любое время.",
+  monthlyTitle: "Ежемесячно",
+  monthlyPeriod: "в месяц",
+  monthlySub: "Оплата каждый месяц",
+  monthlyPerMonth: "(2 457 ₸)",
+  quarterlyTitle: "3 месяца",
+  quarterlyPeriod: "за 3 месяца",
+  quarterlySub: "Один платёж, три месяца",
+  quarterlyPerMonth: "(13 415 ₸)",
+  annualTitle: "1 год",
+  annualPeriod: "в год",
+  annualSub: "Лучшая цена — один платёж в год",
+  annualPerMonth: "(26 165 ₸)",
+  annualBadge: "Лучшая цена",
+  included: "Что вы получаете",
+  features: [
+    "Живая навигация, оптимизированная для Tesla",
+    "Связь с GPS телефона (точность ~1 м)",
+    "Пошаговый HUD и голосовые подсказки",
+    "Живые пробки и авто-перестроение",
+    "Улицы и адреса России и Казахстана",
+    "Планирование остановок Supercharger",
+  ],
+  ctaSignup: "Создать аккаунт и продолжить →",
+  ctaCheckout: "Перейти к оплате →",
+  note: "Безопасная оплата картой через Bank of Georgia в эквивалентной сумме в лари.",
+  back: "← Назад",
+};
+const RU_PRICE_LABELS = { monthly: "450 ₽", quarterly: "1 277 ₽", annual: "4 792 ₽" };
+
 export const Route = createFileRoute("/pricing")({
   component: PricingPage,
   head: () => ({
@@ -132,17 +166,19 @@ function PricingPage() {
   const [noMembership, setNoMembership] = useState(false);
   const market = useMarket();
   const am = market === "am";
-  const c = COPY[market];
-  const prices = MARKET_BOG_LABELS[market];
+  const [ru, setRu] = useState(false);
+  const c = ru ? RU_COPY : COPY[market];
+  const prices = ru ? RU_PRICE_LABELS : MARKET_BOG_LABELS[market];
 
   useEffect(() => {
+    if (!am && /(?:^|;\s*)tmap_lang=ru/.test(document.cookie)) setRu(true);
     supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
     try {
       setNoMembership(!!window.sessionStorage.getItem("tsl.no-membership"));
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [am]);
 
   const proceed = () => {
     try {

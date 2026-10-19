@@ -9,12 +9,12 @@ export const Route = createFileRoute("/ru")({
       {
         name: "description",
         content:
-          "Живая навигация на экране вашей Tesla в России и Казахстане. Связь с GPS телефона, пошаговый HUD, пробки и перестроение маршрута от 8 ₾ в месяц.",
+          "Живая навигация на экране вашей Tesla в России и Казахстане. Связь с GPS телефона, пошаговый HUD, пробки и перестроение маршрута от 450 ₽ в месяц.",
       },
       { property: "og:title", content: "TMap - Навигация для браузера Tesla" },
       {
         property: "og:description",
-        content: "Настоящий GPS. Настоящие маршруты. Улицы России и Казахстана. От 8 ₾ в месяц.",
+        content: "Настоящий GPS. Настоящие маршруты. Улицы России и Казахстана. От 450 ₽ в месяц.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

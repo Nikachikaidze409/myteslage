@@ -72,14 +72,12 @@ describe("BOG hosted checkout payment methods", () => {
     expect(src("lib/bog.server.ts")).not.toContain("external: true");
   });
 
-  it("requests Apple Pay without removing card or other enabled methods", () => {
-    expect(payload.payment_method).toEqual([
-      "card",
-      "apple_pay",
-      "google_pay",
-      "bog_p2p",
-      "bog_loyalty",
-    ]);
+  it("offers card payment only (no Apple Pay / Google Pay)", () => {
+    expect(payload.payment_method).toEqual(["card"]);
+  });
+
+  it("never falls back to merchant-default methods", () => {
+    expect(src("lib/bog.server.ts")).not.toContain("postOrder(withoutExplicitPaymentMethods");
   });
 
   it("can fall back to merchant-default methods without breaking checkout", () => {

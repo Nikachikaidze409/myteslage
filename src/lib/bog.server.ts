@@ -185,17 +185,10 @@ export async function getBogAccessToken(): Promise<string> {
  * ------------------------------------------------------------------ */
 
 /**
- * Hosted-checkout payment methods we ask BOG to offer. All values are from the
- * official create-order documentation. Apple Pay / Google Pay are offered
- * ALONGSIDE card — never instead of it.
+ * Hosted-checkout payment methods. Card only: Apple Pay / Google Pay / P2P
+ * never save a reusable card token, so automatic renewals always failed.
  */
-export const BOG_PAYMENT_METHODS = [
-  "card",
-  "apple_pay",
-  "google_pay",
-  "bog_p2p",
-  "bog_loyalty",
-] as const;
+export const BOG_PAYMENT_METHODS = ["card"] as const;
 
 export interface BogOrderPayload {
   callback_url: string;
@@ -328,18 +321,8 @@ export async function createBogOrder(payload: BogOrderPayload): Promise<BogCreat
     `[BOG] create order failed with status ${first.status} (explicit payment methods: ${(payload.payment_method ?? []).join(",")}) body=${first.body}`,
   );
 
-  // A rejected method list must never break a working checkout: retry once
-  // letting BOG offer every method actually activated on the merchant.
-  if (payload.payment_method) {
-    const retry = await postOrder(withoutExplicitPaymentMethods(payload));
-    if (retry.ok) {
-      console.error(
-        "[BOG] checkout created WITHOUT explicit payment_method — one of the requested methods is not activated on the merchant (see previous log line for the bank's message).",
-      );
-      return retry.created;
-    }
-    console.error(`[BOG] create order retry failed with status ${retry.status} body=${retry.body}`);
-  }
+  // No fallback to merchant-default methods: that would re-offer Apple/Google Pay,
+  // which cannot be charged automatically. Card-only is a business rule.
 
   throw new Error("Could not start the bank checkout. Please try again.");
 }

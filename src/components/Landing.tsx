@@ -296,7 +296,7 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
         </div>
       </section>
 
-      <Footer text={t.footer} brand={market === "am" || lang === "hy" ? "TMap Armenia" : market === "az" ? "TMap Azerbaijan" : "TMap Georgia"} />
+      <Footer text={t.footer} brand={market === "am" || lang === "hy" ? "TMap Armenia" : market === "az" ? "TMap Azerbaijan" : lang === "ru" ? "TMap" : "TMap Georgia"} />
     </div>
   );
 }
@@ -321,7 +321,7 @@ function Nav({
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
             ⚡
           </span>
-          {armenia ? "TMap" : "TMap Georgia"}
+          {armenia || lang === "ru" ? "TMap" : "TMap Georgia"}
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
           <a href="#pricing" className="hover:text-white">

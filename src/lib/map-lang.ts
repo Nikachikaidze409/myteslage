@@ -1,13 +1,14 @@
 // Map interface language (Georgian default, Armenian and Azerbaijani optional).
 // Read once per page load; switching reloads so Google Maps loads natively in that language.
 import { AZ_MAP_STRINGS } from "@/lib/map-lang-az";
+import { RU_MAP_STRINGS } from "@/lib/map-lang-ru";
 
-export type MapLang = "ka" | "hy" | "az";
+export type MapLang = "ka" | "hy" | "az" | "ru";
 
 /** Order the flag button cycles through. */
-export const MAP_LANG_CYCLE: readonly MapLang[] = ["ka", "hy", "az"];
+export const MAP_LANG_CYCLE: readonly MapLang[] = ["ka", "hy", "az", "ru"];
 
-export const MAP_LANG_FLAG: Record<MapLang, string> = { ka: "🇬🇪", hy: "🇦🇲", az: "🇦🇿" };
+export const MAP_LANG_FLAG: Record<MapLang, string> = { ka: "🇬🇪", hy: "🇦🇲", az: "🇦🇿", ru: "🇷🇺" };
 
 const KEY = "tmg:map-lang";
 
@@ -15,7 +16,7 @@ function read(): MapLang {
   if (typeof window === "undefined") return "ka";
   try {
     const v = window.localStorage.getItem(KEY);
-    return v === "hy" || v === "az" ? v : "ka";
+    return v === "hy" || v === "az" || v === "ru" ? v : "ka";
   } catch {
     return "ka";
   }
@@ -46,5 +47,6 @@ export function setMapLang(lang: MapLang): void {
 export function tr(ka: string, hy: string): string {
   if (current === "hy") return hy;
   if (current === "az") return AZ_MAP_STRINGS[ka] ?? ka;
+  if (current === "ru") return RU_MAP_STRINGS[ka] ?? ka;
   return ka;
 }

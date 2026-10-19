@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AccountMenu } from "@/components/AccountMenu";
@@ -6,6 +6,25 @@ import heroImg from "@/assets/hero-dashboard.jpg";
 import pairingImg from "@/assets/feature-pairing.jpg";
 import { useMarket } from "@/lib/market-context";
 import { APP_MAP_URL, MARKET_BOG_LABELS } from "@/lib/market";
+
+/** Russian landing (tmap.ge/ru): rubles shown large, tenge in brackets. Display only. */
+const RU_PRICES = {
+  monthly: { price: "450 ₽", sub: "(2 457 ₸)" },
+  quarterly: { price: "1 277 ₽", sub: "(13 415 ₸)" },
+  annual: { price: "4 792 ₽", sub: "(26 165 ₸)" },
+} as const;
+const RU_COOKIE_ON = "tmap_lang=ru; path=/; max-age=31536000; samesite=lax";
+const RU_COOKIE_OFF = "tmap_lang=; path=/; max-age=0; samesite=lax";
+const MAP_LANG_KEY = "tmg:map-lang";
+
+function syncMapLang(l: Lang) {
+  try {
+    if (l === "ru") window.localStorage.setItem(MAP_LANG_KEY, "ru");
+    else if (window.localStorage.getItem(MAP_LANG_KEY) === "ru") window.localStorage.setItem(MAP_LANG_KEY, "ka");
+  } catch {
+    /* ignore */
+  }
+}
 import { AM_LANDING_OVERRIDES } from "@/lib/landing-am";
 import {
   LANGS,
@@ -29,10 +48,17 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
   const armenia = market === "am";
   const [signedIn, setSignedIn] = useState(false);
   const [lang, setLang] = useState<Lang>(armenia ? "hy" : (forcedLang ?? "ka"));
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (armenia) return;
+    if (!forcedLang && /(?:^|;\s*)tmap_lang=ru/.test(document.cookie)) {
+      navigate({ to: "/ru", replace: true });
+      return;
+    }
     if (forcedLang) {
+      if (forcedLang === "ru") document.cookie = RU_COOKIE_ON;
+      syncMapLang(forcedLang);
       if (forcedLang === "az") {
         document.cookie = "tmap_market=az; path=/; max-age=31536000; samesite=lax";
       }
@@ -49,9 +75,27 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
     } catch {
       /* ignore */
     }
-  }, [forcedLang, armenia]);
+  }, [forcedLang, armenia, navigate]);
 
   const setLangPersist = (l: Lang) => {
+    document.cookie = l === "ru" ? RU_COOKIE_ON : RU_COOKIE_OFF;
+    syncMapLang(l);
+    try {
+      window.localStorage.setItem(LANG_KEY, l);
+    } catch {
+      /* ignore */
+    }
+    if (l === "ru") {
+      document.cookie = "tmap_market=; path=/; max-age=0; samesite=lax";
+      navigate({ to: "/ru" });
+      return;
+    }
+    if (forcedLang === "ru") {
+      document.cookie =
+        l === "az" ? "tmap_market=az; path=/; max-age=31536000; samesite=lax" : "tmap_market=; path=/; max-age=0; samesite=lax";
+      navigate({ to: l === "az" ? "/az" : "/" });
+      return;
+    }
     setLang(l);
     // Azerbaijani = AZN prices; any other language returns to the GEL market.
     document.cookie =
@@ -75,6 +119,7 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
     armenia ? { ...T.hy, ...AM_LANDING_OVERRIDES } : T[lang]
   ) as unknown as Translation;
   const prices = MARKET_BOG_LABELS[market];
+  const ru = !armenia && lang === "ru";
 
   return (
     <div className="min-h-screen bg-[#050708] text-white" lang={lang}>
@@ -192,9 +237,9 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
               highlighted
               featured={armenia}
               title={t.annualTitle}
-              price={prices.annual}
+              price={ru ? RU_PRICES.annual.price : prices.annual}
               period={t.annualTotal}
-              subprice={t.annualSub}
+              subprice={ru ? RU_PRICES.annual.sub : t.annualSub}
               tag={t.annualTag}
               features={t.annualFeatures}
               cta={t.annualCta}
@@ -204,8 +249,9 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
             <PricingCard
               className={armenia ? "md:order-2" : "md:order-1"}
               title={t.monthlyTitle}
-              price={prices.monthly}
+              price={ru ? RU_PRICES.monthly.price : prices.monthly}
               period={t.monthlyPeriod}
+              subprice={ru ? RU_PRICES.monthly.sub : undefined}
               tag={t.monthlyTag}
               features={t.monthlyFeatures}
               cta={t.monthlyCta}
@@ -214,9 +260,9 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
             <PricingCard
               className={armenia ? "md:order-3" : "md:order-2"}
               title={t.quarterlyTitle}
-              price={prices.quarterly}
+              price={ru ? RU_PRICES.quarterly.price : prices.quarterly}
               period={t.quarterlyTotal}
-              subprice={t.quarterlySub}
+              subprice={ru ? RU_PRICES.quarterly.sub : t.quarterlySub}
               tag={t.quarterlyTag}
               features={t.quarterlyFeatures}
               cta={t.quarterlyCta}

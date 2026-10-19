@@ -112,15 +112,16 @@ export const createBogCheckout = createServerFn({ method: "POST" })
 
     // The market comes from the request host only — never from the browser.
     const { getRequest } = await import("@tanstack/react-start/server");
-    const { marketFromRequest, bogAmountFor } = await import("@/lib/market");
+    const { marketFromRequest, bogAmountForRequest } = await import("@/lib/market");
     const request = getRequest();
+    const cookieHeader = request.headers.get("cookie");
     const market = marketFromRequest(
       request.headers.get("x-forwarded-host") ??
         request.headers.get("host") ??
         new URL(request.url).host,
-      request.headers.get("cookie"),
+      cookieHeader,
     );
-    const planAmount = bogAmountFor(market, data.plan);
+    const planAmount = bogAmountForRequest(market, cookieHeader, data.plan);
 
     const upgrade = eligibility.status === "upgrade_prorated";
     const baseAmount = upgrade ? (eligibility.baseAmount ?? planAmount) : planAmount;

@@ -16,7 +16,7 @@ import {
 } from "@/lib/checkout-provider";
 import { AccountBar } from "@/components/AccountBar";
 import { useMarket } from "@/lib/market-context";
-import { APP_MAP_URL, AZ_CONVERSION_NOTE } from "@/lib/market";
+import { APP_MAP_URL, AZ_CONVERSION_NOTE, RU_BOG_AMOUNTS, RU_CONVERSION_NOTE } from "@/lib/market";
 import { LegalFooter } from "@/components/LegalFooter";
 
 const PLAN_KEY = "tsl.pending-plan";
@@ -56,6 +56,10 @@ function Checkout() {
   const [error, setError] = useState<string | null>(null);
   const [eligibility, setEligibility] = useState<Eligibility | null>(null);
   const [checkingEligibility, setCheckingEligibility] = useState(true);
+  const [ru, setRu] = useState(false);
+  useEffect(() => {
+    if (market === "ge" && /(?:^|;\s*)tmap_lang=ru(?:;|$)/.test(document.cookie)) setRu(true);
+  }, [market]);
 
   const refreshEligibility = useCallback(async () => {
     setCheckingEligibility(true);
@@ -150,7 +154,7 @@ function Checkout() {
   }
 
   const selectedPlan = PLANS[plan];
-  const price = providerPrice(provider, plan, market);
+  const price = ru ? `${RU_BOG_AMOUNTS[plan]} ₾` : providerPrice(provider, plan, market);
 
   const formatDate = (iso?: string | null) =>
     iso ? new Date(iso).toLocaleDateString("ka-GE", { year: "numeric", month: "long", day: "numeric" }) : "";
@@ -243,6 +247,7 @@ function Checkout() {
             </div>
           </div>
           {market === "az" && <p className="mt-4 text-xs text-white/60">{AZ_CONVERSION_NOTE}</p>}
+          {ru && <p className="mt-4 text-xs text-white/60">{RU_CONVERSION_NOTE}</p>}
         </div>
 
         {error && <div className="mt-5 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200">{error}</div>}

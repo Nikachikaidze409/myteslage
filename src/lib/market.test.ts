@@ -4,6 +4,7 @@ import {
   MARKET_PADDLE_PRICE_IDS,
   allowedBogAmounts,
   bogAmountFor,
+  bogAmountForRequest,
   marketFromHost,
 } from "./market";
 import { checkoutButtonLabel, providerPrice } from "./checkout-provider";
@@ -54,7 +55,16 @@ describe("market pricing", () => {
 
 describe("recurring safety", () => {
   it("accepts both markets' full prices as renewal parents", () => {
-    expect(allowedBogAmounts("annual")).toEqual([85, 116, 104, 145]);
+    expect(allowedBogAmounts("annual")).toEqual([85, 116, 104, 145, 155]);
+  });
+
+  it("charges the Russian storefront 15 / 42 / 155 GEL", () => {
+    const c = "a=1; tmap_lang=ru";
+    expect(bogAmountForRequest("ge", c, "monthly")).toBe(15);
+    expect(bogAmountForRequest("ge", c, "quarterly")).toBe(42);
+    expect(bogAmountForRequest("ge", c, "annual")).toBe(155);
+    expect(bogAmountForRequest("ge", "tmap_lang=ka", "monthly")).toBe(8);
+    expect(bogAmountForRequest("am", c, "monthly")).toBe(11.5);
     expect(canBeAutoRenewParent("standard", 116, "annual")).toBe(true);
     expect(canBeAutoRenewParent("standard", 145, "annual")).toBe(true);
     expect(canBeAutoRenewParent("standard", 85, "annual")).toBe(true);

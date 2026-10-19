@@ -106,7 +106,36 @@ export const LEGACY_AM_BOG_AMOUNTS: Record<MarketPlan, number> = {
   annual: 145.0,
 };
 
+/**
+ * Russian-language storefront (tmap.ge/ru, remembered by the tmap_lang=ru
+ * cookie). Shown as RUB/KZT, charged in GEL through Bank of Georgia.
+ */
+export const RU_BOG_AMOUNTS: Record<MarketPlan, number> = {
+  monthly: 15.0,
+  quarterly: 42.0,
+  annual: 155.0,
+};
+
+export const RU_CONVERSION_NOTE =
+  "Оплата списывается через Bank of Georgia в лари по эквиваленту — 15 ₾ / 42 ₾ / 155 ₾. Ваш банк сконвертирует сумму в рубли или тенге по текущему курсу.";
+
+export function isRuRequest(cookieHeader: string | null | undefined): boolean {
+  return /(?:^|;\s*)tmap_lang=ru(?:;|$)/.test(cookieHeader ?? "");
+}
+
+/** Trusted amount for a checkout request; tmap.am and /az keep their own prices. */
+export function bogAmountForRequest(market: Market, cookieHeader: string | null | undefined, plan: MarketPlan): number {
+  if (market === "ge" && isRuRequest(cookieHeader)) return RU_BOG_AMOUNTS[plan];
+  return MARKET_BOG_AMOUNTS[market][plan];
+}
+
 /** Every amount a given plan may legitimately be charged, in any market. */
 export function allowedBogAmounts(plan: MarketPlan): number[] {
-  return [MARKET_BOG_AMOUNTS.ge[plan], MARKET_BOG_AMOUNTS.am[plan], MARKET_BOG_AMOUNTS.az[plan], LEGACY_AM_BOG_AMOUNTS[plan]];
+  return [
+    MARKET_BOG_AMOUNTS.ge[plan],
+    MARKET_BOG_AMOUNTS.am[plan],
+    MARKET_BOG_AMOUNTS.az[plan],
+    LEGACY_AM_BOG_AMOUNTS[plan],
+    RU_BOG_AMOUNTS[plan],
+  ];
 }

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AccountBar } from "@/components/AccountBar";
 import { LegalFooter } from "@/components/LegalFooter";
 import { useMarket } from "@/lib/market-context";
-import { AM_CONVERSION_NOTE, AZ_CONVERSION_NOTE, MARKET_BOG_LABELS } from "@/lib/market";
+import { AM_CONVERSION_NOTE, AZ_CONVERSION_NOTE, MARKET_BOG_LABELS, RU_CONVERSION_NOTE } from "@/lib/market";
 
 type Plan = "monthly" | "quarterly" | "annual";
 const PLAN_KEY = "tsl.pending-plan";
@@ -135,7 +135,7 @@ const RU_COPY = {
   ],
   ctaSignup: "Создать аккаунт и продолжить →",
   ctaCheckout: "Перейти к оплате →",
-  note: "Безопасная оплата картой через Bank of Georgia в эквивалентной сумме в лари.",
+  note: RU_CONVERSION_NOTE,
   back: "← Назад",
 };
 const RU_PRICE_LABELS = { monthly: "450 ₽", quarterly: "1 277 ₽", annual: "4 792 ₽" };

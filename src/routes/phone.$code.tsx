@@ -58,6 +58,7 @@ function PhoneRelay() {
   const [wakeLockOn, setWakeLockOn] = useState(false);
   const [mapControlOn, setMapControlOn] = useState(false);
   const [hudOn, setHudOn] = useState(false);
+  const [darkOn, setDarkOn] = useState(false);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const channelReadyRef = useRef(false);
@@ -302,6 +303,45 @@ function PhoneRelay() {
         if (res.state === "granted") start();
       })
       .catch(() => { /* ignore */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upperCode]);
+
+  // Instant auto-reconnect after the phone is unlocked / the tab returns:
+  // re-take the wake lock, rebuild a dead channel and restart GPS if it was on.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onVisible = () => {
+      if (document.visibilityState !== "visible" || userEndedRef.current) return;
+      if (window.localStorage.getItem(PHONE_KEY) === "1") void requestWakeLock();
+      if (!channelReadyRef.current) {
+        if (channelRef.current) {
+          void supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+        connectChannel();
+      } else {
+        broadcast("heartbeat", { t: Date.now() });
+      }
+      if (window.localStorage.getItem(PHONE_KEY) === "1") {
+        const perms = (navigator as any).permissions;
+        if (perms?.query) {
+          perms
+            .query({ name: "geolocation" })
+            .then((res: PermissionStatus) => {
+              if (res.state === "granted") start();
+            })
+            .catch(() => {});
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onVisible);
+    window.addEventListener("online", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+      window.removeEventListener("online", onVisible);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [upperCode]);
 
@@ -756,7 +796,28 @@ function PhoneRelay() {
         )}
 
         {status === "streaming" && (
+          <div className="space-y-3 rounded-xl border border-[color:var(--warn,var(--primary))]/40 bg-card p-4 text-sm">
+            <div className="font-semibold text-foreground">
+              ⚠️ ნუ ჩაკეტავთ ეკრანს ღილაკით — კავშირი ტესლასთან გაწყდება.
+            </div>
+            <div className="text-muted-foreground">
+              ეკრანი თავისით არ ჩაქრება. ბატარეის დასაზოგად გამოიყენეთ შავი ეკრანი.
+            </div>
+            <button
+              onClick={() => {
+                void requestWakeLock();
+                setDarkOn(true);
+              }}
+              className="h-12 w-full rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
+            >
+              🌑 შავი ეკრანი (ბატარეის დაზოგვა)
+            </button>
+          </div>
+        )}
+
+        {status === "streaming" && (
           <>
+
 
 
             {destination && (
@@ -839,6 +900,18 @@ function PhoneRelay() {
           in your browser or set Auto-Lock to Never.
         </p>
       </div>
+      {darkOn && (
+        <button
+          type="button"
+          aria-label="Wake screen"
+          onClick={() => setDarkOn(false)}
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-black pb-10"
+        >
+          <span className="text-xs text-neutral-800">
+            {connected ? "● TMap · GPS → Tesla" : "○ TMap · reconnecting…"} · შეეხეთ გასაღვიძებლად
+          </span>
+        </button>
+      )}
     </div>
   );
 }

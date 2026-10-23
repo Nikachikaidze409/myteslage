@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { verifyDevice } from "@/lib/auth.functions";
-import { getOrCreateDeviceId } from "@/lib/device";
+import { claimDevice, verifyDevice } from "@/lib/auth.functions";
+import { getDeviceLabel, getOrCreateDeviceId } from "@/lib/device";
 
 import { getPaddleEnvironment } from "@/lib/paddle";
 import { anyMembershipValid } from "@/lib/membership";
@@ -22,9 +22,33 @@ export function AuthGate({ children }: Props) {
     let onWake: (() => void) | null = null;
     const deviceId = getOrCreateDeviceId();
 
+    const isTesla = typeof navigator !== "undefined" && /Tesla/i.test(navigator.userAgent);
+
+    // A car that just woke up needs 10-30 s for LTE: keep retrying the
+    // session (and its token refresh) before ever sending the driver to /auth.
+    const getSessionWithGrace = async () => {
+      const deadline = Date.now() + 30_000;
+      for (;;) {
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (data.session) return data.session;
+          // Stored token exists but refresh failed (offline): try refreshing.
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          if (refreshed.session) return refreshed.session;
+        } catch {
+          /* network not ready yet */
+        }
+        if (!alive || Date.now() > deadline) return null;
+        const hasStored = Object.keys(window.localStorage).some((k) => k.includes("auth-token"));
+        if (!hasStored && navigator.onLine) return null;
+        await new Promise((r) => setTimeout(r, 2_000));
+      }
+    };
+
     const bootstrap = async () => {
-      const { data } = await supabase.auth.getSession();
+      const session = await getSessionWithGrace();
       if (!alive) return;
+      const data = { session };
       if (!data.session) {
         setStatus("anon");
         navigate({ to: "/auth" });
@@ -67,7 +91,22 @@ export function AuthGate({ children }: Props) {
 
       // Reliable fallback for the realtime kick: ask the server every 30s (and
       // whenever the tab wakes up) whether this is still the active device.
+      // The Tesla browser has priority: instead of signing it out it silently
+      // re-claims the account (also covers a wiped localStorage device id).
+      let reclaiming = false;
+      const reclaim = async () => {
+        if (reclaiming) return;
+        reclaiming = true;
+        try {
+          await claimDevice({ data: { deviceId, label: getDeviceLabel() } });
+        } catch {
+          /* retry on next tick */
+        } finally {
+          reclaiming = false;
+        }
+      };
       const kickOut = async () => {
+        if (isTesla) return reclaim();
         try {
           window.sessionStorage.setItem("tsl.kicked-device", "1");
         } catch {
@@ -105,14 +144,7 @@ export function AuthGate({ children }: Props) {
           { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` },
           (payload: any) => {
             const next = payload?.new?.active_device_id as string | undefined;
-            if (next && next !== deviceId) {
-              try {
-                window.sessionStorage.setItem("tsl.kicked-device", "1");
-              } catch {
-                /* ignore */
-              }
-              void supabase.auth.signOut().then(() => navigate({ to: "/auth" }));
-            }
+            if (next && next !== deviceId) void kickOut();
           },
         )
         .subscribe();

@@ -59,6 +59,9 @@ interface Props {
   remoteView?: { view: import("@/lib/pair-channel").PairedView; seq: number } | null;
   /** Night palette: a GPU filter over the map layer, no map reload. */
   darkMode?: boolean;
+  /** Speed cameras / EV chargers overlays (OpenStreetMap, visible area only). */
+  showCameras?: boolean;
+  showChargers?: boolean;
 }
 
 export function MapView({
@@ -87,6 +90,8 @@ export function MapView({
   onTilt3dUnsupported,
   remoteView,
   darkMode = false,
+  showCameras = false,
+  showChargers = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -588,6 +593,79 @@ export function MapView({
       poiMarkersRef.current.push(marker);
     }
   }, [pois, mapReady]);
+
+  // ---- speed cameras / EV chargers (visible area only, max 60 pins) -------
+  const overlayMarkersRef = useRef<Map<string, any>>(new Map());
+  useEffect(() => {
+    const g = googleRef.current;
+    const map = mapRef.current;
+    const markers = overlayMarkersRef.current;
+    const clearAll = () => {
+      for (const m of markers.values()) m.setMap(null);
+      markers.clear();
+    };
+    if (!g || !map || (!showCameras && !showChargers)) {
+      clearAll();
+      return;
+    }
+    let cancelled = false;
+    let timer: number | null = null;
+    const refresh = async () => {
+      const b = map.getBounds?.();
+      if (!b || (map.getZoom?.() ?? 0) < 11) {
+        clearAll();
+        return;
+      }
+      const ne = b.getNorthEast(), sw = b.getSouthWest();
+      const box = { south: sw.lat(), west: sw.lng(), north: ne.lat(), east: ne.lng() };
+      const { loadOverlay } = await import("@/lib/map-overlays");
+      const [cams, chs] = await Promise.all([
+        showCameras ? loadOverlay("cameras", box) : Promise.resolve([]),
+        showChargers ? loadOverlay("chargers", box) : Promise.resolve([]),
+      ]);
+      if (cancelled) return;
+      const c = map.getCenter();
+      const inView = [...cams, ...chs]
+        .filter((p) => p.lat >= box.south && p.lat <= box.north && p.lng >= box.west && p.lng <= box.east)
+        .sort((a, b2) => Math.hypot(a.lat - c.lat(), a.lng - c.lng()) - Math.hypot(b2.lat - c.lat(), b2.lng - c.lng()))
+        .slice(0, 60);
+      const keep = new Set(inView.map((p) => `${p.kind}:${p.id}`));
+      for (const [k, m] of markers) if (!keep.has(k)) { m.setMap(null); markers.delete(k); }
+      for (const p of inView) {
+        const k = `${p.kind}:${p.id}`;
+        if (markers.has(k)) continue;
+        const cam = p.kind === "cameras";
+        markers.set(k, new g.maps.Marker({
+          map,
+          position: { lat: p.lat, lng: p.lng },
+          title: cam ? (p.maxspeed ? `📷 ${p.maxspeed} km/h` : "📷") : `⚡ ${p.label ?? ""}`,
+          zIndex: 600,
+          clickable: false,
+          label: { text: cam ? (p.maxspeed ? String(p.maxspeed) : "📷") : "⚡", fontSize: "11px", fontWeight: "700", color: "#ffffff" },
+          icon: {
+            path: g.maps.SymbolPath.CIRCLE,
+            scale: 11,
+            fillColor: cam ? "#dc2626" : "#16a34a",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+          },
+        }));
+      }
+    };
+    const schedule = () => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => void refresh(), 800);
+    };
+    const listener = map.addListener("idle", schedule);
+    schedule();
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+      listener.remove();
+      clearAll();
+    };
+  }, [showCameras, showChargers, mapReady]);
 
   return (
     <div className="relative h-full w-full">

@@ -189,5 +189,4 @@ export const AZ_MAP_STRINGS: Record<string, string> = {
   "📷 კამერები გამორთულია": "📷 Kameralar bağlı",
   "⚡ დამტენები ჩართულია": "⚡ Enerji doldurma açıq",
   "⚡ დამტენები გამორთულია": "⚡ Enerji doldurma bağlı",
-  "მ": "m",
 };

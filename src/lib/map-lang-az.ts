@@ -185,4 +185,8 @@ export const AZ_MAP_STRINGS: Record<string, string> = {
   "ენის შეცვლა: სომხური": "Dili dəyiş",
   "რუკა სომხურად": "Xəritənin dili",
   "გაგრძელდა გზა:": "Marşrut davam etdi:",
+  "📷 კამერები ჩართულია": "📷 Kameralar açıq",
+  "📷 კამერები გამორთულია": "📷 Kameralar bağlı",
+  "⚡ დამტენები ჩართულია": "⚡ Enerji doldurma açıq",
+  "⚡ დამტენები გამორთულია": "⚡ Enerji doldurma bağlı",
 };

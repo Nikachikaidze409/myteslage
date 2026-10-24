@@ -236,6 +236,49 @@ function Index() {
   const [offRoute, setOffRoute] = useState(false);
   // Off by default: the traffic overlay is heavy for in-car browsers.
   const [showTraffic, setShowTraffic] = useState(false);
+  // Speed cameras / EV chargers: off by default, remembered per browser.
+  const [showCameras, setShowCameras] = useState(false);
+  const [showChargers, setShowChargers] = useState(false);
+  useEffect(() => {
+    try {
+      setShowCameras(localStorage.getItem("tmg:cameras") === "1");
+      setShowChargers(localStorage.getItem("tmg:chargers") === "1");
+    } catch {}
+  }, []);
+  const setLayer = useCallback((k: "cameras" | "chargers", on: boolean) => {
+    (k === "cameras" ? setShowCameras : setShowChargers)(on);
+    try { localStorage.setItem(`tmg:${k}`, on ? "1" : "0"); } catch {}
+  }, []);
+  // Approach alert: nearest already-loaded camera within 400 m ahead.
+  const [cameraAlert, setCameraAlert] = useState<{ dist: number; maxspeed?: number } | null>(null);
+  const lastCamCheckRef = useRef(0);
+  useEffect(() => {
+    if (!showCameras || !fix) { setCameraAlert(null); return; }
+    const now = Date.now();
+    if (now - lastCamCheckRef.current < 1500) return;
+    lastCamCheckRef.current = now;
+    let cancelled = false;
+    import("@/lib/map-overlays").then(({ cachedCameras }) => {
+      if (cancelled) return;
+      const heading = (fix as any).heading as number | null | undefined;
+      let best: { dist: number; maxspeed?: number } | null = null;
+      for (const c of cachedCameras()) {
+        const d = distanceMeters(fix, c);
+        if (d > 400 || (best && d >= best.dist)) continue;
+        if (typeof heading === "number" && Number.isFinite(heading) && d > 40) {
+          const brg = (Math.atan2(
+            (c.lng - fix.lng) * Math.cos((fix.lat * Math.PI) / 180),
+            c.lat - fix.lat,
+          ) * 180) / Math.PI;
+          const diff = Math.abs((((brg - heading) % 360) + 540) % 360 - 180);
+          if (diff > 60) continue;
+        }
+        best = { dist: Math.round(d / 10) * 10, maxspeed: c.maxspeed };
+      }
+      setCameraAlert(best);
+    });
+    return () => { cancelled = true; };
+  }, [showCameras, fix]);
   // Engine sound: off by default, module loaded only when enabled.
   const [engineSoundOn, setEngineSoundOn] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -1178,6 +1221,35 @@ function Index() {
             >
               {engineSoundOn ? tr("ძრავის ხმა ჩართულია", "Շարժիչի ձայնը միացված է") : tr("ძრავის ხმა გამორთულია", "Շարժիչի ձայնն անջատված է")}
             </button>
+            {([
+              ["cameras", showCameras, () => setLayer("cameras", !showCameras), tr("📷 კამერები ჩართულია", "📷 Տեսախցիկները միացված են"), tr("📷 კამერები გამორთულია", "📷 Տեսախցիկներն անջատված են")],
+              ["chargers", showChargers, () => setLayer("chargers", !showChargers), tr("⚡ დამტენები ჩართულია", "⚡ Լիցքավորիչները միացված են"), tr("⚡ დამტენები გამორთულია", "⚡ Լիցքավորիչներն անջատված են")],
+            ] as const).map(([k, on, toggle, onText, offText]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={toggle}
+                aria-pressed={on}
+                className={`mb-2 block rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
+                  on
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : darkMap
+                      ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
+                      : "border-border bg-white/90 text-foreground hover:bg-white"
+                }`}
+              >
+                {on ? onText : offText}
+              </button>
+            ))}
+            {cameraAlert && (
+              <div className="mb-2 flex items-center gap-2 rounded-xl border-2 border-destructive bg-background px-3 py-2 text-sm font-bold text-destructive shadow-lg">
+                <span>📷</span>
+                {cameraAlert.maxspeed && (
+                  <span className="grid h-8 w-8 place-items-center rounded-full border-4 border-destructive text-xs text-foreground">{cameraAlert.maxspeed}</span>
+                )}
+                <span>{cameraAlert.dist} {tr("მ", "մ")}</span>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setShowTraffic((v) => !v)}
@@ -1370,6 +1442,8 @@ function Index() {
                 rerouting={rerouting}
                 rerouteFailedSignal={rerouteFailedSignal}
                 showTraffic={showTraffic}
+                showCameras={showCameras}
+                showChargers={showChargers}
                 onProgress={setProgress}
                 onRerouteNeeded={handleRerouteNeeded}
                 waypoints={waypoints}

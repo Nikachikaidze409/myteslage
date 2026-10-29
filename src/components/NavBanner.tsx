@@ -57,7 +57,7 @@ export function NavBanner({ route, fix, onStop, liveRemainingMeters, alongMeters
 
 
   return (
-    <div className="pointer-events-auto absolute left-6 top-6 z-30 w-[min(460px,calc(100%-3rem))] animate-in fade-in slide-in-from-top-4 rounded-3xl bg-primary p-5 text-primary-foreground shadow-2xl shadow-primary/30">
+    <div className="pointer-events-auto absolute left-3 top-3 z-30 w-[min(400px,calc(100%-1.5rem))] animate-in fade-in slide-in-from-top-4 rounded-2xl cockpit-glass p-4 text-foreground border-l-4 border-l-primary">
       <div className="flex items-center gap-5">
         <div className="flex flex-col items-center">
           <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">

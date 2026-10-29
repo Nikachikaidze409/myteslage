@@ -89,8 +89,8 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
 
   return (
     <div className="relative">
-      <div className="flex h-16 w-full items-center rounded-2xl border border-white bg-white/90 px-6 shadow-xl shadow-slate-300/40 backdrop-blur-md transition focus-within:ring-2 focus-within:ring-primary/30">
-        <svg className="mr-4 h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex h-12 w-full items-center rounded-2xl cockpit-glass px-4 transition focus-within:ring-2 focus-within:ring-primary/30">
+        <svg className="mr-3 h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
@@ -99,7 +99,7 @@ export function DestinationSearch({ onSelect, disabled, origin }: Props) {
           onChange={(e) => setQ(e.target.value)}
           placeholder={tr("მოძებნეთ ქუჩა, ადგილი ან მისამართი", "Որոնեք փողոց, վայր կամ հասցե")}
           disabled={disabled}
-          className="font-display w-full bg-transparent text-lg text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+          className="font-display w-full bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
         />
         {q && (
           <button

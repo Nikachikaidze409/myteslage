@@ -949,19 +949,19 @@ function Index() {
   }, []);
 
   return (
-    <div className="h-screen overflow-hidden bg-background text-foreground">
-      <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
+    <div className="ev-cockpit h-screen overflow-hidden text-foreground">
+      <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-none gap-2 p-2"}`}>
         {/* Sidebar - hidden in HUD mode (phone is the brain) or when minimized */}
         {!hudMode && (
         <aside
-          className={`${sidebarOpen ? "flex" : "hidden"} w-[340px] shrink-0 flex-col gap-3 overflow-y-auto rounded-3xl border border-border bg-card/60 p-3`}
+          className={`${sidebarOpen ? "flex" : "hidden"} w-[300px] shrink-0 flex-col gap-2 overflow-y-auto rounded-2xl cockpit-glass p-2.5`}
         >
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
               {tr("TMap · საქართველო", "TMap · Հայաստան")}
             </div>
             <div className="flex items-center justify-between gap-2">
-              <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
+              <h1 className="font-display mt-0.5 text-base font-semibold leading-tight text-foreground">
                 {tr("ბრაუზერული ნავიგაცია", "Բրաուզերային նավիգացիա")}
               </h1>
               <div className="flex items-center gap-1.5">
@@ -1105,7 +1105,7 @@ function Index() {
         )}
 
         {/* Map */}
-        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
+        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-background lg:min-h-full ${hudMode ? "" : "rounded-2xl border border-border"}`}>
           {!hudMode && !sidebarOpen && (
             <button
               type="button"
@@ -1132,8 +1132,8 @@ function Index() {
             </button>
           )}
           {!navigating && !hudMode && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-3 p-6">
-              <div className="pointer-events-auto w-full max-w-2xl">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-2 p-3">
+              <div className="pointer-events-auto w-full max-w-xl">
                 <DestinationSearch onSelect={setPreview} origin={fix} />
               </div>
               <div className="pointer-events-auto flex max-w-full flex-wrap justify-center gap-2">
@@ -1143,10 +1143,10 @@ function Index() {
                     type="button"
                     onClick={() => runCategory(c.key)}
                     disabled={!fix}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold shadow-md backdrop-blur transition disabled:opacity-40 ${
+                    className={`rounded-full border px-3 py-1 text-xs font-medium backdrop-blur-xl transition disabled:opacity-40 ${
                       poiCat === c.key
                         ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-white/90 text-foreground hover:bg-white"
+                        : "border-border cockpit-glass text-foreground"
                     }`}
                   >
                     <span className="mr-1">{c.emoji}</span>

@@ -949,19 +949,19 @@ function Index() {
   }, []);
 
   return (
-    <div className="h-screen overflow-hidden bg-background text-foreground">
-      <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-[1600px] gap-3 p-3"}`}>
+    <div className="ev-cockpit h-screen overflow-hidden text-foreground">
+      <div className={`mx-auto flex h-full w-full ${hudMode ? "max-w-none p-0" : "max-w-none gap-2 p-2"}`}>
         {/* Sidebar - hidden in HUD mode (phone is the brain) or when minimized */}
         {!hudMode && (
         <aside
-          className={`${sidebarOpen ? "flex" : "hidden"} w-[340px] shrink-0 flex-col gap-3 overflow-y-auto rounded-3xl border border-border bg-card/60 p-3`}
+          className={`${sidebarOpen ? "flex" : "hidden"} w-[300px] shrink-0 flex-col gap-2 overflow-y-auto rounded-2xl cockpit-glass p-2.5`}
         >
           <header className="px-2 pt-2">
             <div className="font-display text-[11px] font-bold uppercase tracking-widest text-primary">
               {tr("TMap · საქართველო", "TMap · Հայաստան")}
             </div>
             <div className="flex items-center justify-between gap-2">
-              <h1 className="font-display mt-1 text-xl font-bold leading-tight text-foreground">
+              <h1 className="font-display mt-0.5 text-base font-semibold leading-tight text-foreground">
                 {tr("ბრაუზერული ნავიგაცია", "Բրաուզերային նավիգացիա")}
               </h1>
               <div className="flex items-center gap-1.5">
@@ -1105,7 +1105,7 @@ function Index() {
         )}
 
         {/* Map */}
-        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-muted shadow-xl shadow-slate-300/30 lg:min-h-full ${hudMode ? "" : "rounded-3xl border border-border"}`}>
+        <main className={`relative min-h-[400px] flex-1 overflow-hidden bg-background lg:min-h-full ${hudMode ? "" : "rounded-2xl border border-border"}`}>
           {!hudMode && !sidebarOpen && (
             <button
               type="button"
@@ -1132,8 +1132,8 @@ function Index() {
             </button>
           )}
           {!navigating && !hudMode && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-3 p-6">
-              <div className="pointer-events-auto w-full max-w-2xl">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-col items-center gap-2 p-3">
+              <div className="pointer-events-auto w-full max-w-xl">
                 <DestinationSearch onSelect={setPreview} origin={fix} />
               </div>
               <div className="pointer-events-auto flex max-w-full flex-wrap justify-center gap-2">
@@ -1143,10 +1143,10 @@ function Index() {
                     type="button"
                     onClick={() => runCategory(c.key)}
                     disabled={!fix}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold shadow-md backdrop-blur transition disabled:opacity-40 ${
+                    className={`rounded-full border px-3 py-1 text-xs font-medium backdrop-blur-xl transition disabled:opacity-40 ${
                       poiCat === c.key
                         ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-white/90 text-foreground hover:bg-white"
+                        : "border-border cockpit-glass text-foreground"
                     }`}
                   >
                     <span className="mr-1">{c.emoji}</span>
@@ -1164,7 +1164,7 @@ function Index() {
 
           {preview && !navigating && !hudMode && (
             <div className="pointer-events-auto absolute inset-x-0 bottom-6 z-40 flex justify-center px-4">
-              <div className="w-full max-w-xl rounded-3xl border border-border bg-white/97 p-5 shadow-2xl backdrop-blur">
+              <div className="w-full max-w-lg rounded-2xl cockpit-glass p-4">
                 <div className="font-display truncate text-xl font-bold text-foreground">
                   {preview.name}
                 </div>
@@ -1199,106 +1199,49 @@ function Index() {
 
 
           {!hudMode && (
-          <div className="absolute right-4 top-36 z-30">
-            <button
-              type="button"
-              onClick={() => {
-                if (!engineSoundOn) {
-                  // Create audio inside the tap so the browser allows sound.
-                  const C = window.AudioContext || (window as any).webkitAudioContext;
-                  audioCtxRef.current = new C();
-                  void audioCtxRef.current.resume();
-                }
-                setEngineSoundOn((v) => !v);
-              }}
-              className={`mb-2 block rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
-                engineSoundOn
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : darkMap
-                    ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
-                    : "border-border bg-white/90 text-foreground hover:bg-white"
-              }`}
-            >
-              {engineSoundOn ? tr("ძრავის ხმა ჩართულია", "Շարժիչի ձայնը միացված է") : tr("ძრავის ხმა გამორთულია", "Շարժիչի ձայնն անջատված է")}
-            </button>
-            {([
-              ["cameras", showCameras, () => setLayer("cameras", !showCameras), tr("📷 კამერები ჩართულია", "📷 Տեսախցիկները միացված են"), tr("📷 კამერები გამორთულია", "📷 Տեսախցիկներն անջատված են")],
-              ["chargers", showChargers, () => setLayer("chargers", !showChargers), tr("⚡ დამტენები ჩართულია", "⚡ Լիցքավորիչները միացված են"), tr("⚡ დამტენები გამორთულია", "⚡ Լիցքավորիչներն անջատված են")],
-            ] as const).map(([k, on, toggle, onText, offText]) => (
-              <button
-                key={k}
-                type="button"
-                onClick={toggle}
-                aria-pressed={on}
-                className={`mb-2 block rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
-                  on
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : darkMap
-                      ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
-                      : "border-border bg-white/90 text-foreground hover:bg-white"
-                }`}
-              >
-                {on ? onText : offText}
-              </button>
-            ))}
+          <div className="absolute right-3 top-32 z-30 flex flex-col items-end gap-2">
             {cameraAlert && (
-              <div className="mb-2 flex items-center gap-2 rounded-xl border-2 border-destructive bg-background px-3 py-2 text-sm font-bold text-destructive shadow-lg">
+              <div className="cockpit-glass flex items-center gap-2 rounded-xl border-destructive/60 px-3 py-1.5 text-sm font-bold text-destructive">
                 <span>📷</span>
                 {cameraAlert.maxspeed && (
-                  <span className="grid h-8 w-8 place-items-center rounded-full border-4 border-destructive text-xs text-foreground">{cameraAlert.maxspeed}</span>
+                  <span className="grid h-7 w-7 place-items-center rounded-full border-[3px] border-destructive text-[11px] text-foreground">{cameraAlert.maxspeed}</span>
                 )}
-                <span>{cameraAlert.dist} {tr("მ", "մ")}</span>
+                <span className="tabular-nums">{cameraAlert.dist} {tr("მ", "մ")}</span>
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => setShowTraffic((v) => !v)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
-                showTraffic
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : darkMap
-                    ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
-                    : "border-border bg-white/90 text-foreground hover:bg-white"
-              }`}
-            >
-              {showTraffic ? tr("ტრაფიკი ჩართულია", "Երթևեկությունը միացված է") : tr("ტრაფიკი გამორთულია", "Երթևեկությունն անջատված է")}
-            </button>
-            <button
-              type="button"
-              disabled={!vector3dAvailable}
-              onClick={() => vector3dAvailable && setTilt3d((v) => !v)}
-              aria-label={tr("3D ან 2D რუკის არჩევა", "Ընտրել 3D կամ 2D քարտեզ")}
-              title={vector3dAvailable ? tr("3D და 2D ხედებს შორის გადართვა", "Փոխարկել 3D և 2D տեսքերի միջև") : tr("ამ ეკრანზე 3D ხედი არ არის მხარდაჭერილი", "Այս էկրանին 3D տեսքը չի աջակցվում")}
-              className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
-                !vector3dAvailable
-                  ? "cursor-not-allowed border-border bg-white/70 text-muted-foreground"
-                  : tilt3d
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : darkMap
-                      ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
-                      : "border-border bg-white/90 text-foreground hover:bg-white"
-              }`}
-            >
-              {tilt3d && vector3dAvailable ? "3D" : "2D"}
-            </button>
-            <button
-              type="button"
-              onClick={toggleDarkMap}
-              aria-pressed={darkMap}
-              aria-label={tr("მუქი რუკის გადართვა", "Մուգ քարտեզի փոխարկում")}
-              title={tr("დღისა და ღამის ფერებს შორის გადართვა", "Փոխարկել ցերեկային և գիշերային գույների միջև")}
-              className={`mt-2 w-full rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur transition ${
-                darkMap
-                  ? "border-slate-700 bg-slate-900/90 text-slate-100 hover:bg-slate-900"
-                  : "border-border bg-white/90 text-foreground hover:bg-white"
-              }`}
-            >
-              {darkMap ? tr("ღამე", "Գիշեր") : tr("დღე", "Ցերեկ")}
-            </button>
-
-
-
-
+            <div className="cockpit-glass flex w-[148px] flex-col overflow-hidden rounded-2xl p-1">
+              {([
+                ["sound", engineSoundOn, () => {
+                  if (!engineSoundOn) {
+                    // Create audio inside the tap so the browser allows sound.
+                    const C = window.AudioContext || (window as any).webkitAudioContext;
+                    audioCtxRef.current = new C();
+                    void audioCtxRef.current.resume();
+                  }
+                  setEngineSoundOn((v) => !v);
+                }, "🔊", tr("ძრავის ხმა", "Շարժիչի ձայն"), false],
+                ["cameras", showCameras, () => setLayer("cameras", !showCameras), "📷", tr("კამერები", "Տեսախցիկներ"), false],
+                ["chargers", showChargers, () => setLayer("chargers", !showChargers), "⚡", tr("დამტენები", "Լիցքավորիչներ"), false],
+                ["traffic", showTraffic, () => setShowTraffic((v) => !v), "🚦", tr("ტრაფიკი", "Երթևեկություն"), false],
+                ["tilt", tilt3d && vector3dAvailable, () => vector3dAvailable && setTilt3d((v) => !v), "◭", tilt3d && vector3dAvailable ? "3D" : "2D", !vector3dAvailable],
+                ["dark", darkMap, toggleDarkMap, darkMap ? "🌙" : "☀️", darkMap ? tr("ღამე", "Գիշեր") : tr("დღე", "Ցերեկ"), false],
+              ] as const).map(([k, on, toggle, icon, label, disabled]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={toggle}
+                  disabled={disabled}
+                  aria-pressed={on}
+                  className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-left text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                    on ? "bg-primary/15 text-primary" : "text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <span className="w-4 text-center text-sm leading-none">{icon}</span>
+                  <span className="flex-1 truncate">{label}</span>
+                  <span className={on ? "cockpit-led-on" : "cockpit-led"} />
+                </button>
+              ))}
+            </div>
           </div>
           )}
 

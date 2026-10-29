@@ -220,3 +220,85 @@
   opacity: 0.35;
   animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
 }
+
+/*
+ * EV cockpit theme — scoped to the /map screen only (.ev-cockpit wrapper).
+ * Re-points the semantic tokens to a dark, glassy luxury-EV palette so every
+ * panel on the map adopts it without touching the rest of the site.
+ */
+.ev-cockpit {
+  --background: oklch(0.13 0.012 250);
+  --foreground: oklch(0.95 0.005 250);
+  --card: oklch(0.19 0.014 250 / 0.72);
+  --card-foreground: oklch(0.95 0.005 250);
+  --popover: oklch(0.19 0.014 250 / 0.96);
+  --popover-foreground: oklch(0.95 0.005 250);
+  --primary: oklch(0.80 0.13 205);
+  --primary-foreground: oklch(0.15 0.02 230);
+  --secondary: oklch(0.24 0.014 250);
+  --secondary-foreground: oklch(0.95 0.005 250);
+  --muted: oklch(0.24 0.014 250 / 0.7);
+  --muted-foreground: oklch(0.70 0.015 250);
+  --accent: oklch(0.28 0.03 220);
+  --accent-foreground: oklch(0.95 0.005 250);
+  --border: oklch(1 0 0 / 0.09);
+  --input: oklch(1 0 0 / 0.12);
+  --ring: oklch(0.80 0.13 205);
+  --glass: oklch(0.17 0.012 250 / 0.72);
+  --glass-strong: oklch(0.15 0.012 250 / 0.88);
+  --glow: 0 0 18px color-mix(in oklab, var(--primary) 45%, transparent);
+  --shadow-cockpit: 0 12px 40px -12px oklch(0 0 0 / 0.7), inset 0 1px 0 oklch(1 0 0 / 0.06);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, oklch(0.25 0.05 220 / 0.5), transparent 60%),
+    var(--background);
+  color: var(--foreground);
+  font-size: 14px;
+}
+/* Legacy white surfaces inside the cockpit become dark glass. */
+.ev-cockpit .bg-white,
+.ev-cockpit [class*="bg-white/"] {
+  background-color: var(--glass) !important;
+  backdrop-filter: blur(18px) saturate(140%);
+  color: var(--foreground);
+}
+.ev-cockpit .bg-card,
+.ev-cockpit [class*="bg-card/"] {
+  background-color: var(--glass) !important;
+  backdrop-filter: blur(18px) saturate(140%);
+}
+.ev-cockpit .shadow-lg,
+.ev-cockpit .shadow-xl,
+.ev-cockpit .shadow-2xl {
+  box-shadow: var(--shadow-cockpit) !important;
+}
+.ev-cockpit .text-slate-900,
+.ev-cockpit .text-slate-800,
+.ev-cockpit .text-slate-700 { color: var(--foreground) !important; }
+.ev-cockpit .bg-primary { box-shadow: var(--glow); }
+.ev-cockpit .text-2xl { font-size: 1.25rem; }
+.ev-cockpit .text-xl { font-size: 1.05rem; }
+.ev-cockpit .text-lg { font-size: 0.95rem; }
+.ev-cockpit input::placeholder { color: var(--muted-foreground); }
+/* Keep Google's own map widgets (info windows) readable. */
+.ev-cockpit .gm-style .bg-white { backdrop-filter: none; }
+
+@utility cockpit-glass {
+  background-color: var(--glass);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-cockpit);
+}
+@utility cockpit-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--muted-foreground);
+  opacity: 0.5;
+}
+@utility cockpit-led-on {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+}

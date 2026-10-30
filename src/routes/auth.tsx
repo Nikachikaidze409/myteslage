@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { signupWithCode, claimDevice } from "@/lib/auth.functions";
 import { getOrCreateDeviceId, getDeviceLabel } from "@/lib/device";
+import { installSessionBackup, restoreSessionFromBackup } from "@/lib/session-backup";
 
 import { LegalFooter } from "@/components/LegalFooter";
 
@@ -170,8 +171,10 @@ function AuthPage() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setCurrentEmail(data.session?.user.email ?? null);
+    installSessionBackup();
+    supabase.auth.getSession().then(async ({ data }) => {
+      const s = data.session ?? (await restoreSessionFromBackup());
+      setCurrentEmail(s?.user.email ?? null);
     });
     try {
       if (window.sessionStorage.getItem("tsl.kicked-device") === "1") {

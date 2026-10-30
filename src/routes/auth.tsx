@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { signupWithCode, claimDevice } from "@/lib/auth.functions";
 import { getOrCreateDeviceId, getDeviceLabel } from "@/lib/device";
+import { installSessionBackup, restoreSessionFromBackup } from "@/lib/session-backup";
 
 import { LegalFooter } from "@/components/LegalFooter";
 
@@ -170,8 +171,10 @@ function AuthPage() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setCurrentEmail(data.session?.user.email ?? null);
+    installSessionBackup();
+    supabase.auth.getSession().then(async ({ data }) => {
+      const s = data.session ?? (await restoreSessionFromBackup());
+      setCurrentEmail(s?.user.email ?? null);
     });
     try {
       if (window.sessionStorage.getItem("tsl.kicked-device") === "1") {
@@ -283,7 +286,14 @@ function AuthPage() {
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => navigate({ to: nextDest() })}
+                onClick={async () => {
+                  try {
+                    await claimDevice({ data: { deviceId: getOrCreateDeviceId(), label: getDeviceLabel() } });
+                  } catch {
+                    /* soft-fail */
+                  }
+                  navigate({ to: nextDest() });
+                }}
                 className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
               >
                 {t.continue}
@@ -299,7 +309,7 @@ function AuthPage() {
           </div>
         )}
 
-        <form onSubmit={submit} className="mt-5 space-y-3">
+        <form onSubmit={submit} method="post" action="#" autoComplete="on" className="mt-5 space-y-3">
           {mode === "signup" && (
             <>
               <label className="block">
@@ -337,6 +347,7 @@ function AuthPage() {
               <input
                 ref={emailRef}
                 id="auth-email"
+                name="email"
                 type="email"
                 required
                 autoComplete="email"
@@ -361,6 +372,8 @@ function AuthPage() {
               <div className="relative mt-1">
                 <input
                   type={showPassword ? "text" : "password"}
+                  name="password"
+                  id="auth-password"
                   required
                   minLength={6}
                   autoComplete={mode === "signin" ? "current-password" : "new-password"}

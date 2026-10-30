@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { claimDevice, verifyDevice } from "@/lib/auth.functions";
 import { getDeviceLabel, getOrCreateDeviceId } from "@/lib/device";
+import { installSessionBackup, restoreSessionFromBackup, hasSessionBackup } from "@/lib/session-backup";
 
 import { getPaddleEnvironment } from "@/lib/paddle";
 import { anyMembershipValid } from "@/lib/membership";
@@ -26,6 +27,7 @@ export function AuthGate({ children }: Props) {
 
     // A car that just woke up needs 10-30 s for LTE: keep retrying the
     // session (and its token refresh) before ever sending the driver to /auth.
+    installSessionBackup();
     const getSessionWithGrace = async () => {
       const deadline = Date.now() + 30_000;
       for (;;) {
@@ -35,11 +37,16 @@ export function AuthGate({ children }: Props) {
           // Stored token exists but refresh failed (offline): try refreshing.
           const { data: refreshed } = await supabase.auth.refreshSession();
           if (refreshed.session) return refreshed.session;
+          // Browser wiped storage: restore from the long-lived cookie backup.
+          const restored = await restoreSessionFromBackup();
+          if (restored) return restored;
         } catch {
           /* network not ready yet */
         }
         if (!alive || Date.now() > deadline) return null;
-        const hasStored = Object.keys(window.localStorage).some((k) => k.includes("auth-token"));
+        const hasStored =
+          Object.keys(window.localStorage).some((k) => k.includes("auth-token")) ||
+          hasSessionBackup();
         if (!hasStored && navigator.onLine) return null;
         await new Promise((r) => setTimeout(r, 2_000));
       }
@@ -112,7 +119,8 @@ export function AuthGate({ children }: Props) {
         } catch {
           /* ignore */
         }
-        await supabase.auth.signOut();
+        // Keep the login: the user can continue here with one tap
+        // (no email/password needed), which takes the device slot back.
         window.location.replace("/auth");
       };
       const heartbeat = async () => {

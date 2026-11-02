@@ -1,6 +1,6 @@
 // Speed cameras and EV chargers from OpenStreetMap (Overpass API).
-// Loaded per ~11 km tile only for the visible area, cached in memory, so the
-// in-car browser never holds a whole country of markers.
+// Loaded per ~25 km tile only for the visible area, cached in memory (and in
+// sessionStorage), so the in-car browser never holds a whole country of markers.
 export type OverlayKind = "cameras" | "chargers";
 export interface OverlayPoint {
   id: number;
@@ -12,61 +12,95 @@ export interface OverlayPoint {
   label?: string;
 }
 
-const TILE = 0.1; // degrees
-const MAX_TILES_PER_VIEW = 16;
+const TILE = 0.25; // degrees
+const MAX_TILES_PER_VIEW = 12;
+const TIMEOUT_MS = 12000;
+// Fastest/most reliable mirror first; others as fallback.
 const ENDPOINTS = [
+  "https://overpass.openstreetmap.fr/api/interpreter",
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
 ];
 const cache = new Map<string, OverlayPoint[]>();
 const inflight = new Map<string, Promise<OverlayPoint[]>>();
+const failedAt = new Map<string, number>();
+const SS_PREFIX = "tmg:ov:";
 
 function query(kind: OverlayKind, s: number, w: number, n: number, e: number) {
   const bb = `(${s},${w},${n},${e})`;
   const body =
     kind === "cameras"
-      ? `node["highway"="speed_camera"]${bb};node["enforcement"="maxspeed"]${bb};`
+      ? `node["highway"="speed_camera"]${bb};node["enforcement"~"maxspeed|average_speed|traffic_signals"]${bb};node["speed_camera"]${bb};`
       : `node["amenity"="charging_station"]${bb};way["amenity"="charging_station"]${bb};`;
-  return `[out:json][timeout:20];(${body});out center 200;`;
+  return `[out:json][timeout:15];(${body});out center 400;`;
+}
+
+async function fetchWithTimeout(url: string, body: string) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    return await fetch(url, {
+      method: "POST",
+      body,
+      signal: ctrl.signal,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 async function fetchTile(kind: OverlayKind, tx: number, ty: number): Promise<OverlayPoint[]> {
   const key = `${kind}:${tx}:${ty}`;
   const hit = cache.get(key);
   if (hit) return hit;
+  try {
+    const ss = sessionStorage.getItem(SS_PREFIX + key);
+    if (ss) {
+      const pts = JSON.parse(ss) as OverlayPoint[];
+      cache.set(key, pts);
+      return pts;
+    }
+  } catch {}
   const running = inflight.get(key);
   if (running) return running;
+  // Back off 30 s after a failure instead of hammering mirrors on every pan.
+  if (Date.now() - (failedAt.get(key) ?? 0) < 30000) return [];
   const s = ty * TILE, w = tx * TILE;
-  const q = query(kind, s, w, s + TILE, w + TILE);
+  const body = "data=" + encodeURIComponent(query(kind, s, w, s + TILE, w + TILE));
   const p = (async () => {
     for (const url of ENDPOINTS) {
       try {
-        const r = await fetch(url, { method: "POST", body: "data=" + encodeURIComponent(q), headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+        const r = await fetchWithTimeout(url, body);
         if (!r.ok) continue;
         const j = await r.json();
-        const pts: OverlayPoint[] = (j.elements ?? [])
-          .map((el: any) => {
-            const lat = el.lat ?? el.center?.lat;
-            const lng = el.lon ?? el.center?.lon;
-            if (typeof lat !== "number" || typeof lng !== "number") return null;
-            const t = el.tags ?? {};
-            const ms = parseInt(t.maxspeed, 10);
-            return {
-              id: el.id,
-              lat,
-              lng,
-              kind,
-              maxspeed: Number.isFinite(ms) ? ms : undefined,
-              label: kind === "chargers" ? t.name || t.operator || t.brand : undefined,
-            } as OverlayPoint;
-          })
-          .filter(Boolean);
+        const seen = new Set<number>();
+        const pts: OverlayPoint[] = [];
+        for (const el of j.elements ?? []) {
+          const lat = el.lat ?? el.center?.lat;
+          const lng = el.lon ?? el.center?.lon;
+          if (typeof lat !== "number" || typeof lng !== "number" || seen.has(el.id)) continue;
+          seen.add(el.id);
+          const t = el.tags ?? {};
+          const ms = parseInt(t.maxspeed, 10);
+          pts.push({
+            id: el.id,
+            lat,
+            lng,
+            kind,
+            maxspeed: Number.isFinite(ms) ? ms : undefined,
+            label: kind === "chargers" ? t.name || t.operator || t.brand : undefined,
+          });
+        }
         cache.set(key, pts);
+        try { sessionStorage.setItem(SS_PREFIX + key, JSON.stringify(pts)); } catch {}
+        failedAt.delete(key);
         return pts;
       } catch {
         /* try next mirror */
       }
     }
+    failedAt.set(key, Date.now());
     return [];
   })().finally(() => inflight.delete(key));
   inflight.set(key, p);

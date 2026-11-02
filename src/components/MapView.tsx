@@ -612,7 +612,7 @@ export function MapView({
     let timer: number | null = null;
     const refresh = async () => {
       const b = map.getBounds?.();
-      if (!b || (map.getZoom?.() ?? 0) < 11) {
+      if (!b || (map.getZoom?.() ?? 0) < 10) {
         clearAll();
         return;
       }

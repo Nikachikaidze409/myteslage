@@ -236,19 +236,29 @@ function Index() {
   const [offRoute, setOffRoute] = useState(false);
   // Off by default: the traffic overlay is heavy for in-car browsers.
   const [showTraffic, setShowTraffic] = useState(false);
-  // Speed cameras / EV chargers: off by default, remembered per browser.
+  // Speed cameras / EV chargers: always off when the map opens; only the
+  // driver's button press turns them on (not remembered across loads).
   const [showCameras, setShowCameras] = useState(false);
   const [showChargers, setShowChargers] = useState(false);
   useEffect(() => {
-    try {
-      setShowCameras(localStorage.getItem("tmg:cameras") === "1");
-      setShowChargers(localStorage.getItem("tmg:chargers") === "1");
-    } catch {}
+    try { localStorage.removeItem("tmg:cameras"); localStorage.removeItem("tmg:chargers"); } catch {}
   }, []);
   const setLayer = useCallback((k: "cameras" | "chargers", on: boolean) => {
     (k === "cameras" ? setShowCameras : setShowChargers)(on);
-    try { localStorage.setItem(`tmg:${k}`, on ? "1" : "0"); } catch {}
   }, []);
+  // Keep cameras around the car loaded for the approach alert, even when the
+  // driver is looking elsewhere on the map.
+  const camPrefetchRef = useRef(0);
+  useEffect(() => {
+    if (!showCameras || !fix) return;
+    const now = Date.now();
+    if (now - camPrefetchRef.current < 20000) return;
+    camPrefetchRef.current = now;
+    const d = 0.05;
+    import("@/lib/map-overlays").then(({ loadOverlay }) =>
+      loadOverlay("cameras", { south: fix.lat - d, west: fix.lng - d, north: fix.lat + d, east: fix.lng + d }),
+    ).catch(() => {});
+  }, [showCameras, fix]);
   // Approach alert: nearest already-loaded camera within 400 m ahead.
   const [cameraAlert, setCameraAlert] = useState<{ dist: number; maxspeed?: number } | null>(null);
   const lastCamCheckRef = useRef(0);

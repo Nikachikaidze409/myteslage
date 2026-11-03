@@ -8,10 +8,10 @@ export const Route = createFileRoute("/refund")({
       {
         name: "description",
         content:
-          "30-day money-back guarantee for TMap Georgia subscriptions, processed by Paddle.",
+          "TMap Georgia payments are non-refundable; cancel anytime by messaging us.",
       },
       { property: "og:title", content: "Refund Policy - TMap Georgia" },
-      { property: "og:description", content: "30-day money-back guarantee for TMap Georgia subscriptions, processed by Paddle." },
+      { property: "og:description", content: "TMap Georgia payments are non-refundable; cancel anytime by messaging us." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

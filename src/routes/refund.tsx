@@ -8,10 +8,10 @@ export const Route = createFileRoute("/refund")({
       {
         name: "description",
         content:
-          "30-day money-back guarantee for TMap Georgia subscriptions, processed by Paddle.",
+          "TMap Georgia payments are non-refundable; cancel anytime by messaging us.",
       },
       { property: "og:title", content: "Refund Policy - TMap Georgia" },
-      { property: "og:description", content: "30-day money-back guarantee for TMap Georgia subscriptions, processed by Paddle." },
+      { property: "og:description", content: "TMap Georgia payments are non-refundable; cancel anytime by messaging us." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -38,49 +38,51 @@ function RefundPage() {
 
       <main className="mx-auto max-w-[760px] px-6 pb-24 pt-12 text-sm leading-7 text-white/75 [&_h2]:mb-2 [&_h2]:mt-8 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-white [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_p]:mb-3">
         <h1 className="font-display text-4xl font-black text-white">Refund Policy</h1>
-        <p className="mt-2 text-white/40">Last updated: September 2026</p>
+        <p className="mt-2 text-white/40">Last updated: November 2026</p>
 
-        <h2>30-day money-back guarantee</h2>
+        <h2>თანხა არ ბრუნდება</h2>
         <p>
-          If you're not satisfied with your TMap Georgia subscription, you can
-          request a full refund within{" "}
-          <strong>30 days</strong> of your order date — no questions asked.
+          TMap Georgia-ზე განხორციელებული ყველა გადახდა — როგორც პირველადი
+          შეძენა, ისე ავტომატური განახლება — საბოლოოა და თანხა უკან არ
+          ბრუნდება.
         </p>
 
-        <h2>How to request a refund</h2>
+        <h2>გამოწერის გათიშვა</h2>
         <p>
-          Refunds are processed by our payment provider, Paddle (our Merchant
-          of Record). To request a refund:
+          გამოწერის ან ავტომატური განახლების გასათიშად მოგვწერეთ ან
+          დაგვირეკეთ ნებისმიერ სოციალურ ქსელში, მობილურზე ან ელფოსტით —
+          გამოწერას გავთიშავთ და შემდეგი ჩამოჭრა აღარ მოხდება. წვდომა
+          გრძელდება უკვე გადახდილი პერიოდის ბოლომდე.
         </p>
-        <ul>
-          <li>
-            Visit{" "}
-            <a
-              href="https://paddle.net"
-              target="_blank"
-              rel="noreferrer"
-              className="text-[#3b82f6] underline"
-            >
-              paddle.net
-            </a>{" "}
-            and look up your order, or
-          </li>
-          <li>
-            Contact our support team via the email shown on our website and we
-            will process it for you.
-          </li>
-        </ul>
         <p>
-          Approved refunds are returned to your original payment method.
-          Processing time depends on your bank or card issuer.
+          ყველაზე სწრაფი გზაა მოგვწეროთ{" "}
+          <a
+            href="https://www.facebook.com/profile.php?id=61594077238294"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#3b82f6] underline"
+          >
+            ჩვენს Facebook გვერდზე
+          </a>
+          .
         </p>
 
-        <h2>Cancellations</h2>
+        <h2>No refunds (English)</h2>
         <p>
-          You can cancel your subscription at any time from your account.
-          Cancellation stops future renewals; your access continues until the
-          end of the current paid period. Cancelling does not remove the
-          30-day refund right described above for recent orders.
+          All payments — first purchases and automatic renewals — are final and
+          non-refundable. To stop your subscription, message or call us on any
+          social network, by phone, or by email and we will turn off future
+          renewals; access continues until the end of the paid period. The
+          fastest way is to message our{" "}
+          <a
+            href="https://www.facebook.com/profile.php?id=61594077238294"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#3b82f6] underline"
+          >
+            Facebook page
+          </a>
+          .
         </p>
 
         <h2>Independent product</h2>

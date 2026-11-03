@@ -38,7 +38,7 @@ function TermsPage() {
 
       <main className="mx-auto max-w-[760px] px-6 pb-24 pt-12 text-sm leading-7 text-white/75 [&_h2]:mb-2 [&_h2]:mt-8 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-white [&_ul]:mb-3 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_p]:mb-3">
         <h1 className="font-display text-4xl font-black text-white">Terms & Conditions</h1>
-        <p className="mt-2 text-white/40">Last updated: September 2026</p>
+        <p className="mt-2 text-white/40">Last updated: November 2026</p>
 
         <h2>1. Agreement</h2>
         <p>
@@ -59,19 +59,23 @@ function TermsPage() {
 
         <h2>3. Payment and subscriptions</h2>
         <p>
-          Depending on the checkout method you choose, payment is processed by
-          Bank of Georgia or by our online reseller Paddle.com. For orders
-          processed by Paddle, Paddle.com is the Merchant of Record and its
-          payment, billing, tax, cancellation, and refund terms apply as set out in{" "}
+          Payments are processed by Bank of Georgia. Subscriptions renew
+          automatically at the end of each paid period using your saved card.
+        </p>
+        <p>
+          <strong>All payments are final and non-refundable</strong>, including
+          first purchases and automatic renewals. To cancel, message or call us
+          on any social network, by phone, or by email — the fastest way is our{" "}
           <a
-            href="https://www.paddle.com/legal/checkout-buyer-terms"
+            href="https://www.facebook.com/profile.php?id=61594077238294"
             target="_blank"
             rel="noreferrer"
             className="text-[#3b82f6] underline"
           >
-            Paddle's Buyer Terms
+            Facebook page
           </a>
-          .
+          . We will turn off future renewals; access continues until the end of
+          the paid period. See our Refund Policy.
         </p>
 
         <h2>4. Acceptable use</h2>

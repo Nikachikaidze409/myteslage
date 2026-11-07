@@ -468,7 +468,7 @@ export function MapView({
     } catch {
       /* never break the map over a type switch */
     }
-  }, [satellite, bootAttempt, mapReadyTick]);
+  }, [satellite, mapReady]);
 
   // ---- traffic overlay ---------------------------------------------------
   useEffect(() => {

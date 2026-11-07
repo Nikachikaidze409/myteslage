@@ -9,38 +9,38 @@ import { AM_CONVERSION_NOTE, AZ_CONVERSION_NOTE, MARKET_BOG_LABELS, RU_CONVERSIO
 type Plan = "monthly" | "quarterly" | "semiannual" | "annual";
 const PLAN_KEY = "tsl.pending-plan";
 
-/** Page copy per market: Georgian site stays English, tmap.am is Armenian. */
+/** Page copy per market: tmap.ge is Georgian, tmap.am is Armenian. */
 const COPY = {
   ge: {
-    eyebrow: "Membership",
-    title: "Pick your plan",
-    subtitle: "One account = one device. Cancel anytime, no lock-in.",
-    monthlyTitle: "Monthly",
-    monthlyPeriod: "per month",
-    monthlySub: "Billed every month",
-    monthlyPerMonth: "8 ₾/mo",
-    quarterlyTitle: "3 months",
-    quarterlyPeriod: "every 3 months",
-    quarterlySub: "10% off",
-    quarterlyPerMonth: "7.20 ₾/mo",
-    annualTitle: "1 year",
-    annualPeriod: "per year",
-    annualSub: "Best value - one payment a year",
-    annualPerMonth: "7.08 ₾/mo",
-    annualBadge: "Save 11%",
-    included: "What you get",
+    eyebrow: "გამოწერა",
+    title: "აირჩიეთ სასურველი პაკეტი",
+    subtitle: "ერთი ანგარიში = ერთი მოწყობილობა. გაუქმება ნებისმიერ დროს.",
+    monthlyTitle: "1 თვე",
+    monthlyPeriod: "თვეში",
+    monthlySub: "ყოველთვიური გადახდა",
+    monthlyPerMonth: "8 ₾/თვეში",
+    quarterlyTitle: "3 თვე",
+    quarterlyPeriod: "ყოველ 3 თვეში",
+    quarterlySub: "10% ფასდაკლება",
+    quarterlyPerMonth: "7.20 ₾/თვეში",
+    annualTitle: "1 წელი",
+    annualPeriod: "წელიწადში",
+    annualSub: "საუკეთესო ფასი — ერთი გადახდა წელიწადში",
+    annualPerMonth: "7.08 ₾/თვეში",
+    annualBadge: "დაზოგეთ 11%",
+    included: "რა შედის პაკეტში",
     features: [
-      "Live in-car navigation optimized for Tesla",
-      "Phone GPS pairing (real 1 m accuracy)",
-      "Turn-by-turn HUD & voice guidance",
-      "Live traffic + auto-rerouting",
-      "Georgian streets, addresses, POIs",
-      "Supercharger stop planning",
+      "ცოცხალი ნავიგაცია Tesla-ს ეკრანზე",
+      "ტელეფონის GPS დაკავშირება (რეალური 1 მ სიზუსტე)",
+      "ნაბიჯ-ნაბიჯ HUD და ხმოვანი მითითებები",
+      "რეალური საცობები და ავტომატური გადამარშრუტება",
+      "საქართველოს ქუჩები, მისამართები და ლოკაციები",
+      "Supercharger და დამტენი სადგურების დაგეგმვა",
     ],
-    ctaSignup: "Create account & continue →",
-    ctaCheckout: "Continue to checkout →",
-    note: "Secure checkout. No hidden fees. Cancel anytime from your account.",
-    back: "← Back",
+    ctaSignup: "ანგარიშის შექმნა და გაგრძელება →",
+    ctaCheckout: "გადახდაზე გადასვლა →",
+    note: "დაცული გადახდა. ფარული გადასახადების გარეშე. გაუქმება ნებისმიერ დროს.",
+    back: "← უკან",
   },
   am: {
     eyebrow: "Բաժանորդագրություն",
@@ -192,8 +192,9 @@ function PricingPage() {
     else navigate({ to: "/auth" });
   };
 
+  const ka = georgia;
   return (
-    <div className="min-h-screen bg-[#050708] text-white">
+    <div lang={ka ? "ka" : undefined} className="min-h-screen bg-[#050708] text-white">
       <header className="border-b border-white/5">
         <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-6">
           <Link to="/" className="font-display flex items-center gap-2 text-lg font-black">
@@ -212,7 +213,9 @@ function PricingPage() {
         <AccountBar
           note={
             noMembership
-              ? "This account has no active membership. If you paid with a different email, sign out and sign in with that email."
+              ? ka
+                ? "ამ ანგარიშს აქტიური გამოწერა არ აქვს. თუ სხვა მეილით გადაიხადეთ, გამოდით და შედით იმ მეილით."
+                : "This account has no active membership. If you paid with a different email, sign out and sign in with that email."
               : null
           }
         />
@@ -245,11 +248,11 @@ function PricingPage() {
               className="md:order-2"
               selected={selected === "semiannual"}
               onSelect={() => setSelected("semiannual")}
-              title="6 months"
+              title="6 თვე"
               price={MARKET_BOG_LABELS.ge.semiannual}
-              period="every 6 months"
-              subtitle="One payment, six months"
-              perMonth="6.50 ₾/mo"
+              period="ყოველ 6 თვეში"
+              subtitle="ერთი გადახდა, 6 თვე"
+              perMonth="6.50 ₾/თვეში"
             />
           ) : (
             <PlanCard
@@ -298,13 +301,13 @@ function PricingPage() {
         <p className="mt-3 text-center text-xs text-white/40">{c.note}</p>
         <p className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-white/40">
           <Link to="/terms" className="text-white/60 transition hover:text-white">
-            Terms & Conditions
+            {ka ? "წესები და პირობები" : "Terms & Conditions"}
           </Link>
           <Link to="/refund" className="text-white/60 transition hover:text-white">
-            Refund Policy
+            {ka ? "თანხის დაბრუნების პოლიტიკა" : "Refund Policy"}
           </Link>
           <Link to="/privacy" className="text-white/60 transition hover:text-white">
-            Privacy Notice
+            {ka ? "კონფიდენციალურობა" : "Privacy Notice"}
           </Link>
         </p>
       </main>

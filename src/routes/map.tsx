@@ -319,6 +319,8 @@ function Index() {
   }, [tilt3d]);
   // Night palette. Read after mount so the server render and hydration match.
   const [darkMap, setDarkMap] = useState(false);
+  // Always starts as the normal map; satellite only when the driver taps it.
+  const [satellite, setSatellite] = useState(false);
   useEffect(() => {
     try {
       setDarkMap(localStorage.getItem("tsl.map-dark") === "1");
@@ -1234,6 +1236,7 @@ function Index() {
                 ["chargers", showChargers, () => setLayer("chargers", !showChargers), "⚡", tr("დამტენები", "Լիցքավորիչներ"), false],
                 ["traffic", showTraffic, () => setShowTraffic((v) => !v), "🚦", tr("ტრაფიკი", "Երթևեկություն"), false],
                 ["tilt", tilt3d && vector3dAvailable, () => vector3dAvailable && setTilt3d((v) => !v), "◭", tilt3d && vector3dAvailable ? "3D" : "2D", !vector3dAvailable],
+                ["satellite", satellite, () => setSatellite((v) => !v), "🛰️", tr("სატელიტი", "Արբանյակ"), false],
                 ["dark", darkMap, toggleDarkMap, darkMap ? "🌙" : "☀️", darkMap ? tr("ღამე", "Գիշեր") : tr("დღე", "Ցերեկ"), false],
               ] as const).map(([k, on, toggle, icon, label, disabled]) => (
                 <button
@@ -1379,6 +1382,7 @@ function Index() {
                 navigating={navigating}
                 tilt3d={tilt3d && vector3dAvailable}
                 darkMode={darkMap}
+                satellite={satellite}
                 onCapabilities={({ vector }) => {
                   // Only a hard "no vector renderer" answer disables 3D; an
                   // undetermined result leaves the control fully usable.

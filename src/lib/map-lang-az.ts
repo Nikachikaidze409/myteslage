@@ -181,6 +181,7 @@ export const AZ_MAP_STRINGS: Record<string, string> = {
   "მუქი რუკის გადართვა": "Tünd xəritəyə keçid",
   "დღისა და ღამის ფერებს შორის გადართვა": "Gündüz və gecə rəngləri arasında keçid",
   "ღამე": "Gecə",
+  "სატელიტი": "Peyk",
   "დღე": "Gündüz",
   "ენის შეცვლა: სომხური": "Dili dəyiş",
   "რუკა სომხურად": "Xəritənin dili",

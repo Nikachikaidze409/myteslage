@@ -45,15 +45,30 @@ function useDriveLock(): Lock {
   return lock;
 }
 
+const CHIPS = ["🎵 music hits", "🎙 podcast", "🚗 Tesla", "👶 kids songs", "📰 news live", "🎬 movie trailers"];
+
 function YouTubePage() {
   const lock = useDriveLock();
-  const [url, setUrl] = useState("");
-  const [vid, setVid] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [src, setSrc] = useState(
+    "https://www.youtube.com/embed?listType=search&list=music%20hits&playsinline=1",
+  );
   const parked = lock === "parked";
+
+  const play = (input: string) => {
+    const text = input.trim();
+    if (!text) return;
+    const id = parseYoutubeId(text);
+    setSrc(
+      id
+        ? `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1`
+        : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(text.replace(/^\S+\s/, (m) => (/^[\p{Emoji}]/u.test(m) ? "" : m)))}&autoplay=1&playsinline=1`,
+    );
+  };
 
   return (
     <HubShell back>
-      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 pb-10">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-6 pb-8">
         {!parked ? (
           <div className="cockpit-glass flex flex-1 flex-col items-center justify-center gap-4 rounded-3xl p-10 text-center">
             <div className="text-6xl">{lock === "moving" ? "🛑" : "📍"}</div>
@@ -62,38 +77,43 @@ function YouTubePage() {
             </h1>
             {lock === "moving" && <p className="text-muted-foreground">{ht("movingSub")}</p>}
           </div>
-        ) : vid ? (
-          <div className="aspect-video w-full overflow-hidden rounded-3xl border border-border">
-            <iframe
-              className="h-full w-full"
-              src={`https://www.youtube.com/embed/${vid}?autoplay=1&playsinline=1`}
-              title="YouTube"
-              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-              allowFullScreen
-            />
-          </div>
         ) : (
-          <div className="cockpit-glass flex flex-col items-center gap-6 rounded-3xl p-10">
-            <a
-              href="https://m.youtube.com"
-              className="hub-tile !min-h-0 w-full max-w-md !flex-row !py-6 text-2xl font-bold"
-              style={{ ["--glow" as string]: "var(--destructive)" }}
-            >
-              <span className="text-4xl">▶</span> {ht("openYt")}
-            </a>
+          <>
             <form
-              className="flex w-full max-w-xl gap-2"
-              onSubmit={(e) => { e.preventDefault(); setVid(parseYoutubeId(url)); }}
+              className="cockpit-glass flex w-full gap-2 rounded-2xl p-2"
+              onSubmit={(e) => { e.preventDefault(); play(q); }}
             >
+              <span className="flex items-center px-2 text-2xl text-destructive">▶</span>
               <input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
                 placeholder={ht("paste")}
                 className="flex-1 rounded-xl border border-input bg-background/60 px-4 py-3 text-foreground"
               />
-              <button className="rounded-xl bg-primary px-5 font-semibold text-primary-foreground">{ht("play")}</button>
+              <button className="rounded-xl bg-primary px-6 font-semibold text-primary-foreground">{ht("play")}</button>
             </form>
-          </div>
+            <div className="flex flex-wrap gap-2">
+              {CHIPS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => play(c.slice(c.indexOf(" ") + 1))}
+                  className="cockpit-glass rounded-full px-4 py-2 text-sm font-medium"
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+            <div className="aspect-video w-full overflow-hidden rounded-3xl border border-border bg-background">
+              <iframe
+                key={src}
+                className="h-full w-full"
+                src={src}
+                title="YouTube"
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                allowFullScreen
+              />
+            </div>
+          </>
         )}
       </div>
     </HubShell>

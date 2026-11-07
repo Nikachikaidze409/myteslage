@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ht } from "@/lib/hub-lang";
 import { ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LocationButton } from "@/components/LocationButton";
@@ -1221,6 +1222,9 @@ function Index() {
                 <span className="tabular-nums">{cameraAlert.dist} {tr("მ", "մ")}</span>
               </div>
             )}
+            <Link to="/hub" className="cockpit-glass flex w-[148px] items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold text-foreground">
+              ☰ {ht("back")}
+            </Link>
             <div className="cockpit-glass flex w-[148px] flex-col overflow-hidden rounded-2xl p-1">
               {([
                 ["sound", engineSoundOn, () => {

@@ -437,17 +437,19 @@ function embed(slug: string, title: string) {
   };
 }
 const PenaltyGame = embed("penalty-shooters-2", "Penalty Shooters 2");
-const SubwayGame = embed("subway-surfers", "Subway Surfers");
-const HillGame = embed("hill-climb-racing", "Hill Climb Racing");
+const CountGame = embed("count-masters-stickman-games", "Count Masters");
+const MowGame = embed("stone-grass-mowing-simulator", "Stone Grass Mowing");
+const StreetGame = embed("street-fighter-simulator", "Street Fighter Simulator");
+const JavelinGame = embed("javelin-fighting", "Javelin Fighting");
 const RacerGame = embed("mr-racer---car-racing", "Mr Racer");
-const KarateGame = embed("karate-fighter-real-battles", "Karate Fighter");
 
 export const GAMES = [
   { id: "penalty", name: "Penalty Shooters 2", emoji: "⚽", hint: "შეეხე და დაარტყი", C: PenaltyGame, tone: "from-green-500/40 to-sky-500/20", web: true },
-  { id: "subway", name: "Subway Surfers", emoji: "🛹", hint: "გაუსვი თითი", C: SubwayGame, tone: "from-orange-500/40 to-sky-500/20", web: true },
-  { id: "hill", name: "Hill Climb Racing", emoji: "🚙", hint: "გაზი და მუხრუჭი", C: HillGame, tone: "from-lime-500/40 to-amber-500/20", web: true },
   { id: "racer", name: "Mr Racer", emoji: "🏁", hint: "რბოლა", C: RacerGame, tone: "from-red-500/40 to-zinc-500/20", web: true },
-  { id: "karate", name: "Karate Fighter", emoji: "🥋", hint: "ბრძოლა", C: KarateGame, tone: "from-rose-500/40 to-orange-500/20", web: true },
+  { id: "count", name: "Count Masters", emoji: "🏃", hint: "გაუსვი თითი", C: CountGame, tone: "from-sky-500/40 to-pink-500/20", web: true },
+  { id: "mow", name: "Stone Grass Mowing", emoji: "🌱", hint: "გაუსვი თითი", C: MowGame, tone: "from-lime-500/40 to-emerald-500/20", web: true },
+  { id: "street", name: "Street Fighter Simulator", emoji: "🥊", hint: "ბრძოლა", C: StreetGame, tone: "from-rose-500/40 to-orange-500/20", web: true },
+  { id: "javelin", name: "Javelin Fighting", emoji: "🎯", hint: "დაუმიზნე და ისროლე", C: JavelinGame, tone: "from-amber-500/40 to-red-500/20", web: true },
   { id: "space", name: "Galaxy Defender", emoji: "🚀", hint: "გაატარე თითი", C: SpaceGame, tone: "from-sky-500/40 to-indigo-500/20" },
   { id: "pac", name: "Pac-Man", emoji: "🟡", hint: "გაუსვი თითი", C: PacGame, tone: "from-yellow-500/40 to-blue-600/20" },
   { id: "snake", name: "Cyber Snake", emoji: "🐍", hint: "გაუსვი თითი", C: SnakeGame, tone: "from-emerald-500/40 to-teal-500/20" },

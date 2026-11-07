@@ -5,7 +5,7 @@ import { AccountMenu } from "@/components/AccountMenu";
 import heroImg from "@/assets/hero-dashboard.jpg";
 import pairingImg from "@/assets/feature-pairing.jpg";
 import { useMarket } from "@/lib/market-context";
-import { APP_MAP_URL, MARKET_BOG_LABELS } from "@/lib/market";
+import { MARKET_BOG_LABELS } from "@/lib/market";
 
 /** Russian landing (tmap.ge/ru): rubles shown large, tenge in brackets. Display only. */
 const RU_PRICES = {
@@ -114,6 +114,15 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setSignedIn(!!session));
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!signedIn) return;
+    if (armenia) {
+      window.location.replace("https://tmap.ge/hub?from=am");
+      return;
+    }
+    navigate({ to: "/hub", replace: true });
+  }, [signedIn, armenia, navigate]);
 
   const t = (
     armenia ? { ...T.hy, ...AM_LANDING_OVERRIDES } : T[lang]
@@ -350,14 +359,14 @@ function Nav({
             <>
               {armenia ? (
                 <a
-                  href={`${APP_MAP_URL}?from=am`}
+                  href="https://tmap.ge/hub?from=am"
                   className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
                 >
                   {t.navOpenApp}
                 </a>
               ) : (
                 <Link
-                  to="/map"
+                  to="/hub"
                   className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
                 >
                   {t.navOpenApp}

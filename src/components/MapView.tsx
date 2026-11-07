@@ -62,6 +62,8 @@ interface Props {
   /** Speed cameras / EV chargers overlays (OpenStreetMap, visible area only). */
   showCameras?: boolean;
   showChargers?: boolean;
+  /** Satellite imagery (hybrid with labels). Off = normal road map. */
+  satellite?: boolean;
 }
 
 export function MapView({
@@ -92,6 +94,7 @@ export function MapView({
   darkMode = false,
   showCameras = false,
   showChargers = false,
+  satellite = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -456,6 +459,17 @@ export function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remoteViewSeq, mapReady]);
 
+  // ---- satellite / road map type -----------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    try {
+      map.setMapTypeId(satellite ? "hybrid" : "roadmap");
+    } catch {
+      /* never break the map over a type switch */
+    }
+  }, [satellite, bootAttempt, mapReadyTick]);
+
   // ---- traffic overlay ---------------------------------------------------
   useEffect(() => {
     const g = googleRef.current;
@@ -673,7 +687,7 @@ export function MapView({
         ref={containerRef}
         className="h-full w-full rounded-2xl bg-muted"
         style={
-          darkMode
+          darkMode && !satellite
             ? {
                 // Night palette applied on the composited map layer only:
                 // instant, GPU-accelerated, no map re-creation, no extra tiles.

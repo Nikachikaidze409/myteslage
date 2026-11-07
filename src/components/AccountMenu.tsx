@@ -160,6 +160,8 @@ export function AccountMenu({ signOutLabel = "Sign out" }: { signOutLabel?: stri
                     ? tr("1 წელი", "1 տարի")
                     : membership.plan === "quarterly"
                       ? tr("3 თვე", "3 ամիս")
+                      : membership.plan === "semiannual"
+                        ? tr("6 თვე", "6 ամիս")
                       : tr("1 თვე", "1 ամիս")}
                 </span>
               </div>

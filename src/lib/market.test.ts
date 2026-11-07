@@ -91,3 +91,20 @@ describe("host routing", () => {
     expect(legacyRedirectTarget("https://tmap.am/checkout")).toBeNull();
   });
 });
+
+describe("Georgian plan line-up (temporary)", () => {
+  it("Georgia sells only 3 months, 6 months and 1 year", () => {
+    expect(offeredPlans("ge", false)).toEqual(["quarterly", "semiannual", "annual"]);
+  });
+  it("6 months costs 39 GEL, 3 months 21.60, 1 year 85", () => {
+    expect(MARKET_BOG_AMOUNTS.ge.semiannual).toBe(39);
+    expect(MARKET_BOG_AMOUNTS.ge.quarterly).toBe(21.6);
+    expect(MARKET_BOG_AMOUNTS.ge.annual).toBe(85);
+  });
+  it("Georgian monthly checkout is refused, other markets keep monthly", () => {
+    expect(isPlanOffered("ge", "", "monthly")).toBe(false);
+    expect(isPlanOffered("ge", "tmap_lang=ru", "monthly")).toBe(true);
+    expect(isPlanOffered("am", "", "monthly")).toBe(true);
+    expect(isPlanOffered("az", "tmap_market=az", "semiannual")).toBe(false);
+  });
+});

@@ -161,7 +161,7 @@ describe("client cannot influence pricing", () => {
 
   it("10. the checkout input accepts only a plan name", () => {
     expect(functions).toContain(
-      'planSchema = z.object({ plan: z.enum(["monthly", "quarterly", "annual"]) })',
+      'planSchema = z.object({ plan: z.enum(["monthly", "quarterly", "semiannual", "annual"]) })',
     );
     expect(functions).not.toMatch(/data\.(credit|creditAmount|discount)/);
   });

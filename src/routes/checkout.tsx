@@ -16,9 +16,8 @@ import {
 } from "@/lib/checkout-provider";
 import { AccountBar } from "@/components/AccountBar";
 import { useMarket } from "@/lib/market-context";
-import { APP_MAP_URL, AZ_CONVERSION_NOTE, RU_BOG_AMOUNTS, RU_CONVERSION_NOTE } from "@/lib/market";
+import { APP_MAP_URL, AZ_CONVERSION_NOTE, RU_BOG_AMOUNTS, RU_CONVERSION_NOTE, offeredPlans } from "@/lib/market";
 import { LegalFooter } from "@/components/LegalFooter";
-import { offeredPlans } from "@/lib/market";
 
 const PLAN_KEY = "tsl.pending-plan";
 const PLANS: Record<Plan, { label: string; period: string }> = {

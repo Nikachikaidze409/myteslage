@@ -423,25 +423,33 @@ export function BubbleGame() {
   return <canvas ref={ref} className="touch-none" />;
 }
 
-export function PenaltyGame() {
-  return (
+function embed(slug: string, title: string) {
+  return function EmbedGame() {
+    return (
     <iframe
-      src="https://games.crazygames.com/en_US/penalty-shooters-2/index.html"
-      title="Penalty Shooters 2"
+      src={`https://games.crazygames.com/en_US/${slug}/index.html`}
+      title={title}
       className="absolute inset-0 h-full w-full border-0"
       allow="autoplay; fullscreen; gamepad"
       allowFullScreen
     />
-  );
+    );
+  };
 }
+const PenaltyGame = embed("penalty-shooters-2", "Penalty Shooters 2");
+const SubwayGame = embed("subway-surfers", "Subway Surfers");
+const HillGame = embed("hill-climb-racing", "Hill Climb Racing");
+const RacerGame = embed("mr-racer---car-racing", "Mr Racer");
+const KarateGame = embed("karate-fighter-real-battles", "Karate Fighter");
 
 export const GAMES = [
-  { id: "penalty", name: "Penalty Shooters 2", emoji: "⚽", hint: "შეეხე და დაარტყი", C: PenaltyGame, tone: "from-green-500/40 to-sky-500/20" },
-  { id: "drift", name: "Drift Boss", emoji: "🏎️", hint: "შეეხე მოსახვევად", C: DriftGame, tone: "from-pink-500/40 to-sky-500/20" },
-  { id: "2048", name: "2048 Neon", emoji: "🧠", hint: "გაუსვი თითი", C: Game2048, tone: "from-violet-500/40 to-cyan-500/20" },
+  { id: "penalty", name: "Penalty Shooters 2", emoji: "⚽", hint: "შეეხე და დაარტყი", C: PenaltyGame, tone: "from-green-500/40 to-sky-500/20", web: true },
+  { id: "subway", name: "Subway Surfers", emoji: "🛹", hint: "გაუსვი თითი", C: SubwayGame, tone: "from-orange-500/40 to-sky-500/20", web: true },
+  { id: "hill", name: "Hill Climb Racing", emoji: "🚙", hint: "გაზი და მუხრუჭი", C: HillGame, tone: "from-lime-500/40 to-amber-500/20", web: true },
+  { id: "racer", name: "Mr Racer", emoji: "🏁", hint: "რბოლა", C: RacerGame, tone: "from-red-500/40 to-zinc-500/20", web: true },
+  { id: "karate", name: "Karate Fighter", emoji: "🥋", hint: "ბრძოლა", C: KarateGame, tone: "from-rose-500/40 to-orange-500/20", web: true },
   { id: "space", name: "Galaxy Defender", emoji: "🚀", hint: "გაატარე თითი", C: SpaceGame, tone: "from-sky-500/40 to-indigo-500/20" },
   { id: "pac", name: "Pac-Man", emoji: "🟡", hint: "გაუსვი თითი", C: PacGame, tone: "from-yellow-500/40 to-blue-600/20" },
   { id: "snake", name: "Cyber Snake", emoji: "🐍", hint: "გაუსვი თითი", C: SnakeGame, tone: "from-emerald-500/40 to-teal-500/20" },
-  { id: "bubble", name: "Bubble Shooter", emoji: "🎯", hint: "დაუმიზნე და გაუშვი", C: BubbleGame, tone: "from-rose-500/40 to-amber-500/20" },
   { id: "flappy", name: "Cyber Bird", emoji: "🐦", hint: "შეეხე ასაფრენად", C: FlappyGame, tone: "from-amber-500/40 to-lime-500/20" },
 ] as const;

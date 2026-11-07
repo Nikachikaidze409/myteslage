@@ -9,7 +9,7 @@ export const Route = createFileRoute("/arcade")({
   head: () => ({
     meta: [
       { title: "TMap Arcade — თამაშები Tesla-ს ეკრანზე" },
-      { name: "description", content: "7 სენსორული თამაში Tesla-ს ეკრანისთვის: Drift, 2048, Pac-Man, Snake და სხვა." },
+      { name: "description", content: "სენსორული თამაშები Tesla-ს ეკრანისთვის: Subway Surfers, Hill Climb Racing, Pac-Man და სხვა." },
       { property: "og:title", content: "TMap Arcade" },
       { property: "og:description", content: "სენსორული თამაშები Tesla-ს ეკრანზე." },
       { property: "og:type", content: "website" },
@@ -49,6 +49,9 @@ function Arcade() {
   return (
     <HubShell back>
       <div className="mx-auto w-full max-w-6xl px-6 pb-10">
+        <div className="cockpit-glass mb-5 rounded-xl px-4 py-3 text-sm text-foreground">
+          ⏳ თამაშის დაწყებისას ჩაირთვება 10 წამიანი ვიდეო — გთხოვთ დაელოდოთ, შემდეგ თამაში ავტომატურად ჩაირთვება.
+        </div>
         <h1 className="mb-6 text-3xl font-semibold">🎮 TMap Arcade</h1>
         <div className="grid grid-cols-2 gap-5 md:grid-cols-4" style={{ perspective: "1200px" }}>
           {GAMES.map((g) => (

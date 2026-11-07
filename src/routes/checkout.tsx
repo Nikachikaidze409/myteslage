@@ -16,15 +16,18 @@ import {
 } from "@/lib/checkout-provider";
 import { AccountBar } from "@/components/AccountBar";
 import { useMarket } from "@/lib/market-context";
-import { APP_MAP_URL, AZ_CONVERSION_NOTE, RU_BOG_AMOUNTS, RU_CONVERSION_NOTE } from "@/lib/market";
+import { APP_MAP_URL, AZ_CONVERSION_NOTE, RU_BOG_AMOUNTS, RU_CONVERSION_NOTE, offeredPlans } from "@/lib/market";
 import { LegalFooter } from "@/components/LegalFooter";
 
 const PLAN_KEY = "tsl.pending-plan";
 const PLANS: Record<Plan, { label: string; period: string }> = {
   monthly: { label: "Monthly", period: "per month" },
   quarterly: { label: "3 months · save 10%", period: "every 3 months" },
+  semiannual: { label: "6 months", period: "every 6 months" },
   annual: { label: "1 year · save 11%", period: "per year" },
 };
+
+const PLAN_SHORT: Record<Plan, string> = { monthly: "Monthly", quarterly: "3 months", semiannual: "6 months", annual: "1 year" };
 
 export const Route = createFileRoute("/checkout")({
   component: Checkout,
@@ -61,6 +64,12 @@ function Checkout() {
     if (market === "ge" && /(?:^|;\s*)tmap_lang=ru(?:;|$)/.test(document.cookie)) setRu(true);
   }, [market]);
 
+  const offered = offeredPlans(market, ru);
+  // A remembered plan that this storefront no longer sells falls back to 3 months.
+  useEffect(() => {
+    if (!offered.includes(plan)) setPlan("quarterly");
+  }, [offered, plan]);
+
   const refreshEligibility = useCallback(async () => {
     setCheckingEligibility(true);
     try {
@@ -84,7 +93,7 @@ function Checkout() {
       setError("The payment was not completed. You can try again below.");
     }
     const stored = window.localStorage.getItem(PLAN_KEY);
-    if (stored === "monthly" || stored === "quarterly" || stored === "annual") setPlan(stored);
+    if (stored === "monthly" || stored === "quarterly" || stored === "semiannual" || stored === "annual") setPlan(stored);
 
 
     supabase.auth.getSession().then(async ({ data }) => {
@@ -310,11 +319,14 @@ function Checkout() {
           </>
         )}
         <div className="mt-7 flex justify-center gap-3 text-xs text-white/40">
-          <button type="button" onClick={() => setPlan("monthly")} className={plan === "monthly" ? "text-white" : "hover:text-white"}>Monthly</button>
-          <span aria-hidden>·</span>
-          <button type="button" onClick={() => setPlan("quarterly")} className={plan === "quarterly" ? "text-white" : "hover:text-white"}>3 months</button>
-          <span aria-hidden>·</span>
-          <button type="button" onClick={() => setPlan("annual")} className={plan === "annual" ? "text-white" : "hover:text-white"}>1 year</button>
+          {offered.map((p, i) => (
+            <span key={p} className="flex gap-3">
+              {i > 0 && <span aria-hidden>·</span>}
+              <button type="button" onClick={() => setPlan(p)} className={plan === p ? "text-white" : "hover:text-white"}>
+                {PLAN_SHORT[p]}
+              </button>
+            </span>
+          ))}
         </div>
       </main>
       <LegalFooter />

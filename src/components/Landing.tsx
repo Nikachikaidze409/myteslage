@@ -13,6 +13,12 @@ const RU_PRICES = {
   quarterly: { price: "1 277 ₽", sub: "(13 415 ₸)" },
   annual: { price: "4 792 ₽", sub: "(26 165 ₸)" },
 } as const;
+/** 6-month card copy for the Georgian storefront (39 ₾). */
+const SEMI_COPY = {
+  ka: { title: "6 თვე წინასწარ", total: " სულ", sub: "6.50 ₾/თვე", tag: "ერთი გადახდა, ექვსი თვე", cta: "6 თვიანი გეგმა →", features: ["ცოცხალი რუკა მანქანაში", "ტელეფონის GPS დაწყვილება", "ერთი გადახდა, ექვსი თვე", "პრიორიტეტული მხარდაჭერა"] },
+  en: { title: "6 months upfront", total: " total", sub: "6.50 ₾/mo", tag: "One payment, six months", cta: "Get 6 months →", features: ["Live in-car map", "Phone GPS pairing", "One payment, six months", "Priority support"] },
+  hy: { title: "6 ամիս կանխավճարով", total: " ընդամենը", sub: "6.50 ₾/ամիս", tag: "Մեկ վճարում, վեց ամիս", cta: "6 ամիս →", features: ["Կենդանի քարտեզ մեքենայում", "Հեռախոսի GPS զուգակցում", "Մեկ վճարում, վեց ամիս", "Առաջնահերթ աջակցություն"] },
+} as const;
 const RU_COOKIE_ON = "tmap_lang=ru; path=/; max-age=31536000; samesite=lax";
 const RU_COOKIE_OFF = "tmap_lang=; path=/; max-age=0; samesite=lax";
 const MAP_LANG_KEY = "tmg:map-lang";
@@ -129,6 +135,9 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
   ) as unknown as Translation;
   const prices = MARKET_BOG_LABELS[market];
   const ru = !armenia && lang === "ru";
+  // Georgia (tmap.ge, not /ru) temporarily sells 3 months / 6 months / 1 year only.
+  const georgia = market === "ge" && !ru;
+  const semi = SEMI_COPY[lang === "ka" ? "ka" : lang === "hy" ? "hy" : "en"];
 
   return (
     <div className="min-h-screen bg-[#050708] text-white" lang={lang}>
@@ -255,6 +264,19 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
               badgeLabel={t.annualBadge}
               to="/pricing"
             />
+            {georgia ? (
+              <PricingCard
+                className="md:order-2"
+                title={semi.title}
+                price={prices.semiannual}
+                period={semi.total}
+                subprice={semi.sub}
+                tag={semi.tag}
+                features={[...semi.features]}
+                cta={semi.cta}
+                to="/pricing"
+              />
+            ) : (
             <PricingCard
               className={armenia ? "md:order-2" : "md:order-1"}
               title={t.monthlyTitle}
@@ -266,8 +288,9 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
               cta={t.monthlyCta}
               to="/pricing"
             />
+            )}
             <PricingCard
-              className={armenia ? "md:order-3" : "md:order-2"}
+              className={armenia ? "md:order-3" : georgia ? "md:order-1" : "md:order-2"}
               title={t.quarterlyTitle}
               price={ru ? RU_PRICES.quarterly.price : prices.quarterly}
               period={t.quarterlyTotal}

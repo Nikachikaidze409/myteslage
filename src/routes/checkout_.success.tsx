@@ -27,7 +27,7 @@ function paddlePlanValue(): number {
   let plan: Plan = "quarterly";
   try {
     const stored = window.localStorage.getItem("tsl.pending-plan");
-    if (stored === "monthly" || stored === "quarterly" || stored === "annual") plan = stored;
+    if (stored === "monthly" || stored === "quarterly" || stored === "semiannual" || stored === "annual") plan = stored;
   } catch {
     /* storage unavailable — fall back to the default plan price */
   }

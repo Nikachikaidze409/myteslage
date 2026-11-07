@@ -6,6 +6,9 @@ import {
   bogAmountFor,
   bogAmountForRequest,
   marketFromHost,
+  MARKET_BOG_AMOUNTS,
+  offeredPlans,
+  isPlanOffered,
 } from "./market";
 import { checkoutButtonLabel, providerPrice } from "./checkout-provider";
 import { canBeAutoRenewParent } from "./bog.server";
@@ -47,7 +50,8 @@ describe("market pricing", () => {
   });
 
   it("uses Paddle price ids directly for the Armenian catalogue", () => {
-    for (const id of Object.values(MARKET_PADDLE_PRICE_IDS.am)) {
+    for (const [plan, id] of Object.entries(MARKET_PADDLE_PRICE_IDS.am)) {
+      if (plan === "semiannual") continue; // Georgia-only plan, never sold in Armenia
       expect(id.startsWith("pri_")).toBe(true);
     }
   });
@@ -89,5 +93,22 @@ describe("host routing", () => {
   it("leaves the Armenian landing and checkout in place", () => {
     expect(legacyRedirectTarget("https://tmap.am/")).toBeNull();
     expect(legacyRedirectTarget("https://tmap.am/checkout")).toBeNull();
+  });
+});
+
+describe("Georgian plan line-up (temporary)", () => {
+  it("Georgia sells only 3 months, 6 months and 1 year", () => {
+    expect(offeredPlans("ge", false)).toEqual(["quarterly", "semiannual", "annual"]);
+  });
+  it("6 months costs 39 GEL, 3 months 21.60, 1 year 85", () => {
+    expect(MARKET_BOG_AMOUNTS.ge.semiannual).toBe(39);
+    expect(MARKET_BOG_AMOUNTS.ge.quarterly).toBe(21.6);
+    expect(MARKET_BOG_AMOUNTS.ge.annual).toBe(85);
+  });
+  it("Georgian monthly checkout is refused, other markets keep monthly", () => {
+    expect(isPlanOffered("ge", "", "monthly")).toBe(false);
+    expect(isPlanOffered("ge", "tmap_lang=ru", "monthly")).toBe(true);
+    expect(isPlanOffered("am", "", "monthly")).toBe(true);
+    expect(isPlanOffered("az", "tmap_market=az", "semiannual")).toBe(false);
   });
 });

@@ -236,7 +236,7 @@ function AuthPage() {
   function nextDest(): "/checkout" | "/hub" {
     if (typeof window === "undefined") return "/hub";
     const p = window.localStorage.getItem("tsl.pending-plan");
-    return p === "monthly" || p === "quarterly" || p === "annual" ? "/checkout" : "/hub";
+    return p === "monthly" || p === "quarterly" || p === "semiannual" || p === "annual" ? "/checkout" : "/hub";
   }
 
   return (

@@ -49,7 +49,7 @@ export function bogFailUrl(origin: CheckoutOrigin = "https://tmap.ge"): string {
  * Trusted plan configuration. The browser may only name a plan key.
  * ------------------------------------------------------------------ */
 
-export type PlanKey = "monthly" | "quarterly" | "annual";
+export type PlanKey = "monthly" | "quarterly" | "semiannual" | "annual";
 
 export interface BogPlan {
   id: string;
@@ -74,6 +74,13 @@ export const BOG_PLANS: Record<PlanKey, BogPlan> = {
     durationMonths: 3,
     description: "TMap Georgia membership — 3 months",
   },
+  semiannual: {
+    id: "tesla_map_georgia_semiannual",
+    amount: 39.0,
+    currency: "GEL",
+    durationMonths: 6,
+    description: "TMap Georgia membership — 6 months",
+  },
   annual: {
     id: "tesla_map_georgia_annual",
     amount: 85.0,
@@ -84,7 +91,7 @@ export const BOG_PLANS: Record<PlanKey, BogPlan> = {
 };
 
 export function isPlanKey(value: unknown): value is PlanKey {
-  return value === "monthly" || value === "quarterly" || value === "annual";
+  return value === "monthly" || value === "quarterly" || value === "semiannual" || value === "annual";
 }
 
 /** Formats an amount the way BOG expects it in JSON (2 decimals, number). */
@@ -456,6 +463,7 @@ export function verifyCallbackSignature(rawBody: string, signature: string | nul
 export const BOG_RECURRING_AMOUNTS: Record<PlanKey, number> = {
   monthly: 8.0,
   quarterly: 21.6,
+  semiannual: 39.0,
   annual: 85.0,
 };
 

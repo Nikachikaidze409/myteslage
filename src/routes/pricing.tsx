@@ -6,7 +6,7 @@ import { LegalFooter } from "@/components/LegalFooter";
 import { useMarket } from "@/lib/market-context";
 import { AM_CONVERSION_NOTE, AZ_CONVERSION_NOTE, MARKET_BOG_LABELS, RU_CONVERSION_NOTE } from "@/lib/market";
 
-type Plan = "monthly" | "quarterly" | "annual";
+type Plan = "monthly" | "quarterly" | "semiannual" | "annual";
 const PLAN_KEY = "tsl.pending-plan";
 
 /** Page copy per market: Georgian site stays English, tmap.am is Armenian. */
@@ -151,7 +151,7 @@ export const Route = createFileRoute("/pricing")({
           "8 ₾/month, 21.60 ₾ every 3 months, or 85 ₾ a year. Live navigation for imported Teslas in Georgia.",
       },
       { property: "og:title", content: "Pricing - TMap Georgia" },
-      { property: "og:description", content: "Choose a TMap Georgia navigation membership: 8 ₾ monthly, 21.60 ₾ quarterly, or 85 ₾ annually." },
+      { property: "og:description", content: "Choose a TMap Georgia navigation membership: 21.60 ₾ for 3 months, 39 ₾ for 6 months, or 85 ₾ for a year." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -169,6 +169,8 @@ function PricingPage() {
   const [ru, setRu] = useState(false);
   const c = ru ? RU_COPY : COPY[market];
   const prices = ru ? RU_PRICE_LABELS : MARKET_BOG_LABELS[market];
+  // Georgia (not /ru) temporarily sells 3 months / 6 months / 1 year only.
+  const georgia = market === "ge" && !ru;
 
   useEffect(() => {
     if (!am && /(?:^|;\s*)tmap_lang=ru/.test(document.cookie)) setRu(true);
@@ -237,7 +239,20 @@ function PricingPage() {
             badge={c.annualBadge}
             highlighted
           />
-          <PlanCard
+          {georgia ? (
+            <PlanCard
+              plan="semiannual"
+              className="md:order-2"
+              selected={selected === "semiannual"}
+              onSelect={() => setSelected("semiannual")}
+              title="6 months"
+              price={MARKET_BOG_LABELS.ge.semiannual}
+              period="every 6 months"
+              subtitle="One payment, six months"
+              perMonth="6.50 ₾/mo"
+            />
+          ) : (
+            <PlanCard
             plan="monthly"
             className={am ? "md:order-2" : "md:order-1"}
             selected={selected === "monthly"}
@@ -248,9 +263,10 @@ function PricingPage() {
             subtitle={c.monthlySub}
             perMonth={c.monthlyPerMonth}
           />
+          )}
           <PlanCard
             plan="quarterly"
-            className={am ? "md:order-3" : "md:order-2"}
+            className={am ? "md:order-3" : georgia ? "md:order-1" : "md:order-2"}
             selected={selected === "quarterly"}
             onSelect={() => setSelected("quarterly")}
             title={c.quarterlyTitle}

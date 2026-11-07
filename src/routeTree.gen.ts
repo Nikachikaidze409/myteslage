@@ -12,11 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AmRouteImport } from './routes/am'
+import { Route as ArcadeRouteImport } from './routes/arcade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AzRouteImport } from './routes/az'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as DriveRouteImport } from './routes/drive'
 import { Route as EnRouteImport } from './routes/en'
+import { Route as HubRouteImport } from './routes/hub'
 import { Route as HyRouteImport } from './routes/hy'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as MirrorTestRouteImport } from './routes/mirror-test'
@@ -26,6 +28,7 @@ import { Route as RefundRouteImport } from './routes/refund'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RuRouteImport } from './routes/ru'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as YoutubeRouteImport } from './routes/youtube'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout_.success'
 import { Route as MirrorTestSendRouteImport } from './routes/mirror-test_.send'
 import { Route as PhoneCodeRouteImport } from './routes/phone.$code'
@@ -47,6 +50,11 @@ const AdminRoute = AdminRouteImport.update({
 const AmRoute = AmRouteImport.update({
   id: '/am',
   path: '/am',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArcadeRoute = ArcadeRouteImport.update({
+  id: '/arcade',
+  path: '/arcade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -72,6 +80,11 @@ const DriveRoute = DriveRouteImport.update({
 const EnRoute = EnRouteImport.update({
   id: '/en',
   path: '/en',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HubRoute = HubRouteImport.update({
+  id: '/hub',
+  path: '/hub',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HyRoute = HyRouteImport.update({
@@ -119,6 +132,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const YoutubeRoute = YoutubeRouteImport.update({
+  id: '/youtube',
+  path: '/youtube',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
   id: '/checkout_/success',
   path: '/checkout/success',
@@ -162,11 +180,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/am': typeof AmRoute
+  '/arcade': typeof ArcadeRoute
   '/auth': typeof AuthRoute
   '/az': typeof AzRoute
   '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/en': typeof EnRoute
+  '/hub': typeof HubRoute
   '/hy': typeof HyRoute
   '/map': typeof MapRoute
   '/mirror-test': typeof MirrorTestRoute
@@ -176,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/ru': typeof RuRoute
   '/terms': typeof TermsRoute
+  '/youtube': typeof YoutubeRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/mirror-test/send': typeof MirrorTestSendRoute
   '/phone/$code': typeof PhoneCodeRoute
@@ -188,11 +209,13 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/am': typeof AmRoute
+  '/arcade': typeof ArcadeRoute
   '/auth': typeof AuthRoute
   '/az': typeof AzRoute
   '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/en': typeof EnRoute
+  '/hub': typeof HubRoute
   '/hy': typeof HyRoute
   '/map': typeof MapRoute
   '/mirror-test': typeof MirrorTestRoute
@@ -202,6 +225,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/ru': typeof RuRoute
   '/terms': typeof TermsRoute
+  '/youtube': typeof YoutubeRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/mirror-test/send': typeof MirrorTestSendRoute
   '/phone/$code': typeof PhoneCodeRoute
@@ -215,11 +239,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/am': typeof AmRoute
+  '/arcade': typeof ArcadeRoute
   '/auth': typeof AuthRoute
   '/az': typeof AzRoute
   '/checkout': typeof CheckoutRoute
   '/drive': typeof DriveRoute
   '/en': typeof EnRoute
+  '/hub': typeof HubRoute
   '/hy': typeof HyRoute
   '/map': typeof MapRoute
   '/mirror-test': typeof MirrorTestRoute
@@ -229,6 +255,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/ru': typeof RuRoute
   '/terms': typeof TermsRoute
+  '/youtube': typeof YoutubeRoute
   '/checkout_/success': typeof CheckoutSuccessRoute
   '/mirror-test_/send': typeof MirrorTestSendRoute
   '/phone/$code': typeof PhoneCodeRoute
@@ -243,11 +270,13 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/am'
+    | '/arcade'
     | '/auth'
     | '/az'
     | '/checkout'
     | '/drive'
     | '/en'
+    | '/hub'
     | '/hy'
     | '/map'
     | '/mirror-test'
@@ -257,6 +286,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/ru'
     | '/terms'
+    | '/youtube'
     | '/checkout/success'
     | '/mirror-test/send'
     | '/phone/$code'
@@ -269,11 +299,13 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/am'
+    | '/arcade'
     | '/auth'
     | '/az'
     | '/checkout'
     | '/drive'
     | '/en'
+    | '/hub'
     | '/hy'
     | '/map'
     | '/mirror-test'
@@ -283,6 +315,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/ru'
     | '/terms'
+    | '/youtube'
     | '/checkout/success'
     | '/mirror-test/send'
     | '/phone/$code'
@@ -295,11 +328,13 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/am'
+    | '/arcade'
     | '/auth'
     | '/az'
     | '/checkout'
     | '/drive'
     | '/en'
+    | '/hub'
     | '/hy'
     | '/map'
     | '/mirror-test'
@@ -309,6 +344,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/ru'
     | '/terms'
+    | '/youtube'
     | '/checkout_/success'
     | '/mirror-test_/send'
     | '/phone/$code'
@@ -322,11 +358,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AmRoute: typeof AmRoute
+  ArcadeRoute: typeof ArcadeRoute
   AuthRoute: typeof AuthRoute
   AzRoute: typeof AzRoute
   CheckoutRoute: typeof CheckoutRoute
   DriveRoute: typeof DriveRoute
   EnRoute: typeof EnRoute
+  HubRoute: typeof HubRoute
   HyRoute: typeof HyRoute
   MapRoute: typeof MapRoute
   MirrorTestRoute: typeof MirrorTestRoute
@@ -336,6 +374,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   RuRoute: typeof RuRoute
   TermsRoute: typeof TermsRoute
+  YoutubeRoute: typeof YoutubeRoute
   CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   MirrorTestSendRoute: typeof MirrorTestSendRoute
   PhoneCodeRoute: typeof PhoneCodeRoute
@@ -366,6 +405,13 @@ declare module '@tanstack/react-router' {
       path: '/am'
       fullPath: '/am'
       preLoaderRoute: typeof AmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/arcade': {
+      id: '/arcade'
+      path: '/arcade'
+      fullPath: '/arcade'
+      preLoaderRoute: typeof ArcadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -401,6 +447,13 @@ declare module '@tanstack/react-router' {
       path: '/en'
       fullPath: '/en'
       preLoaderRoute: typeof EnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hub': {
+      id: '/hub'
+      path: '/hub'
+      fullPath: '/hub'
+      preLoaderRoute: typeof HubRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/hy': {
@@ -466,6 +519,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/youtube': {
+      id: '/youtube'
+      path: '/youtube'
+      fullPath: '/youtube'
+      preLoaderRoute: typeof YoutubeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checkout_/success': {
       id: '/checkout_/success'
       path: '/checkout/success'
@@ -522,11 +582,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AmRoute: AmRoute,
+  ArcadeRoute: ArcadeRoute,
   AuthRoute: AuthRoute,
   AzRoute: AzRoute,
   CheckoutRoute: CheckoutRoute,
   DriveRoute: DriveRoute,
   EnRoute: EnRoute,
+  HubRoute: HubRoute,
   HyRoute: HyRoute,
   MapRoute: MapRoute,
   MirrorTestRoute: MirrorTestRoute,
@@ -536,6 +598,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   RuRoute: RuRoute,
   TermsRoute: TermsRoute,
+  YoutubeRoute: YoutubeRoute,
   CheckoutSuccessRoute: CheckoutSuccessRoute,
   MirrorTestSendRoute: MirrorTestSendRoute,
   PhoneCodeRoute: PhoneCodeRoute,

@@ -50,7 +50,8 @@ describe("market pricing", () => {
   });
 
   it("uses Paddle price ids directly for the Armenian catalogue", () => {
-    for (const id of Object.values(MARKET_PADDLE_PRICE_IDS.am)) {
+    for (const [plan, id] of Object.entries(MARKET_PADDLE_PRICE_IDS.am)) {
+      if (plan === "semiannual") continue; // Georgia-only plan, never sold in Armenia
       expect(id.startsWith("pri_")).toBe(true);
     }
   });

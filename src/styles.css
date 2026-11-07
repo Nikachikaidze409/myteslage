@@ -302,3 +302,56 @@
   background: var(--primary);
   box-shadow: 0 0 8px var(--primary);
 }
+
+/* TMap Hub — 3D glass tiles for the post-login menu, arcade and YouTube screens. */
+.ev-cockpit {
+  --hub-pink: oklch(0.72 0.19 350);
+}
+.hub-logo {
+  text-shadow: 0 0 24px color-mix(in oklab, var(--primary) 60%, transparent);
+}
+.hub-tile {
+  position: relative;
+  display: flex;
+  min-height: 240px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 1.75rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(160deg, oklch(1 0 0 / 0.12), oklch(1 0 0 / 0.02)), var(--glass);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 30px 60px -25px oklch(0 0 0 / 0.8),
+    0 8px 0 -2px color-mix(in oklab, var(--glow) 35%, transparent),
+    inset 0 1px 0 oklch(1 0 0 / 0.18);
+  transform: rotateX(8deg) translateZ(0);
+  transform-style: preserve-3d;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  padding: 1.5rem;
+}
+.hub-tile:hover,
+.hub-tile:focus-visible {
+  transform: rotateX(0deg) translateY(-6px) scale(1.03);
+  box-shadow:
+    0 40px 80px -25px oklch(0 0 0 / 0.85),
+    0 0 40px -6px color-mix(in oklab, var(--glow) 70%, transparent),
+    inset 0 1px 0 oklch(1 0 0 / 0.25);
+}
+.hub-tile:active {
+  transform: rotateX(4deg) translateY(2px) scale(0.98);
+}
+.hub-tile-icon {
+  display: grid;
+  height: 5.5rem;
+  width: 5.5rem;
+  place-items: center;
+  border-radius: 1.5rem;
+  font-size: 3rem;
+  color: var(--foreground);
+  background: radial-gradient(circle at 30% 25%, oklch(1 0 0 / 0.35), transparent 60%),
+    color-mix(in oklab, var(--glow) 70%, oklch(0.2 0.02 250));
+  box-shadow: 0 14px 30px -10px color-mix(in oklab, var(--glow) 80%, transparent);
+  transform: translateZ(40px);
+}

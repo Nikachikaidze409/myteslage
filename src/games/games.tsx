@@ -423,7 +423,20 @@ export function BubbleGame() {
   return <canvas ref={ref} className="touch-none" />;
 }
 
+export function PenaltyGame() {
+  return (
+    <iframe
+      src="https://games.crazygames.com/en_US/penalty-shooters-2/index.html"
+      title="Penalty Shooters 2"
+      className="absolute inset-0 h-full w-full border-0"
+      allow="autoplay; fullscreen; gamepad"
+      allowFullScreen
+    />
+  );
+}
+
 export const GAMES = [
+  { id: "penalty", name: "Penalty Shooters 2", emoji: "⚽", hint: "შეეხე და დაარტყი", C: PenaltyGame, tone: "from-green-500/40 to-sky-500/20" },
   { id: "drift", name: "Drift Boss", emoji: "🏎️", hint: "შეეხე მოსახვევად", C: DriftGame, tone: "from-pink-500/40 to-sky-500/20" },
   { id: "2048", name: "2048 Neon", emoji: "🧠", hint: "გაუსვი თითი", C: Game2048, tone: "from-violet-500/40 to-cyan-500/20" },
   { id: "space", name: "Galaxy Defender", emoji: "🚀", hint: "გაატარე თითი", C: SpaceGame, tone: "from-sky-500/40 to-indigo-500/20" },

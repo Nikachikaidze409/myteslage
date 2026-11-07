@@ -13,7 +13,7 @@
  */
 
 export type Market = "ge" | "am" | "az";
-export type MarketPlan = "monthly" | "quarterly" | "annual";
+export type MarketPlan = "monthly" | "quarterly" | "semiannual" | "annual";
 
 export const AM_HOSTS = new Set(["tmap.am", "www.tmap.am"]);
 
@@ -43,22 +43,22 @@ export function isMarket(value: unknown): value is Market {
 
 /** Trusted Bank of Georgia amounts (always charged in GEL). */
 export const MARKET_BOG_AMOUNTS: Record<Market, Record<MarketPlan, number>> = {
-  ge: { monthly: 8.0, quarterly: 21.6, annual: 85.0 },
-  am: { monthly: 11.5, quarterly: 31.0, annual: 116.0 },
-  az: { monthly: 12.8, quarterly: 30.5, annual: 104.0 },
+  ge: { monthly: 8.0, quarterly: 21.6, semiannual: 39.0, annual: 85.0 },
+  am: { monthly: 11.5, quarterly: 31.0, semiannual: 39.0, annual: 116.0 },
+  az: { monthly: 12.8, quarterly: 30.5, semiannual: 39.0, annual: 104.0 },
 };
 
 /** Prices shown to the shopper (display only). */
 export const MARKET_BOG_LABELS: Record<Market, Record<MarketPlan, string>> = {
-  ge: { monthly: "8 ₾", quarterly: "21.60 ₾", annual: "85 ₾" },
-  am: { monthly: "1,674 AMD", quarterly: "4,464 AMD", annual: "16,741 AMD" },
-  az: { monthly: "8 ₼", quarterly: "19 ₼", annual: "65 ₼" },
+  ge: { monthly: "8 ₾", quarterly: "21.60 ₾", semiannual: "39 ₾", annual: "85 ₾" },
+  am: { monthly: "1,674 AMD", quarterly: "4,464 AMD", semiannual: "39 ₾", annual: "16,741 AMD" },
+  az: { monthly: "8 ₼", quarterly: "19 ₼", semiannual: "39 ₾", annual: "65 ₼" },
 };
 
 export const MARKET_PADDLE_LABELS: Record<Market, Record<MarketPlan, string>> = {
-  ge: { monthly: "$2.99", quarterly: "$7.99", annual: "$31.99" },
-  am: { monthly: "$5.40", quarterly: "$14.40", annual: "$53.50" },
-  az: { monthly: "$2.99", quarterly: "$7.99", annual: "$31.99" },
+  ge: { monthly: "$2.99", quarterly: "$7.99", semiannual: "$14.49", annual: "$31.99" },
+  am: { monthly: "$5.40", quarterly: "$14.40", semiannual: "$14.49", annual: "$53.50" },
+  az: { monthly: "$2.99", quarterly: "$7.99", semiannual: "$14.49", annual: "$31.99" },
 };
 
 /**
@@ -70,16 +70,19 @@ export const MARKET_PADDLE_PRICE_IDS: Record<Market, Record<MarketPlan, string>>
   ge: {
     monthly: "tesla_map_georgia_monthly",
     quarterly: "tesla_map_georgia_quarterly",
+    semiannual: "tesla_map_georgia_semiannual",
     annual: "tesla_map_georgia_annual",
   },
   am: {
     monthly: "pri_01m3c5az2xx0bejgvb7aawpyca",
     quarterly: "pri_01m3c5azav7e57qemfc9w8jxa0",
+    semiannual: "tesla_map_georgia_semiannual",
     annual: "pri_01m3c5azh9mpexb8nzdrm9bvkd",
   },
   az: {
     monthly: "tesla_map_georgia_monthly",
     quarterly: "tesla_map_georgia_quarterly",
+    semiannual: "tesla_map_georgia_semiannual",
     annual: "tesla_map_georgia_annual",
   },
 };
@@ -103,6 +106,7 @@ export function bogAmountFor(market: Market, plan: MarketPlan): number {
 export const LEGACY_AM_BOG_AMOUNTS: Record<MarketPlan, number> = {
   monthly: 14.5,
   quarterly: 39.0,
+  semiannual: 39.0,
   annual: 145.0,
 };
 
@@ -113,6 +117,7 @@ export const LEGACY_AM_BOG_AMOUNTS: Record<MarketPlan, number> = {
 export const RU_BOG_AMOUNTS: Record<MarketPlan, number> = {
   monthly: 15.0,
   quarterly: 42.0,
+  semiannual: 39.0,
   annual: 155.0,
 };
 
@@ -138,4 +143,18 @@ export function allowedBogAmounts(plan: MarketPlan): number[] {
     LEGACY_AM_BOG_AMOUNTS[plan],
     RU_BOG_AMOUNTS[plan],
   ];
+}
+
+/**
+ * Plans offered to NEW checkouts. Georgia (tmap.ge, not /ru) temporarily sells
+ * 3 months / 6 months / 1 year only; every other storefront keeps its original
+ * monthly / 3 months / 1 year line-up. Existing monthly renewals are unaffected.
+ */
+export function offeredPlans(market: Market, ru: boolean): MarketPlan[] {
+  if (market === "ge" && !ru) return ["quarterly", "semiannual", "annual"];
+  return ["monthly", "quarterly", "annual"];
+}
+
+export function isPlanOffered(market: Market, cookieHeader: string | null | undefined, plan: MarketPlan): boolean {
+  return offeredPlans(market, isRuRequest(cookieHeader)).includes(plan);
 }

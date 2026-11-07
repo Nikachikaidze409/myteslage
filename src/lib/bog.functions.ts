@@ -13,16 +13,16 @@ import type {
  * The browser may only name a plan and a provider. Amounts, credits, currency
  * and product ids all come from the trusted server-side tables.
  */
-const planSchema = z.object({ plan: z.enum(["monthly", "quarterly", "annual"]) });
+const planSchema = z.object({ plan: z.enum(["monthly", "quarterly", "semiannual", "annual"]) });
 const eligibilitySchema = z.object({
   provider: z.enum(["bog", "paddle"]),
-  plan: z.enum(["monthly", "quarterly", "annual"]),
+  plan: z.enum(["monthly", "quarterly", "semiannual", "annual"]),
 });
 
 /** Loads the trusted membership + pending-checkout state and decides. */
 async function resolveEligibility(
   context: { supabase: SupabaseClient<Database>; userId: string },
-  input: { provider: "bog" | "paddle"; plan: "monthly" | "quarterly" | "annual" },
+  input: { provider: "bog" | "paddle"; plan: "monthly" | "quarterly" | "semiannual" | "annual" },
 ): Promise<Eligibility> {
   const { decideCheckoutEligibility, PENDING_CHECKOUT_TTL_MS } =
     await import("@/lib/checkout-eligibility");
@@ -121,6 +121,10 @@ export const createBogCheckout = createServerFn({ method: "POST" })
         new URL(request.url).host,
       cookieHeader,
     );
+    const { isPlanOffered } = await import("@/lib/market");
+    if (!isPlanOffered(market, cookieHeader, data.plan)) {
+      throw new Error("This plan is not available right now.");
+    }
     const planAmount = bogAmountForRequest(market, cookieHeader, data.plan);
 
     const upgrade = eligibility.status === "upgrade_prorated";

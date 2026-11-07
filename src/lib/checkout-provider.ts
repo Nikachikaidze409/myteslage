@@ -12,7 +12,7 @@ import {
 } from "@/lib/market";
 
 export type PaymentProvider = "bog" | "paddle";
-export type Plan = "monthly" | "quarterly" | "annual";
+export type Plan = "monthly" | "quarterly" | "semiannual" | "annual";
 
 export const PROVIDER_KEY = "tsl.payment-provider";
 

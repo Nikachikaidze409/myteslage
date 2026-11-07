@@ -62,7 +62,7 @@ function YouTubePage() {
     setSrc(
       id
         ? `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1`
-        : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(text.replace(/^\S+\s/, (m) => (/^[\p{Emoji}]/u.test(m) ? "" : m)))}&autoplay=1&playsinline=1`,
+        : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(text)}&autoplay=1&playsinline=1`,
     );
   };
 

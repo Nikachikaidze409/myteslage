@@ -9,7 +9,7 @@ import { AM_CONVERSION_NOTE, AZ_CONVERSION_NOTE, MARKET_BOG_LABELS, RU_CONVERSIO
 type Plan = "monthly" | "quarterly" | "semiannual" | "annual";
 const PLAN_KEY = "tsl.pending-plan";
 
-/** Page copy per market: Georgian site stays English, tmap.am is Armenian. */
+/** Page copy per market: tmap.ge is Georgian, tmap.am is Armenian. */
 const COPY = {
   ge: {
     eyebrow: "გამოწერა",

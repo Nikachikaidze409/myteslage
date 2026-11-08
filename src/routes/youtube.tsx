@@ -4,6 +4,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { HubShell } from "@/components/HubShell";
 import { ht } from "@/lib/hub-lang";
 import { isParked, parseYoutubeId } from "@/lib/drive-lock";
+import { searchYoutube, type YtVideo } from "@/lib/youtube.functions";
 
 export const Route = createFileRoute("/youtube")({
   head: () => ({
@@ -50,21 +51,33 @@ const CHIPS = ["🎵 music hits", "🎙 podcast", "🚗 Tesla", "👶 kids songs
 function YouTubePage() {
   const lock = useDriveLock();
   const [q, setQ] = useState("");
-  const [src, setSrc] = useState(
-    "https://www.youtube.com/embed?listType=search&list=music%20hits&playsinline=1",
-  );
+  const [src, setSrc] = useState<string | null>(null);
+  const [results, setResults] = useState<YtVideo[]>([]);
+  const [busy, setBusy] = useState(false);
   const parked = lock === "parked";
 
-  const play = (input: string) => {
+  const embed = (id: string, auto = true) =>
+    `https://www.youtube.com/embed/${id}?playsinline=1&rel=0${auto ? "&autoplay=1" : ""}`;
+
+  const play = async (input: string, auto = true) => {
     const text = input.trim();
     if (!text) return;
     const id = parseYoutubeId(text);
-    setSrc(
-      id
-        ? `https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1`
-        : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(text)}&autoplay=1&playsinline=1`,
-    );
+    if (id) { setSrc(embed(id, auto)); return; }
+    setBusy(true);
+    try {
+      const list = await searchYoutube({ data: { q: text } });
+      setResults(list);
+      if (list[0]) setSrc(embed(list[0].id, auto));
+    } finally {
+      setBusy(false);
+    }
   };
+
+  useEffect(() => {
+    if (parked && !src && !busy) void play("music hits", false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parked]);
 
   return (
     <HubShell back>
@@ -81,7 +94,7 @@ function YouTubePage() {
           <>
             <form
               className="cockpit-glass flex w-full gap-2 rounded-2xl p-2"
-              onSubmit={(e) => { e.preventDefault(); play(q); }}
+              onSubmit={(e) => { e.preventDefault(); void play(q); }}
             >
               <span className="flex items-center px-2 text-2xl text-destructive">▶</span>
               <input
@@ -104,15 +117,36 @@ function YouTubePage() {
               ))}
             </div>
             <div className="aspect-video w-full overflow-hidden rounded-3xl border border-border bg-background">
-              <iframe
-                key={src}
-                className="h-full w-full"
-                src={src}
-                title="YouTube"
-                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                allowFullScreen
-              />
+              {src ? (
+                <iframe
+                  key={src}
+                  className="h-full w-full"
+                  src={src}
+                  title="YouTube"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                  allowFullScreen
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  {busy ? "…" : "▶"}
+                </div>
+              )}
             </div>
+            {results.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                {results.map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => setSrc(embed(v.id))}
+                    className="cockpit-glass overflow-hidden rounded-2xl text-left"
+                  >
+                    <img src={`https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`} alt="" className="aspect-video w-full object-cover" loading="lazy" />
+                    <div className="line-clamp-2 p-2 text-sm">{v.title}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>

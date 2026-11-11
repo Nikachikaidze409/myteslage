@@ -2,7 +2,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AccountMenu } from "@/components/AccountMenu";
-import { HeroScreen, PairingArt, TMapMark } from "@/components/landing/illustrations";
+import heroImg from "@/assets/hero-dashboard.jpg";
+import pairingImg from "@/assets/feature-pairing.jpg";
 import { useMarket } from "@/lib/market-context";
 import { MARKET_BOG_LABELS } from "@/lib/market";
 
@@ -138,100 +139,117 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
   const georgia = market === "ge" && !ru;
   const semi = SEMI_COPY[lang === "ka" ? "ka" : lang === "hy" ? "hy" : "en"];
 
-  const brand =
-    market === "am" || lang === "hy"
-      ? "TMap Armenia"
-      : market === "az"
-        ? "TMap Azerbaijan"
-        : lang === "ru"
-          ? "TMap"
-          : "TMap Georgia";
-
   return (
     <div className="min-h-screen bg-[#050708] text-white" lang={lang}>
-      <Nav signedIn={signedIn} t={t} lang={lang} onLang={setLangPersist} armenia={armenia} />
+      <Nav
+        signedIn={signedIn}
+        t={t}
+        lang={lang}
+        onLang={setLangPersist}
+        armenia={armenia}
+      />
 
       {/* HERO */}
-      <section className="relative border-b border-white/[0.06]">
-        <div className="mx-auto grid max-w-[1440px] items-center gap-8 px-5 pb-8 pt-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12 lg:pt-10">
-          <div className="min-w-0">
-            <div className="mb-4 inline-flex max-w-full items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#e9b149]">
-              <span className="h-px w-6 shrink-0 bg-[#e9b149]" />
-              <span className="break-words">{t.heroBadge}</span>
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,rgba(59,130,246,0.18),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(40%_40%_at_100%_100%,rgba(233,177,73,0.10),transparent_70%)]" />
+        <div className="mx-auto grid max-w-[1200px] gap-10 px-6 pb-20 pt-24 lg:grid-cols-[1.05fr_1fr] lg:pt-32">
+          <div className="animate-fade-in">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-white/70">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#e9b149]" />
+              {t.heroBadge}
             </div>
-            <h1 className="font-display break-words text-[2.1rem] font-black leading-[1.05] tracking-tight sm:text-5xl xl:text-6xl">
+            <h1 className="font-display text-5xl font-black leading-[1.02] tracking-tight md:text-6xl lg:text-7xl">
               {t.heroTitle1}
               <br />
-              {t.heroTitle2} <span className="text-[#e9b149]">{t.heroTitle3}</span>
+              {t.heroTitle2}{" "}
+              <span className="bg-gradient-to-r from-[#3b82f6] via-[#60a5fa] to-[#e9b149] bg-clip-text text-transparent">
+                {t.heroTitle3}
+              </span>
             </h1>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">{t.heroBody}</p>
-            <Link
-              to="/pricing"
-              className="font-display group mt-7 inline-flex min-h-14 items-center justify-center rounded-xl bg-[#3b82f6] px-8 py-3 text-base font-bold text-white transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e9b149] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050708]"
-            >
-              {t.heroCta}
-              <span className="ml-2 transition group-hover:translate-x-1" aria-hidden="true">→</span>
-            </Link>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/70">{t.heroBody}</p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                to="/pricing"
+                className="font-display group inline-flex h-14 items-center justify-center rounded-2xl bg-[#3b82f6] px-7 text-base font-bold text-white shadow-[0_10px_40px_-10px_rgba(59,130,246,0.7)] transition hover:brightness-110"
+              >
+                {t.heroCta}
+                <span className="ml-2 transition group-hover:translate-x-1">→</span>
+              </Link>
+            </div>
+
+            <dl className="mt-10 grid max-w-lg grid-cols-3 gap-6 border-t border-white/10 pt-6 text-sm">
+              <Stat n={t.stat1} l={t.stat1l} />
+              <Stat n={t.stat2} l={t.stat2l} />
+              <Stat n={t.stat3} l={t.stat3l} />
+            </dl>
           </div>
-          <div className="min-w-0">
-            <HeroScreen label={t.heroImgAlt} />
+
+          <div className="relative">
+            <div className="absolute -inset-4 rounded-[32px] bg-gradient-to-br from-[#3b82f6]/30 to-[#e9b149]/20 blur-2xl" />
+            <div className="animate-scale-in relative overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-2xl">
+              <img
+                src={heroImg}
+                alt={t.heroImgAlt}
+                width={1600}
+                height={1000}
+                className="h-full w-full object-cover"
+              />
+            </div>
           </div>
         </div>
-
-        {/* trip readout */}
-        <dl className="mx-auto grid max-w-[1440px] grid-cols-1 border-t border-white/[0.06] sm:grid-cols-3 sm:divide-x sm:divide-white/10">
-          <Stat n={t.stat1} l={t.stat1l} />
-          <Stat n={t.stat2} l={t.stat2l} />
-          <Stat n={t.stat3} l={t.stat3l} />
-        </dl>
       </section>
 
-      {/* PROBLEM / SOLUTION */}
-      <section className="py-16 sm:py-20">
-        <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
-          <div className="grid overflow-hidden rounded-2xl border border-white/10 md:grid-cols-2">
-            <ComparePane tone="bad" eyebrow={t.badEyebrow} title={t.badTitle} bullets={t.badBullets} />
-            <ComparePane tone="good" eyebrow={t.goodEyebrow} title={t.goodTitle} bullets={t.goodBullets} />
-          </div>
+      {/* THE PROBLEM / SOLUTION */}
+      <section className="border-y border-white/5 bg-white/[0.02] py-20">
+        <div className="mx-auto grid max-w-[1200px] gap-8 px-6 md:grid-cols-2">
+          <Card tone="bad" eyebrow={t.badEyebrow} title={t.badTitle} bullets={t.badBullets} />
+          <Card tone="good" eyebrow={t.goodEyebrow} title={t.goodTitle} bullets={t.goodBullets} />
         </div>
       </section>
 
       {/* FEATURES */}
-      <section className="pb-20">
-        <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
-          <h2 className="font-display max-w-3xl break-words text-3xl font-black leading-tight sm:text-4xl md:text-5xl">
+      <section className="py-24">
+        <div className="mx-auto max-w-[1200px] px-6">
+          <h2 className="font-display max-w-3xl text-4xl font-black leading-tight md:text-5xl">
             {t.featuresTitle}
           </h2>
-          <p className="mt-4 max-w-2xl text-white/70">{t.featuresBody}</p>
+          <p className="mt-4 max-w-2xl text-white/60">{t.featuresBody}</p>
 
-          <div className="mt-10 grid grid-flow-dense gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {t.features.map((f, i) => (
-              <div key={f.t} className="contents">
-                <Feature icon={f.i} title={f.t} body={f.b} large={i === 0} />
-                {i === Math.min(1, t.features.length - 1) && (
-                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0a0d11] p-4 sm:col-span-2 lg:row-span-2">
-                    <div className="aspect-[8/5] w-full">
-                      <PairingArt label={t.pairingAlt} />
-                    </div>
-                  </div>
-                )}
-              </div>
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {t.features.map((f) => (
+              <Feature key={f.t} icon={f.i} title={f.t} body={f.b} />
             ))}
+          </div>
+
+          <div className="mt-16 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02]">
+            <img
+              src={pairingImg}
+              alt={t.pairingAlt}
+              loading="lazy"
+              width={1200}
+              height={912}
+              className="h-full w-full object-cover"
+            />
           </div>
         </div>
       </section>
 
       {/* PRICING TEASER */}
-      <section id="pricing" className="scroll-mt-16 border-t border-white/[0.06] py-20">
-        <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
-          <div className="mb-10">
-            <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#e9b149]">
+      <section
+        id="pricing"
+        className="border-t border-white/5 bg-gradient-to-b from-transparent to-[#3b82f6]/[0.06] py-24"
+      >
+        <div className="mx-auto max-w-[1200px] px-6">
+          <div className="mb-12 text-center">
+            <div className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[#e9b149]">
               {t.pricingEyebrow}
             </div>
-            <h2 className="font-display break-words text-3xl font-black sm:text-4xl md:text-5xl">{t.pricingTitle}</h2>
+            <h2 className="font-display text-4xl font-black md:text-5xl">{t.pricingTitle}</h2>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3 md:items-stretch">
+          <div className="grid items-start gap-5 md:grid-cols-3">
             <PricingCard
               className={armenia ? "md:order-1" : "md:order-3"}
               highlighted
@@ -259,17 +277,17 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
                 to="/pricing"
               />
             ) : (
-              <PricingCard
-                className={armenia ? "md:order-2" : "md:order-1"}
-                title={t.monthlyTitle}
-                price={ru ? RU_PRICES.monthly.price : prices.monthly}
-                period={t.monthlyPeriod}
-                subprice={ru ? RU_PRICES.monthly.sub : undefined}
-                tag={t.monthlyTag}
-                features={t.monthlyFeatures}
-                cta={t.monthlyCta}
-                to="/pricing"
-              />
+            <PricingCard
+              className={armenia ? "md:order-2" : "md:order-1"}
+              title={t.monthlyTitle}
+              price={ru ? RU_PRICES.monthly.price : prices.monthly}
+              period={t.monthlyPeriod}
+              subprice={ru ? RU_PRICES.monthly.sub : undefined}
+              tag={t.monthlyTag}
+              features={t.monthlyFeatures}
+              cta={t.monthlyCta}
+              to="/pricing"
+            />
             )}
             <PricingCard
               className={armenia ? "md:order-3" : georgia ? "md:order-1" : "md:order-2"}
@@ -284,38 +302,36 @@ export function Landing({ forcedLang }: { forcedLang?: Lang }) {
               to="/pricing"
             />
           </div>
-          <p className="mt-6 text-sm text-white/60">{t.pricingFoot}</p>
+          <p className="mt-6 text-center text-sm text-white/50">{t.pricingFoot}</p>
         </div>
       </section>
 
       {/* CONTACT */}
-      <section className="border-y border-white/[0.06] bg-[#0a0d11]">
-        <div className="mx-auto flex max-w-[1200px] flex-col gap-5 px-5 py-8 sm:px-8 md:flex-row md:items-center md:justify-between">
-          <div className="min-w-0">
-            <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#e9b149]">
+      <section className="py-20">
+        <div className="mx-auto max-w-[1200px] px-6">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#3b82f6]/10 to-[#e9b149]/5 px-8 py-12 text-center">
+            <div className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-[#e9b149]">
               {t.contactEyebrow}
             </div>
-            <h2 className="font-display break-words text-xl font-black sm:text-2xl">{t.contactTitle}</h2>
-            <p className="mt-1 max-w-xl text-sm text-white/70">{t.contactBody}</p>
+            <h2 className="font-display text-3xl font-black md:text-4xl">{t.contactTitle}</h2>
+            <p className="mx-auto mt-3 max-w-md text-white/60">{t.contactBody}</p>
+            <a
+              href="https://www.facebook.com/profile.php?id=61594077238294"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-display mt-6 inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-white px-7 text-base font-bold text-black transition hover:bg-white/90"
+            >
+              <span className="text-lg">💬</span>
+              {t.contactCta}
+            </a>
           </div>
-          <a
-            href="https://www.facebook.com/profile.php?id=61594077238294"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-display inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/15 px-6 py-3 text-sm font-bold text-white transition hover:border-[#3b82f6] hover:bg-[#3b82f6]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e9b149]"
-          >
-            <span aria-hidden="true">💬</span>
-            {t.contactCta}
-          </a>
         </div>
       </section>
 
-      <Footer text={t.footer} brand={brand} />
+      <Footer text={t.footer} brand={market === "am" || lang === "hy" ? "TMap Armenia" : market === "az" ? "TMap Azerbaijan" : lang === "ru" ? "TMap" : "TMap Georgia"} />
     </div>
   );
 }
-
-const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e9b149] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050708]";
 
 function Nav({
   signedIn,
@@ -330,29 +346,30 @@ function Nav({
   onLang: (l: Lang) => void;
   armenia: boolean;
 }) {
-  const solid = `inline-flex min-h-11 items-center rounded-lg bg-white px-3 text-sm font-semibold text-black hover:bg-white/90 sm:px-4 ${FOCUS}`;
   return (
-    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#050708]/90 backdrop-blur">
-      <div className="mx-auto flex min-h-14 max-w-[1440px] flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-1.5 sm:px-8">
-        <Link to="/" className={`font-display flex shrink-0 items-center gap-2 rounded-md text-base font-black tracking-tight ${FOCUS}`}>
-          <TMapMark />
-          <span className="hidden min-[400px]:inline">{armenia || lang === "ru" ? "TMap" : "TMap Georgia"}</span>
+    <header className="sticky top-0 z-40 border-b border-white/5 bg-[#050708]/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-6">
+        <Link to="/" className="font-display flex items-center gap-2 text-lg font-black tracking-tight">
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#e9b149] text-black">
+            ⚡
+          </span>
+          {armenia || lang === "ru" ? "TMap" : "TMap Georgia"}
         </Link>
-        <nav className="hidden items-center text-sm text-white/70 md:flex">
-          <a href="#pricing" className={`rounded-md px-2 py-2 hover:text-white ${FOCUS}`}>
+        <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
+          <a href="#pricing" className="hover:text-white">
             {t.navPricing}
           </a>
         </nav>
-        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-2">
           {!armenia && (
-            <div className="flex items-center rounded-lg border border-white/10 p-0.5 text-[11px] font-bold">
+            <div className="mr-1 flex items-center rounded-lg border border-white/10 bg-white/[0.03] p-0.5 text-[11px] font-bold">
               {LANGS.map((l) => (
                 <button
                   key={l}
                   type="button"
                   onClick={() => onLang(l)}
-                  className={`min-h-9 min-w-8 rounded-md px-1.5 transition sm:px-2 ${FOCUS} ${
-                    lang === l ? "bg-white text-black" : "text-white/70 hover:text-white"
+                  className={`rounded-md px-2 py-1 transition ${
+                    lang === l ? "bg-white text-black" : "text-white/60 hover:text-white"
                   }`}
                   aria-pressed={lang === l}
                 >
@@ -364,11 +381,17 @@ function Nav({
           {signedIn ? (
             <>
               {armenia ? (
-                <a href="https://tmap.ge/hub?from=am" className={solid}>
+                <a
+                  href="https://tmap.ge/hub?from=am"
+                  className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
+                >
                   {t.navOpenApp}
                 </a>
               ) : (
-                <Link to="/hub" className={solid}>
+                <Link
+                  to="/hub"
+                  className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
+                >
                   {t.navOpenApp}
                 </Link>
               )}
@@ -376,10 +399,13 @@ function Nav({
             </>
           ) : (
             <>
-              <Link to="/auth" className={`hidden min-h-11 items-center rounded-md px-2 text-sm text-white/75 hover:text-white sm:inline-flex ${FOCUS}`}>
+              <Link to="/auth" className="hidden text-sm text-white/70 hover:text-white sm:inline">
                 {t.navSignIn}
               </Link>
-              <Link to="/pricing" className={solid}>
+              <Link
+                to="/pricing"
+                className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-white/90"
+              >
                 {t.navGetStarted}
               </Link>
             </>
@@ -392,31 +418,26 @@ function Nav({
 
 function Stat({ n, l }: { n: string; l: string }) {
   return (
-    <div className="flex items-baseline gap-3 border-b border-white/[0.06] px-5 py-4 last:border-b-0 sm:block sm:border-b-0 sm:px-8">
-      <dt className="sr-only">{l}</dt>
-      <dd className="font-display text-2xl font-black tabular-nums text-white">{n}</dd>
-      <dd className="mt-0.5 text-xs uppercase tracking-wider text-white/60">{l}</dd>
+    <div>
+      <div className="font-display text-2xl font-black text-white">{n}</div>
+      <div className="mt-1 text-xs text-white/50">{l}</div>
     </div>
   );
 }
 
-function Feature({ icon, title, body, large }: { icon: string; title: string; body: string; large?: boolean }) {
+function Feature({ icon, title, body }: { icon: string; title: string; body: string }) {
   return (
-    <div
-      className={`rounded-2xl border p-6 ${
-        large
-          ? "border-[#3b82f6]/30 bg-[#3b82f6]/[0.06] sm:col-span-2 lg:row-span-2 lg:p-8"
-          : "border-white/10 bg-[#0a0d11]"
-      }`}
-    >
-      <div className={`mb-4 ${large ? "text-3xl" : "text-xl"}`} aria-hidden="true">{icon}</div>
-      <div className={`font-display break-words font-bold ${large ? "text-2xl lg:text-3xl" : "text-lg"}`}>{title}</div>
-      <div className={`mt-2 text-white/70 ${large ? "text-base" : "text-sm"}`}>{body}</div>
+    <div className="group rounded-2xl border border-white/10 bg-white/[0.02] p-6 transition hover:border-white/20 hover:bg-white/[0.04]">
+      <div className="mb-4 grid h-11 w-11 place-items-center rounded-xl bg-white/5 text-xl">
+        {icon}
+      </div>
+      <div className="font-display text-lg font-bold">{title}</div>
+      <div className="mt-1.5 text-sm text-white/60">{body}</div>
     </div>
   );
 }
 
-function ComparePane({
+function Card({
   tone,
   eyebrow,
   title,
@@ -430,22 +451,24 @@ function ComparePane({
   const isBad = tone === "bad";
   return (
     <div
-      className={`p-7 sm:p-10 ${
+      className={`rounded-3xl border p-8 ${
         isBad
-          ? "bg-[#0a0c0e] grayscale"
-          : "border-t border-white/10 bg-[#3b82f6]/[0.08] md:border-l md:border-t-0 md:border-l-[#3b82f6]/40"
+          ? "border-white/10 bg-white/[0.02]"
+          : "border-[#3b82f6]/40 bg-gradient-to-br from-[#3b82f6]/10 to-[#e9b149]/5"
       }`}
     >
-      <div className={`text-[11px] font-bold uppercase tracking-[0.18em] ${isBad ? "text-white/55" : "text-[#7fb0ff]"}`}>
+      <div
+        className={`text-[11px] font-bold uppercase tracking-widest ${
+          isBad ? "text-red-400/80" : "text-[#e9b149]"
+        }`}
+      >
         {eyebrow}
       </div>
-      <div className={`font-display mt-2 break-words text-2xl font-black ${isBad ? "text-white/70" : "text-white"}`}>{title}</div>
-      <ul className={`mt-6 space-y-3 text-sm ${isBad ? "text-white/60" : "text-white/85"}`}>
+      <div className="font-display mt-2 text-2xl font-black">{title}</div>
+      <ul className="mt-5 space-y-3 text-sm text-white/70">
         {bullets.map((b) => (
           <li key={b} className="flex gap-3">
-            <span className={`shrink-0 font-bold ${isBad ? "text-white/45" : "text-[#3b82f6]"}`} aria-hidden="true">
-              {isBad ? "✕" : "✓"}
-            </span>
+            <span className={isBad ? "text-red-400" : "text-emerald-400"}>{isBad ? "✕" : "✓"}</span>
             <span>{b}</span>
           </li>
         ))}
@@ -483,29 +506,43 @@ function PricingCard({
 }) {
   return (
     <div
-      className={`relative flex h-full flex-col rounded-2xl border p-7 ${
-        highlighted ? "border-[#3b82f6] bg-[#0c1626]" : "border-white/10 bg-[#0a0d11]"
-      } ${featured ? "ring-2 ring-[#e9b149]/70" : ""} ${className ?? ""}`}
+      className={`relative rounded-3xl border p-8 ${
+        highlighted
+          ? "border-[#3b82f6]/60 bg-gradient-to-br from-[#3b82f6]/15 via-transparent to-[#e9b149]/10 shadow-[0_20px_80px_-20px_rgba(59,130,246,0.5)]"
+          : "border-white/10 bg-white/[0.02]"
+      } ${
+        featured
+          ? "ring-2 ring-[#e9b149]/70 md:-my-3 md:scale-[1.04] md:py-11 md:shadow-[0_30px_100px_-20px_rgba(233,177,73,0.45)]"
+          : ""
+      } ${className ?? ""}`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">{title}</div>
-        {highlighted && (
-          <div className={`rounded-md bg-[#e9b149] px-2 py-0.5 font-black uppercase tracking-wider text-black ${featured ? "text-xs" : "text-[10px]"}`}>
-            {badgeLabel ?? "Save 10%"}
-          </div>
-        )}
+      {highlighted && (
+        <div
+          className={`absolute -top-3 left-8 rounded-full bg-[#e9b149] px-3 py-1 font-black uppercase tracking-widest text-black ${
+            featured ? "text-xs" : "text-[11px]"
+          }`}
+        >
+          {badgeLabel ?? "Save 10%"}
+        </div>
+      )}
+      <div className="text-[11px] font-bold uppercase tracking-widest text-white/60">{title}</div>
+      <div className="mt-3 flex items-baseline gap-1">
+        <span className={`font-display font-black ${featured ? "text-5xl md:text-6xl" : "text-5xl"}`}>
+          {price}
+        </span>
+        <span className="text-white/60">{period}</span>
       </div>
-      <div className="mt-5 flex flex-wrap items-baseline gap-x-1.5">
-        <span className={`font-display font-black tabular-nums ${highlighted ? "text-5xl lg:text-6xl" : "text-5xl"}`}>{price}</span>
-        <span className="text-white/65">{period}</span>
-      </div>
-      {subprice && <div className="mt-1 text-sm font-semibold text-[#e9b149]">{subprice}</div>}
-      <div className="mt-1 text-xs text-white/60">{tag}</div>
+      {subprice && (
+        <div className={`mt-1 text-[#e9b149] ${featured ? "text-base font-semibold" : "text-sm"}`}>
+          {subprice}
+        </div>
+      )}
+      <div className="mt-1 text-xs text-white/50">{tag}</div>
 
-      <ul className="mt-6 flex-1 space-y-2.5 border-t border-white/10 pt-5 text-sm text-white/80">
+      <ul className="mt-6 space-y-2.5 text-sm text-white/70">
         {features.map((f) => (
           <li key={f} className="flex gap-2">
-            <span className="shrink-0 text-[#3b82f6]" aria-hidden="true">✓</span>
+            <span className="text-emerald-400">✓</span>
             <span>{f}</span>
           </li>
         ))}
@@ -513,8 +550,10 @@ function PricingCard({
 
       <Link
         to={to}
-        className={`font-display mt-7 flex min-h-12 items-center justify-center rounded-xl px-4 text-center text-sm font-bold transition ${FOCUS} ${
-          highlighted ? "bg-[#3b82f6] text-white hover:brightness-110" : "border border-white/15 text-white hover:bg-white/5"
+        className={`font-display mt-7 flex h-12 items-center justify-center rounded-xl text-sm font-bold transition ${
+          highlighted
+            ? "bg-[#3b82f6] text-white hover:brightness-110"
+            : "bg-white text-black hover:bg-white/90"
         }`}
       >
         {cta}
@@ -524,22 +563,21 @@ function PricingCard({
 }
 
 function Footer({ text, brand }: { text: string; brand: string }) {
-  const link = `inline-flex min-h-11 items-center rounded-md text-white/75 transition hover:text-white ${FOCUS}`;
   return (
-    <footer className="px-5 py-10 text-center text-xs text-white/60 sm:px-8">
-      <div className="mb-4 flex flex-wrap items-center justify-center gap-x-6">
-        <Link to="/terms" className={link}>
+    <footer className="border-t border-white/5 py-10 text-center text-xs text-white/40">
+      <div className="mb-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+        <Link to="/terms" className="text-white/60 transition hover:text-white">
           Terms &amp; Conditions
         </Link>
-        <Link to="/refund" className={link}>
+        <Link to="/refund" className="text-white/60 transition hover:text-white">
           Refund Policy
         </Link>
-        <Link to="/privacy" className={link}>
+        <Link to="/privacy" className="text-white/60 transition hover:text-white">
           Privacy Notice
         </Link>
       </div>
       <p>© {new Date().getFullYear()} {brand} · {text}</p>
-      <p className="mx-auto mt-3 max-w-2xl text-sm text-white/70">
+      <p className="mx-auto mt-3 max-w-2xl px-6 text-white/50">
         {brand} is an independent product and is not affiliated with or endorsed by Tesla, Inc.
       </p>
     </footer>
